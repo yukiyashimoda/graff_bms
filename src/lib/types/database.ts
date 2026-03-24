@@ -87,6 +87,24 @@ export interface Database {
         Update:        Partial<Database['public']['Tables']['purchase_order_items']['Insert']>
         Relationships: []
       }
+      inventory_settings: {
+        Row:           { id: string; interval_days: number; updated_at: string }
+        Insert:        { id?: string; interval_days: number; updated_at?: string }
+        Update:        Partial<Database['public']['Tables']['inventory_settings']['Insert']>
+        Relationships: []
+      }
+      inventory_sessions: {
+        Row:           { id: string; status: 'in_progress' | 'submitted' | 'approved'; started_at: string; submitted_at: string | null; approved_at: string | null; notes: string | null }
+        Insert:        { id?: string; status?: 'in_progress' | 'submitted' | 'approved'; started_at?: string; submitted_at?: string | null; approved_at?: string | null; notes?: string | null }
+        Update:        Partial<Database['public']['Tables']['inventory_sessions']['Insert']>
+        Relationships: []
+      }
+      inventory_session_items: {
+        Row:           { id: string; session_id: string; product_id: string; product_name: string; product_name_en: string; unit: string; system_quantity: number; actual_quantity: number | null; notes: string | null }
+        Insert:        { id?: string; session_id: string; product_id: string; product_name: string; product_name_en?: string; unit?: string; system_quantity: number; actual_quantity?: number | null; notes?: string | null }
+        Update:        Partial<Database['public']['Tables']['inventory_session_items']['Insert']>
+        Relationships: []
+      }
     }
     Views: {
       cocktail_cost_view: {

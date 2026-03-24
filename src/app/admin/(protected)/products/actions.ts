@@ -74,7 +74,7 @@ export async function createProduct(formData: FormData) {
       grape_varieties: grape_varieties
         ? grape_varieties.split(',').map(g => g.trim()).filter(Boolean)
         : [],
-      wine_type: (formData.get('wine_type') as string) || 'other',
+      wine_type: ((formData.get('wine_type') as string) || 'other') as 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other',
       body:      (formData.get('wine_body') as 'light' | 'medium' | 'full') || null,
       vintage: formData.get('wine_vintage')
         ? parseInt(formData.get('wine_vintage') as string)

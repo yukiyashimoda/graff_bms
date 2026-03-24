@@ -156,7 +156,7 @@ export async function approveInventorySession(
       supabase.from('stock_transactions').insert(
         diffs.map(i => ({
           product_id: i.product_id,
-          type:       'adjustment',
+          type:       'adjustment' as const,
           quantity:   Number(i.actual_quantity) - Number(i.system_quantity),
           notes:      '棚卸し差異調整',
         })),
@@ -165,7 +165,7 @@ export async function approveInventorySession(
       ...diffs.map(i =>
         supabase
           .from('stock')
-          .update({ quantity: i.actual_quantity })
+          .update({ quantity: i.actual_quantity ?? undefined })
           .eq('product_id', i.product_id),
       ),
     ])
