@@ -6,7 +6,7 @@ export function PageTransition() {
       style={{
         position:       'fixed',
         inset:          0,
-        background:     '#091d26',
+        background:     '#ededed',
         display:        'flex',
         flexDirection:  'column',
         alignItems:     'center',
@@ -21,13 +21,13 @@ export function PageTransition() {
         style={{
           width:          56,
           height:         56,
-          background:     '#d84f2a',
+          background:     '#091d26',
           borderRadius:   12,
           display:        'flex',
           alignItems:     'center',
           justifyContent: 'center',
           fontSize:       26,
-          color:          '#f0eff6',
+          color:          '#ededed',
           fontFamily:     'var(--font-silkscreen)',
           animation:      'pt-logo 0.45s cubic-bezier(0.16,1,0.3,1) 0.05s both',
         }}
@@ -36,7 +36,7 @@ export function PageTransition() {
       </div>
 
       {/* graff.bms テキスト */}
-      <div style={{ display: 'flex', fontFamily: 'var(--font-silkscreen)', fontSize: 18, color: '#d84f2a', letterSpacing: 1 }}>
+      <div style={{ display: 'flex', fontFamily: 'var(--font-silkscreen)', fontSize: 18, color: '#091d26', letterSpacing: 1 }}>
         {CHARS.map((char, i) => (
           <span
             key={i}
@@ -53,7 +53,7 @@ export function PageTransition() {
       </div>
 
       {/* ローディングバー */}
-      <div style={{ width: 56, height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden', marginTop: 4 }}>
+      <div style={{ width: 56, height: 2, background: 'rgba(9,29,38,0.12)', borderRadius: 99, overflow: 'hidden', marginTop: 4 }}>
         <div
           style={{
             height:          '100%',
