@@ -7,14 +7,24 @@ import { ProductRow } from './ProductRow'
 import type { ProductWithRelations } from '@/lib/types/database'
 
 export function ProductsClient({ products }: { products: ProductWithRelations[] }) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery]       = useState('')
+  const [catFilter, setCatFilter] = useState<string | null>(null)
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>()
+    return products
+      .map(p => (p.categories as { name: string } | null)?.name)
+      .filter((c): c is string => !!c && !seen.has(c) && !!seen.add(c))
+      .sort()
+  }, [products])
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return products
-    const q = query.toLowerCase()
     return products.filter(p => {
       const cat = (p.categories as { name: string } | null)?.name ?? ''
       const sup = (p.suppliers  as { name: string } | null)?.name ?? ''
+      if (catFilter && cat !== catFilter) return false
+      if (!query.trim()) return true
+      const q = query.toLowerCase()
       return (
         p.name.toLowerCase().includes(q) ||
         (p.name_en ?? '').toLowerCase().includes(q) ||
@@ -22,7 +32,7 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
         sup.toLowerCase().includes(q)
       )
     })
-  }, [products, query])
+  }, [products, query, catFilter])
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -30,9 +40,19 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
         <div>
           <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>商品管理</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            {query ? `${filtered.length} / ${products.length} 件` : `${products.length} 件`}
+            {(query || catFilter) ? `${filtered.length} / ${products.length} 件` : `${products.length} 件`}
           </p>
         </div>
+
+        {/* カテゴリフィルター */}
+        {categories.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <CatBtn label="すべて" active={catFilter === null} onClick={() => setCatFilter(null)} />
+            {categories.map(c => (
+              <CatBtn key={c} label={c} active={catFilter === c} onClick={() => setCatFilter(c)} />
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           {/* 検索窓 */}
@@ -84,5 +104,20 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
         )}
       </div>
     </div>
+  )
+}
+
+function CatBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-3 py-1 rounded-full text-xs font-semibold transition-opacity hover:opacity-80"
+      style={active
+        ? { background: '#102937', color: '#ededed' }
+        : { background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+      }
+    >
+      {label}
+    </button>
   )
 }
