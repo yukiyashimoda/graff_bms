@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { updateOrderStatus, deleteOrder } from '../actions'
+import { updateOrderStatus, deleteOrder, receiveOrder } from '../actions'
 import {
   RiPrinterFill,
   RiSendPlaneFill,
@@ -126,7 +126,7 @@ export default async function OrderHistoryPage() {
                         </form>
                       )}
                       {status === 'sent' && (
-                        <form action={async () => { 'use server'; await updateOrderStatus(order.id, 'received') }}>
+                        <form action={async () => { 'use server'; await receiveOrder(order.id) }}>
                           <button
                             type="submit"
                             className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"

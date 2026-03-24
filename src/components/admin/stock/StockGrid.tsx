@@ -508,19 +508,14 @@ function StockCard({
         {item.batches.length > 0 ? (
           <div className="flex flex-col gap-0.5">
             {item.batches.map((b, i) => (
-              <div key={i} className="flex items-center justify-between tabular-nums">
-                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                  ¥{b.cost_price.toLocaleString()}
-                </span>
-                <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-                  {b.quantity_rem} {item.unit}
-                </span>
-              </div>
+              <p key={i} className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                ¥{b.cost_price.toLocaleString()} × {b.quantity_rem}{item.unit}
+              </p>
             ))}
           </div>
         ) : item.cost_price != null ? (
           <p className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-            仕入れ値 ¥{item.cost_price.toLocaleString()}
+            ¥{item.cost_price.toLocaleString()} × {item.quantity}{item.unit}
           </p>
         ) : null}
       </div>

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { recordStockTransaction } from '@/app/admin/(protected)/stock/actions'
 
 type OrderItem = {
   product_id: string
@@ -58,6 +59,30 @@ export async function updateOrderStatus(
   const supabase = await createServiceClient()
   await supabase.from('purchase_orders').update({ status }).eq('id', orderId)
   revalidatePath('/admin/orders')
+}
+
+export async function receiveOrder(orderId: string) {
+  const supabase = await createServiceClient()
+
+  const { data: items } = await supabase
+    .from('purchase_order_items')
+    .select('product_id, quantity, unit_price')
+    .eq('purchase_order_id', orderId)
+
+  await supabase.from('purchase_orders').update({ status: 'received' }).eq('id', orderId)
+
+  for (const item of (items ?? [])) {
+    await recordStockTransaction(
+      item.product_id,
+      'in',
+      item.quantity,
+      item.unit_price ?? null,
+    )
+  }
+
+  revalidatePath('/admin/orders')
+  revalidatePath('/admin/stock')
+  revalidatePath('/admin')
 }
 
 export async function deleteOrder(orderId: string) {
