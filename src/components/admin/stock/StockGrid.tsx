@@ -407,9 +407,6 @@ function StockCard({
             : <span />
           }
           <div className="flex items-center gap-1">
-            {isLow && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>不足</span>
-            )}
             <button
               onClick={() => priceOpen ? setPriceOpen(false) : openPriceForm()}
               className="px-2 py-0.5 text-[10px] font-semibold transition-all"
@@ -500,6 +497,11 @@ function StockCard({
             {newQty}
           </span>
           <span className="text-[11px] pb-0.5" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>
+          {isLow && (
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full pb-0.5" style={{ color: '#d84f2a', border: '1px solid #d84f2a55' }}>
+              不足
+            </span>
+          )}
           {hasDelta && (
             <span
               className="ml-auto text-sm font-bold tabular-nums"
