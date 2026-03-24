@@ -65,7 +65,7 @@ export function ProductRow({ product }: { product: ProductWithRelations }) {
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden"
+      className="product-card flex flex-col rounded-2xl overflow-hidden"
       style={{
         background: 'var(--bg-surface)',
         border:     isLow
