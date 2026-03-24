@@ -8,7 +8,11 @@ import {
   RiSearchLine,
   RiDownloadLine,
   RiFilePdfLine,
+  RiDeleteBinFill,
+  RiLockFill,
+  RiCloseFill,
 } from 'react-icons/ri'
+import { deleteStockTransaction, deleteMonthTransactions } from '@/app/admin/(protected)/stock/actions'
 
 type TxRow = {
   id:               string
@@ -82,33 +86,41 @@ function downloadCSV(transactions: TxRow[], month: string) {
   URL.revokeObjectURL(url)
 }
 
-export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
+export function HistoryClient({ transactions: initial }: { transactions: TxRow[] }) {
+  const [rows,        setRows]       = useState<TxRow[]>(initial)
   const [query,       setQuery]      = useState('')
   const [typeFilter,  setTypeFilter] = useState<'in' | 'out' | 'adjustment' | null>(null)
   const [catFilter,   setCat]        = useState<string | null>(null)
   const [activeMonth, setActiveMonth] = useState<string | null>(null)
 
+  // 個別削除
+  const [confirmId,   setConfirmId]  = useState<string | null>(null)
+  const [deleting,    setDeleting]   = useState(false)
+
+  // 一括削除
+  const [bulkOpen,    setBulkOpen]   = useState(false)
+  const [bulkPw,      setBulkPw]     = useState('')
+  const [bulkError,   setBulkError]  = useState<string | null>(null)
+  const [bulkBusy,    setBulkBusy]   = useState(false)
+
   const categories = useMemo(() => {
     const seen = new Set<string>()
-    return transactions
+    return rows
       .map(t => t.product_category)
       .filter((c): c is string => !!c && !seen.has(c) && !!seen.add(c))
       .sort()
-  }, [transactions])
+  }, [rows])
 
-  // 月一覧
   const months = useMemo(() => {
     const seen = new Set<string>()
-    transactions.forEach(t => seen.add(monthKey(t.created_at)))
-    const list = Array.from(seen).sort().reverse()
-    return list
-  }, [transactions])
+    rows.forEach(t => seen.add(monthKey(t.created_at)))
+    return Array.from(seen).sort().reverse()
+  }, [rows])
 
   const selectedMonth = activeMonth ?? months[0] ?? null
 
-  // サマリー（選択月）
   const monthlySummary = useMemo(() => {
-    const txs = transactions.filter(t => monthKey(t.created_at) === selectedMonth)
+    const txs = rows.filter(t => monthKey(t.created_at) === selectedMonth)
     return {
       inCount:   txs.filter(t => t.type === 'in').length,
       outCount:  txs.filter(t => t.type === 'out').length,
@@ -116,11 +128,10 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
       inCost:    txs.filter(t => t.type === 'in' && t.cost_price != null)
                    .reduce((s, t) => s + (t.cost_price ?? 0) * t.quantity, 0),
     }
-  }, [transactions, selectedMonth])
+  }, [rows, selectedMonth])
 
-  // フィルタ後のデータ（選択月）
   const filtered = useMemo(() => {
-    return transactions.filter(t => {
+    return rows.filter(t => {
       if (monthKey(t.created_at) !== selectedMonth) return false
       if (typeFilter && t.type !== typeFilter) return false
       if (catFilter && t.product_category !== catFilter) return false
@@ -131,9 +142,8 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
       }
       return true
     })
-  }, [transactions, selectedMonth, typeFilter, catFilter, query])
+  }, [rows, selectedMonth, typeFilter, catFilter, query])
 
-  // 日別グループ
   const byDay = useMemo(() => {
     const map = new Map<string, TxRow[]>()
     filtered.forEach(t => {
@@ -143,6 +153,34 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
     })
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]))
   }, [filtered])
+
+  async function handleDelete() {
+    if (!confirmId || deleting) return
+    setDeleting(true)
+    try {
+      await deleteStockTransaction(confirmId)
+      setRows(prev => prev.filter(r => r.id !== confirmId))
+    } finally {
+      setDeleting(false)
+      setConfirmId(null)
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!selectedMonth || bulkBusy) return
+    setBulkBusy(true)
+    setBulkError(null)
+    try {
+      await deleteMonthTransactions(selectedMonth, bulkPw)
+      setRows(prev => prev.filter(r => monthKey(r.created_at) !== selectedMonth))
+      setBulkOpen(false)
+      setBulkPw('')
+    } catch (e) {
+      setBulkError(e instanceof Error ? e.message : 'エラーが発生しました')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -247,11 +285,11 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
           </button>
         ))}
 
-        {/* ダウンロード */}
+        {/* ダウンロード + 一括削除 */}
         <div className="flex items-center gap-2 ml-auto">
           <button
             onClick={() => selectedMonth && downloadCSV(
-              transactions.filter(t => monthKey(t.created_at) === selectedMonth),
+              rows.filter(t => monthKey(t.created_at) === selectedMonth),
               selectedMonth,
             )}
             disabled={!selectedMonth}
@@ -271,6 +309,15 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
             <RiFilePdfLine size={13} />
             PDF
           </a>
+          <button
+            onClick={() => { setBulkPw(''); setBulkError(null); setBulkOpen(true) }}
+            disabled={!selectedMonth}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
+            style={{ background: 'var(--bg-surface)', color: '#d84f2a', border: '1px solid #d84f2a33' }}
+          >
+            <RiDeleteBinFill size={13} />
+            一括削除
+          </button>
         </div>
       </div>
 
@@ -322,7 +369,7 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
                     {txs.map((t, i) => (
                       <tr
                         key={t.id}
-                        className="transition-colors hover:bg-[var(--bg-base)]"
+                        className="transition-colors hover:bg-[var(--bg-base)] group"
                         style={{ borderBottom: i < txs.length - 1 ? '1px solid var(--border)' : 'none' }}
                       >
                         {/* 時刻 */}
@@ -387,12 +434,24 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
                         </td>
 
                         {/* メモ */}
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           {t.notes && (
                             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                               {t.notes}
                             </span>
                           )}
+                        </td>
+
+                        {/* 削除ボタン */}
+                        <td className="pr-3 py-3 w-10 text-right">
+                          <button
+                            onClick={() => setConfirmId(t.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
+                            style={{ color: 'var(--text-muted)' }}
+                            title="削除"
+                          >
+                            <RiDeleteBinFill size={13} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -402,6 +461,127 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* 個別削除 確認モーダル */}
+      {confirmId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => !deleting && setConfirmId(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 space-y-2">
+              <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>履歴を削除しますか？</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>この操作は取り消せません。</p>
+            </div>
+            <div
+              className="flex gap-3 px-6 py-4"
+              style={{ borderTop: '1px solid var(--border)' }}
+            >
+              <button
+                onClick={() => setConfirmId(null)}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: '#d84f2a', color: '#fff' }}
+              >
+                {deleting ? '削除中...' : '削除する'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 一括削除 パスワードモーダル */}
+      {bulkOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => !bulkBusy && setBulkOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* ヘッダー */}
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: '1px solid var(--border)' }}
+            >
+              <div className="flex items-center gap-2">
+                <RiLockFill size={14} style={{ color: '#d84f2a' }} />
+                <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {selectedMonth ? monthLabel(selectedMonth) : ''} の履歴を一括削除
+                </p>
+              </div>
+              <button
+                onClick={() => setBulkOpen(false)}
+                disabled={bulkBusy}
+                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <RiCloseFill size={17} />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                選択中の月の入出庫履歴をすべて削除します。この操作は取り消せません。
+              </p>
+              <div>
+                <p className="text-[11px] mb-1.5 font-medium" style={{ color: 'var(--text-secondary)' }}>管理パスワード</p>
+                <input
+                  type="password"
+                  value={bulkPw}
+                  onChange={e => { setBulkPw(e.target.value); setBulkError(null) }}
+                  onKeyDown={e => e.key === 'Enter' && handleBulkDelete()}
+                  placeholder="パスワードを入力..."
+                  className="w-full px-3 py-2.5 text-sm outline-none rounded-xl"
+                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  autoFocus
+                />
+                {bulkError && (
+                  <p className="text-[11px] mt-1.5" style={{ color: '#d84f2a' }}>{bulkError}</p>
+                )}
+              </div>
+            </div>
+
+            <div
+              className="flex gap-3 px-5 py-4"
+              style={{ borderTop: '1px solid var(--border)' }}
+            >
+              <button
+                onClick={() => setBulkOpen(false)}
+                disabled={bulkBusy}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkBusy || !bulkPw}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: '#d84f2a', color: '#fff' }}
+              >
+                {bulkBusy ? '削除中...' : '一括削除する'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

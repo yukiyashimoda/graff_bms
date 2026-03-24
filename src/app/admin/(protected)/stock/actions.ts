@@ -166,6 +166,31 @@ export async function recordPriceRevision(
   revalidatePath('/admin')
 }
 
+export async function deleteStockTransaction(id: string): Promise<void> {
+  const supabase = await createServiceClient()
+  await supabase.from('stock_transactions').delete().eq('id', id)
+  revalidatePath('/admin/stock/history')
+  revalidatePath('/admin')
+}
+
+export async function deleteMonthTransactions(month: string, password: string): Promise<void> {
+  const expected = process.env.BULK_DELETE_PASSWORD
+  if (!expected || password !== expected) throw new Error('パスワードが正しくありません')
+
+  const [y, m] = month.split('-')
+  const from = new Date(Number(y), Number(m) - 1, 1).toISOString()
+  const to   = new Date(Number(y), Number(m),     1).toISOString()
+
+  const supabase = await createServiceClient()
+  await supabase.from('stock_transactions')
+    .delete()
+    .gte('created_at', from)
+    .lt('created_at', to)
+
+  revalidatePath('/admin/stock/history')
+  revalidatePath('/admin')
+}
+
 export async function updateMinQuantity(productId: string, minQuantity: number) {
   const supabase = await createServiceClient()
   await supabase.from('stock').upsert(
