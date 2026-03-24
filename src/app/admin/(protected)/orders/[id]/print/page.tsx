@@ -1,6 +1,8 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { createServiceClient } from '@/lib/supabase/server'
 import { PrintButton } from '@/components/admin/orders/PrintButton'
+import { getIssuerProfile } from '@/app/admin/(protected)/orders/issuer-actions'
 import { RiArrowLeftLine } from 'react-icons/ri'
 
 const BRAND = '#3a8b9d'
@@ -38,6 +40,7 @@ export default async function OrderPrintPage({
   const items = order.purchase_order_items as unknown as {
     id: string; quantity: number; products: { name: string; unit: string }
   }[]
+  const [issuer] = await Promise.all([getIssuerProfile()])
   const orderNo = order.id.slice(-8).toUpperCase()
   const emptyRows = Math.max(0, MIN_ROWS - items.length)
 
@@ -155,10 +158,31 @@ export default async function OrderPrintPage({
 
           {/* 発注元（右） */}
           <div style={{ width: '40%', textAlign: 'right', fontSize: '12px', lineHeight: '1.7', color: '#555' }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333', marginBottom: '4px' }}>
-              graff.
-            </div>
-            {supplier?.phone && <div>TEL：{supplier.phone}</div>}
+            {issuer.logo_url && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                <div style={{ position: 'relative', width: '100px', height: '48px' }}>
+                  <Image
+                    src={issuer.logo_url}
+                    alt="logo"
+                    fill
+                    style={{ objectFit: 'contain', objectPosition: 'right' }}
+                  />
+                </div>
+              </div>
+            )}
+            {issuer.name && (
+              <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#333', marginBottom: '2px' }}>
+                {issuer.name}
+              </div>
+            )}
+            {!issuer.name && (
+              <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#333', marginBottom: '2px' }}>
+                graff.
+              </div>
+            )}
+            {issuer.address && <div style={{ whiteSpace: 'pre-line' }}>{issuer.address}</div>}
+            {issuer.phone   && <div>TEL：{issuer.phone}</div>}
+            {issuer.email   && <div>{issuer.email}</div>}
           </div>
         </div>
 

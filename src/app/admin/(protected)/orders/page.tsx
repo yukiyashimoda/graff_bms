@@ -1,8 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { OrderCart } from '@/components/admin/orders/OrderCart'
+import { IssuerEditModal } from '@/components/admin/orders/IssuerEditModal'
+import { getIssuerProfile } from './issuer-actions'
 
 export default async function OrdersPage() {
   const supabase = await createServiceClient()
+  const issuerProfile = await getIssuerProfile()
 
   const { data: products } = await supabase
     .from('products')
@@ -40,9 +43,12 @@ export default async function OrdersPage() {
 
   return (
     <div className="max-w-5xl space-y-8">
-      <div>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注管理</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>発注する商品を選んで発注書を作成</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注管理</h1>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>発注する商品を選んで発注書を作成</p>
+        </div>
+        <IssuerEditModal profile={issuerProfile} />
       </div>
 
       {/* カート */}
