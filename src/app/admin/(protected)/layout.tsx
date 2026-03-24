@@ -245,14 +245,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           className="h-14 flex items-center justify-between px-4 lg:px-6 gap-3 sticky top-0 z-30"
           style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}
         >
-          {/* ハンバーガー（モバイルのみ） */}
-          <button
-            onClick={() => setOpen(true)}
-            className="lg:hidden p-2 rounded-xl transition-colors hover:bg-[var(--bg-base)] flex-shrink-0"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <RiMenuFill size={18} />
-          </button>
+          {/* ハンバーガー＋ロゴ（モバイルのみ） */}
+          <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setOpen(true)}
+              className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-base)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <RiMenuFill size={18} />
+            </button>
+            <span className="text-[17px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-silkscreen)' }}>
+              graff.bms
+            </span>
+          </div>
 
           {/* 検索 */}
           <div
