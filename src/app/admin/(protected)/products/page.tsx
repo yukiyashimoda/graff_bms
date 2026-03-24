@@ -7,7 +7,7 @@ export default async function ProductsPage() {
 
   const { data: products, error } = await supabase
     .from('products')
-    .select('id, name, name_en, selling_price, display_out_of_stock, is_available, categories(name, name_en), suppliers!supplier_id(name), stock(quantity, min_quantity)')
+    .select('id, name, name_en, cost_price, display_out_of_stock, is_available, categories(name, name_en), suppliers!supplier_id(name), stock(quantity, min_quantity)')
     .order('name', { ascending: true })
 
   if (error) console.error('[ProductsPage] Supabase error:', error.message)

@@ -153,7 +153,7 @@ export function ProductRow({ product }: { product: ProductWithRelations }) {
 
         {/* 価格 */}
         <p className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-          {product.selling_price != null ? `¥${product.selling_price.toLocaleString()}` : '—'}
+          {product.cost_price != null ? `¥${Number(product.cost_price).toLocaleString()}` : '—'}
         </p>
       </div>
 
