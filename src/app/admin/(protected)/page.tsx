@@ -31,10 +31,10 @@ export default async function AdminDashboardPage() {
   ])
 
   const stats = [
-    { label: '総商品数',     value: productCount  ?? '—', sub: '商品マスタ' },
-    { label: '在庫なし',     value: lowStockCount ?? '—', sub: '要確認' },
-    { label: '発注件数',     value: orderCount    ?? '—', sub: '累計' },
-    { label: '価格アラート', value: alertCount    ?? '—', sub: '未読' },
+    { label: '総商品数',     value: productCount  ?? '—', sub: '商品マスタ', href: null },
+    { label: '在庫なし',     value: lowStockCount ?? '—', sub: '要確認',     href: null },
+    { label: '発注件数',     value: orderCount    ?? '—', sub: '累計',       href: null },
+    { label: '価格アラート', value: alertCount    ?? '—', sub: '未読',       href: '/admin/alerts', alert: (alertCount ?? 0) > 0 },
   ]
 
   return (
@@ -51,23 +51,29 @@ export default async function AdminDashboardPage() {
 
       {/* 統計グリッド */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {stats.map(({ label, value, sub }) => (
-          <div
-            key={label}
-            className="rounded-2xl p-4 flex flex-col gap-2"
-            style={{
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-sm)',
-            }}
-          >
-            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
-            <p className="text-3xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              {value}
-            </p>
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{sub}</p>
-          </div>
-        ))}
+        {stats.map(({ label, value, sub, href, alert }) => {
+          const cardStyle = {
+            background: alert ? '#d84f2a' : 'var(--bg-surface)',
+            border:     alert ? 'none'    : '1px solid var(--border)',
+            boxShadow:  'var(--shadow-sm)',
+          }
+          const card = (
+            <div className="rounded-2xl p-4 flex flex-col gap-2 h-full" style={cardStyle}>
+              <p className="text-xs font-medium" style={{ color: alert ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)' }}>{label}</p>
+              <p className="text-3xl font-bold tracking-tight" style={{ color: alert ? '#fff' : 'var(--text-primary)' }}>
+                {value}
+              </p>
+              <p className="text-[11px]" style={{ color: alert ? 'rgba(255,255,255,0.65)' : 'var(--text-muted)' }}>{sub}</p>
+            </div>
+          )
+          return href ? (
+            <Link key={label} href={href} className="rounded-2xl transition-opacity hover:opacity-85">
+              {card}
+            </Link>
+          ) : (
+            <div key={label}>{card}</div>
+          )
+        })}
       </div>
 
       {/* 2カラム */}
