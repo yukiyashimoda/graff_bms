@@ -87,13 +87,13 @@ export default function ProductForm({
 
       <form
         action={action}
-        className="rounded-2xl p-6 space-y-5"
+        className="rounded-2xl p-4 sm:p-6 space-y-5"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
       >
         <input type="hidden" name="detail_type" value={detailType ?? ''} />
 
         {/* 商品名 */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="商品名 *">
             <input name="name" required defaultValue={d?.name} placeholder="例: ヘネシー XO" className={inputClass} style={inputStyle} />
           </Field>
@@ -103,7 +103,7 @@ export default function ProductForm({
         </div>
 
         {/* カテゴリ・発注先 */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="カテゴリ">
             <select
               name="category_id"
@@ -129,7 +129,7 @@ export default function ProductForm({
         </div>
 
         {/* 価格 */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field label="単位">
             <input name="unit" defaultValue={d?.unit ?? '本'} placeholder="本 / ml / g" className={inputClass} style={inputStyle} />
           </Field>
@@ -186,7 +186,7 @@ export default function ProductForm({
 
         {/* 表示設定 */}
         <Divider title="表示設定" />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="カスタムタグ">
             <input name="custom_tag" defaultValue={d?.custom_tag ?? ''} placeholder='例: NEW, SOLD OUT' className={inputClass} style={inputStyle} />
           </Field>
@@ -265,14 +265,14 @@ export default function ProductForm({
         <div className="flex gap-3 pt-2">
           <button
             type="submit"
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+            className="px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
             style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
           >
             {isEdit ? '更新する' : '登録する'}
           </button>
           <Link
             href="/admin/products"
-            className="px-6 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            className="px-6 py-3 rounded-xl text-sm font-medium transition-colors"
             style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
           >
             キャンセル
@@ -289,7 +289,7 @@ function WineSection() {
   return (
     <>
       <Divider title="ワイン詳細" />
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Field label="生産国">
           <input name="wine_country" placeholder="例: フランス" className={inputClass} style={inputStyle} />
         </Field>
@@ -300,7 +300,7 @@ function WineSection() {
           <input name="wine_region_en" placeholder="e.g. Bordeaux" className={inputClass} style={inputStyle} />
         </Field>
       </div>
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Field label="種別">
           <select name="wine_type" className={inputClass} style={inputStyle}>
             <option value="other">未設定</option>
@@ -340,7 +340,7 @@ function SpiritsSection() {
   return (
     <>
       <Divider title="スピリッツ詳細" />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="種別">
           <input name="spirits_type" list="spirits-types" placeholder="例: Whisky, Gin, Vodka" className={inputClass} style={inputStyle} />
           <datalist id="spirits-types">
@@ -353,7 +353,7 @@ function SpiritsSection() {
           <input name="spirits_age_statement" placeholder="例: 12 Years, NAS" className={inputClass} style={inputStyle} />
         </Field>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="容量（ml）">
           <input name="spirits_volume_ml" type="number" min="1" placeholder="例: 700" className={inputClass} style={inputStyle} />
         </Field>
@@ -369,7 +369,7 @@ function SoftDrinkSection() {
   return (
     <>
       <Divider title="ソフトドリンク詳細" />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="容量（ml）">
           <input name="soft_drink_volume_ml" type="number" min="1" placeholder="例: 350" className={inputClass} style={inputStyle} />
         </Field>
@@ -414,7 +414,7 @@ function CheckField({ name, label, defaultChecked }: { name: string; label: stri
   )
 }
 
-const inputClass = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors'
+const inputClass = 'w-full px-3 py-3 rounded-xl text-base outline-none transition-colors'
 const inputStyle = {
   background: 'var(--bg-base)',
   border: '1px solid var(--border)',

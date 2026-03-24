@@ -95,7 +95,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
       <div className="flex items-center gap-3 flex-wrap">
         {/* 検索 */}
         <div
-          className="flex items-center gap-2 px-3 h-10 rounded-xl flex-1 min-w-48"
+          className="flex items-center gap-2 px-3 h-11 rounded-xl flex-1 min-w-48"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
           <RiSearchLine size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
@@ -103,7 +103,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="商品名で検索..."
-            className="flex-1 text-sm bg-transparent outline-none"
+            className="flex-1 text-base bg-transparent outline-none"
             style={{ color: 'var(--text-primary)' }}
           />
         </div>
@@ -112,7 +112,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setCat(null)}
-            className="h-10 px-3 rounded-xl text-xs font-medium transition-all"
+            className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
             style={{
               background: catFilter === null ? 'var(--bg-dark)' : 'var(--bg-surface)',
               color:      catFilter === null ? 'var(--text-invert)' : 'var(--text-secondary)',
@@ -125,7 +125,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
             <button
               key={c}
               onClick={() => setCat(c === catFilter ? null : c)}
-              className="h-10 px-3 rounded-xl text-xs font-medium transition-all"
+              className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
               style={{
                 background: catFilter === c ? 'var(--bg-dark)' : 'var(--bg-surface)',
                 color:      catFilter === c ? 'var(--text-invert)' : 'var(--text-secondary)',
@@ -141,7 +141,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
         <button
           onClick={handleSave}
           disabled={saving || dirtyCount === 0}
-          className="flex items-center gap-2 h-10 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ml-auto"
+          className="flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ml-auto"
           style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
         >
           <RiCheckFill size={14} />
@@ -205,7 +205,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
 
                 {/* 販売価格入力 */}
                 <div
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl"
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl"
                   style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
                 >
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>販売価格</span>
@@ -218,7 +218,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
                       value={prices[p.id]}
                       onChange={e => setPrices(prev => ({ ...prev, [p.id]: e.target.value }))}
                       placeholder="0"
-                      className="w-24 text-sm tabular-nums outline-none text-right bg-transparent"
+                      className="w-24 text-base tabular-nums outline-none text-right bg-transparent"
                       style={{ color: 'var(--text-primary)' }}
                     />
                   </div>

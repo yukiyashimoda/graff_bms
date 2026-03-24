@@ -77,7 +77,7 @@ export function SupplierManager({ suppliers }: Props) {
         {!isOpen && (
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+            className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
             style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
           >
             <RiAddLine size={16} />
@@ -134,7 +134,7 @@ export function SupplierManager({ suppliers }: Props) {
               <button
                 type="submit"
                 disabled={loading || !form.name}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                 style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
               >
                 <RiCheckFill size={14} />
@@ -142,7 +142,7 @@ export function SupplierManager({ suppliers }: Props) {
               </button>
               <button
                 type="button" onClick={close}
-                className="px-5 py-2.5 rounded-xl text-sm font-medium"
+                className="px-5 py-3 rounded-xl text-sm font-medium"
                 style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               >
                 キャンセル
@@ -249,5 +249,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-const inp      = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors'
+const inp      = 'w-full px-3 py-3 rounded-xl text-base outline-none transition-colors'
 const inpStyle = { background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' } as React.CSSProperties

@@ -121,7 +121,7 @@ export function InventoryMain({
 
         <div className="flex items-center gap-3">
           <div
-            className="flex items-center gap-2 px-3 h-10 rounded-xl"
+            className="flex items-center gap-2 px-3 h-11 rounded-xl"
             style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
           >
             <input
@@ -130,7 +130,7 @@ export function InventoryMain({
               max="365"
               value={interval}
               onChange={e => setIntervalVal(e.target.value)}
-              className="w-16 text-sm bg-transparent outline-none tabular-nums text-right"
+              className="w-16 text-base bg-transparent outline-none tabular-nums text-right"
               style={{ color: 'var(--text-primary)' }}
             />
             <span className="text-sm" style={{ color: 'var(--text-muted)' }}>日ごと</span>
@@ -138,7 +138,7 @@ export function InventoryMain({
           <button
             onClick={handleSaveSettings}
             disabled={savingSettings || interval === String(intervalDays)}
-            className="h-10 px-4 rounded-xl text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
+            className="h-11 px-4 rounded-xl text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
             style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
           >
             {savingSettings ? '保存中...' : '保存'}
@@ -186,7 +186,7 @@ export function InventoryMain({
 
             <button
               onClick={() => router.push(`/admin/inventory/${activeSession.id}`)}
-              className="flex items-center gap-2 h-10 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+              className="flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
               style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
             >
               <RiClipboardLine size={15} />
@@ -206,7 +206,7 @@ export function InventoryMain({
             <button
               onClick={handleStart}
               disabled={startingSession}
-              className="flex items-center gap-2 h-10 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+              className="flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
               style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
             >
               <RiClipboardLine size={15} />

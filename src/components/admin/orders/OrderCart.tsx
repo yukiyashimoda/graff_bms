@@ -117,7 +117,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
       {/* ツールバー */}
       <div className="flex items-center gap-3 flex-wrap">
         <div
-          className="flex items-center gap-2 px-3 h-10 rounded-xl flex-1 min-w-40"
+          className="flex items-center gap-2 px-3 h-11 rounded-xl flex-1 min-w-40"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
           <RiSearchLine size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
@@ -125,14 +125,14 @@ export function OrderCart({ items }: { items: CartItem[] }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="商品名・業者で検索..."
-            className="flex-1 text-sm bg-transparent outline-none"
+            className="flex-1 text-base bg-transparent outline-none"
             style={{ color: 'var(--text-primary)' }}
           />
         </div>
 
         <button
           onClick={() => setLowOnly(v => !v)}
-          className="flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-medium transition-all"
+          className="flex items-center gap-2 h-11 px-4 rounded-xl text-sm font-medium transition-all"
           style={{
             background: lowOnly ? 'var(--bg-dark)' : 'var(--bg-surface)',
             color:      lowOnly ? 'var(--text-invert)' : 'var(--text-secondary)',
@@ -307,7 +307,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
               <div className="flex gap-3">
                 <button
                   onClick={() => { setCart({}); setShowList(false) }}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
+                  className="flex-1 py-3 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
                   style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                 >
                   すべてリセット
@@ -315,7 +315,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
                 <button
                   onClick={handleConfirm}
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                   style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
                 >
                   <RiCheckFill size={14} />

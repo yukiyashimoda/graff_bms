@@ -158,7 +158,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-1">
                         <ActionBtn icon={RiAddBoxFill}   label="入庫" onClick={() => openModal(row, 'in')} />
                         <ActionBtn icon={RiSubtractFill} label="出庫" onClick={() => openModal(row, 'out')} />
                         <ActionBtn icon={RiEqualizerFill} label="調整" onClick={() => openModal(row, 'adjustment')} />
@@ -226,7 +226,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                 value={qty}
                 onChange={e => setQty(e.target.value)}
                 placeholder="0"
-                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                className="w-full px-3 py-3 rounded-xl text-base outline-none"
                 style={{
                   background: 'var(--bg-base)',
                   border: '1px solid var(--border)',
@@ -249,7 +249,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                   value={cost}
                   onChange={e => setCost(e.target.value)}
                   placeholder="空白でスキップ"
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  className="w-full px-3 py-3 rounded-xl text-base outline-none"
                   style={{
                     background: 'var(--bg-base)',
                     border: '1px solid var(--border)',
@@ -269,7 +269,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
                 placeholder="任意"
-                className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
+                className="w-full px-3 py-3 rounded-xl text-base outline-none resize-none"
                 style={{
                   background: 'var(--bg-base)',
                   border: '1px solid var(--border)',
@@ -283,7 +283,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
               <button
                 onClick={handleSubmit}
                 disabled={loading || !qty}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                 style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
               >
                 {loading ? (
@@ -297,7 +297,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
               </button>
               <button
                 onClick={closeModal}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+                className="px-4 py-3 rounded-xl text-sm font-medium transition-colors"
                 style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               >
                 キャンセル
@@ -317,7 +317,7 @@ function ActionBtn({
     <button
       onClick={onClick}
       title={label}
-      className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)] group/btn"
+      className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
       style={{ color: 'var(--text-secondary)' }}
     >
       <Icon size={14} />
