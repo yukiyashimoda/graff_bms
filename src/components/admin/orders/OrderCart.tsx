@@ -365,7 +365,7 @@ function OrderCard({
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden"
+      className="order-card flex flex-col rounded-2xl overflow-hidden"
       style={{
         background: 'var(--bg-surface)',
         border:     hasQty
@@ -397,12 +397,17 @@ function OrderCard({
           )}
         </div>
 
-        {/* 発注数 */}
+        {/* 在庫数（StockCard と同一） */}
         <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: hasQty ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-            {hasQty ? qty : '—'}
+          <span className="text-3xl font-bold tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>
+            {item.quantity}
           </span>
-          {hasQty && <span className="text-[11px] pb-0.5" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>}
+          <span className="text-[11px] pb-0.5" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>
+          {hasQty && (
+            <span className="ml-auto text-sm font-bold tabular-nums" style={{ color: '#22c55e' }}>
+              +{qty}
+            </span>
+          )}
         </div>
 
         {/* 在庫バー */}
@@ -414,14 +419,14 @@ function OrderCard({
             />
           </div>
           <div className="flex items-center justify-between mt-1">
-            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>在庫 {item.quantity} {item.unit}</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最低 {item.min_quantity} {item.unit}</p>
             {item.cost_price != null && (
               <p className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>¥{item.cost_price.toLocaleString()}</p>
             )}
           </div>
         </div>
 
-        {/* 業者名 */}
+        {/* 発注先 */}
         {item.supplier_name && (
           <p className="text-[10px] font-medium truncate" style={{ color: 'var(--text-muted)' }}>
             {item.supplier_name}

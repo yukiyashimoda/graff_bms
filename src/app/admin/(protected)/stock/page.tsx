@@ -7,7 +7,7 @@ export default async function StockPage() {
   const { data: products, error } = await supabase
     .from('products')
     .select(`
-      id, name, name_en, unit, image_url,
+      id, name, name_en, unit, image_url, cost_price,
       categories(name),
       stock(quantity, min_quantity)
     `)
@@ -28,6 +28,7 @@ export default async function StockPage() {
       unit:          p.unit,
       image_url:     p.image_url,
       category_name: (p.categories as unknown as { name: string } | null)?.name ?? null,
+      cost_price:    p.cost_price != null ? Number(p.cost_price) : null,
       quantity:      stockObj?.quantity      ?? 0,
       min_quantity:  stockObj?.min_quantity  ?? 0,
     }

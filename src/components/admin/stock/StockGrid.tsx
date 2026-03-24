@@ -20,6 +20,7 @@ export type StockItem = {
   unit:          string
   category_name: string | null
   image_url:     string | null
+  cost_price:    number | null
   quantity:      number
   min_quantity:  number
 }
@@ -322,7 +323,7 @@ function StockCard({
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden"
+      className="stock-card flex flex-col rounded-2xl overflow-hidden"
       style={{
         background: 'var(--bg-surface)',
         border:     hasDelta
@@ -378,7 +379,12 @@ function StockCard({
               style={{ width: `${pct}%`, background: isLow ? 'var(--bg-dark)' : 'var(--text-muted)' }}
             />
           </div>
-          <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>最低 {item.min_quantity} {item.unit}</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最低 {item.min_quantity} {item.unit}</p>
+            {item.cost_price != null && (
+              <p className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>¥{item.cost_price.toLocaleString()}</p>
+            )}
+          </div>
         </div>
       </div>
 
