@@ -6,7 +6,7 @@ export default async function SuppliersPage() {
 
   const { data: suppliers } = await supabase
     .from('suppliers')
-    .select('*')
+    .select('id, name, name_en, contact_name, phone, address, notes')
     .order('name')
 
   return <SupplierManager suppliers={suppliers ?? []} />
