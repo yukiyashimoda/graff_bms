@@ -1,2 +1,2 @@
-import { TableRowsSkeleton } from '@/components/admin/Skeleton'
-export default function Loading() { return <TableRowsSkeleton /> }
+import { PageTransition } from '@/components/admin/PageTransition'
+export default function Loading() { return <PageTransition /> }

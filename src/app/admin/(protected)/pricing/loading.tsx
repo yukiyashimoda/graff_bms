@@ -1,2 +1,2 @@
-import { TwoColCardsSkeleton } from '@/components/admin/Skeleton'
-export default function Loading() { return <TwoColCardsSkeleton /> }
+import { PageTransition } from '@/components/admin/PageTransition'
+export default function Loading() { return <PageTransition /> }

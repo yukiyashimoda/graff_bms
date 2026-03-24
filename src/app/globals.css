@@ -49,6 +49,23 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+@keyframes pt-bg {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pt-logo {
+  from { opacity: 0; transform: translateY(12px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes pt-char {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pt-bar {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
 @media print {
   body { background: white !important; }
   header, aside, nav { display: none !important; }

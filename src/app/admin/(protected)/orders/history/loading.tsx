@@ -1,2 +1,2 @@
-import { OrderCardsSkeleton } from '@/components/admin/Skeleton'
-export default function Loading() { return <OrderCardsSkeleton /> }
+import { PageTransition } from '@/components/admin/PageTransition'
+export default function Loading() { return <PageTransition /> }
