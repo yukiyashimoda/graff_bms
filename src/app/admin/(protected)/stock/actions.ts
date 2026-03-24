@@ -49,8 +49,10 @@ export async function recordStockTransaction(
   })
 
   // 入庫: ロット（inventory_batches）を新規作成
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
   if (type === 'in' && quantity > 0) {
-    await supabase.from('inventory_batches').insert({
+    await sb.from('inventory_batches').insert({
       product_id:   productId,
       cost_price:   costPrice ?? 0,
       quantity_in:  quantity,
@@ -61,7 +63,7 @@ export async function recordStockTransaction(
 
   // 出庫: FIFO でロット在庫を減算
   if (type === 'out' && quantity > 0) {
-    const { data: batches } = await supabase
+    const { data: batches } = await sb
       .from('inventory_batches')
       .select('id, quantity_rem')
       .eq('product_id', productId)
@@ -72,7 +74,7 @@ export async function recordStockTransaction(
     for (const batch of (batches ?? [])) {
       if (remaining <= 0) break
       const deduct  = Math.min(remaining, Number(batch.quantity_rem))
-      await supabase
+      await sb
         .from('inventory_batches')
         .update({ quantity_rem: Number(batch.quantity_rem) - deduct })
         .eq('id', batch.id)

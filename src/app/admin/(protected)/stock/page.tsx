@@ -4,6 +4,9 @@ import { StockGrid } from '@/components/admin/stock/StockGrid'
 export default async function StockPage() {
   const supabase = await createServiceClient()
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
+
   const [
     { data: products, error },
     { data: batchRows },
@@ -16,7 +19,7 @@ export default async function StockPage() {
         stock(quantity, min_quantity)
       `)
       .order('name'),
-    supabase
+    sb
       .from('inventory_batches')
       .select('product_id, cost_price, quantity_rem, received_at')
       .gt('quantity_rem', 0)
