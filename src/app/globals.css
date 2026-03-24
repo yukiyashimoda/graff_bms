@@ -36,6 +36,7 @@
 }
 
 * { box-sizing: border-box; }
+button, input, textarea, select { border-radius: 100vh !important; }
 html { height: 100%; -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
 body {
   min-height: 100%;
