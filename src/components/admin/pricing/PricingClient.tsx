@@ -188,7 +188,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
                   {p.category_name && (
                     <span
                       className="text-[10px] font-medium px-2 py-0.5 rounded-md flex-shrink-0"
-                      style={{ background: 'var(--bg-base)', color: 'var(--text-muted)' }}
+                      style={{ background: '#102937', color: '#ededed' }}
                     >
                       {p.category_name}
                     </span>

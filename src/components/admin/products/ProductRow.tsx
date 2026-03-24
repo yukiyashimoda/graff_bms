@@ -80,7 +80,7 @@ export function ProductRow({ product }: { product: ProductWithRelations }) {
         <div className="flex items-center justify-between gap-1">
           {catName
             ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full truncate max-w-[70%]"
-                    style={{ background: 'var(--bg-base)', color: 'var(--text-muted)' }}>
+                    style={{ background: '#102937', color: '#ededed' }}>
                 {catName}
               </span>
             : <span />

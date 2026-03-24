@@ -321,7 +321,7 @@ function StockCard({
         {/* カテゴリ + 不足バッジ */}
         <div className="flex items-center justify-between gap-1">
           {item.category_name
-            ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-base)', color: 'var(--text-muted)' }}>{item.category_name}</span>
+            ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#102937', color: '#ededed' }}>{item.category_name}</span>
             : <span />
           }
           {isLow && (
