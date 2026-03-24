@@ -44,3 +44,9 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+@media print {
+  body { background: white !important; }
+  header, aside, nav { display: none !important; }
+  main { padding: 0 !important; }
+}

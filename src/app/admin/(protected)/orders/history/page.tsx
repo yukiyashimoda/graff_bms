@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { updateOrderStatus, deleteOrder } from '../actions'
 import {
-  RiDownloadFill,
+  RiPrinterFill,
   RiSendPlaneFill,
   RiCheckboxCircleFill,
   RiDeleteBinFill,
@@ -105,13 +105,13 @@ export default async function OrderHistoryPage() {
                     {/* アクション */}
                     <div className="flex items-center gap-1 ml-2">
                       <a
-                        href={`/api/orders/${order.id}/pdf`}
+                        href={`/admin/orders/${order.id}/print`}
                         target="_blank"
                         className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
                         style={{ color: 'var(--text-secondary)' }}
-                        title="PDFをダウンロード"
+                        title="発注書を印刷"
                       >
-                        <RiDownloadFill size={14} />
+                        <RiPrinterFill size={14} />
                       </a>
                       {status === 'draft' && (
                         <form action={async () => { 'use server'; await updateOrderStatus(order.id, 'sent') }}>

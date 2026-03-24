@@ -26,7 +26,7 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="space-y-3">
         <div>
           <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>商品管理</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -34,10 +34,10 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
           </p>
         </div>
 
-        <div className="flex items-center gap-3 flex-1 justify-end">
+        <div className="flex items-center gap-3">
           {/* 検索窓 */}
           <div
-            className="flex items-center gap-2 px-3 h-9 rounded-xl flex-1 max-w-64"
+            className="flex items-center gap-2 px-3 h-9 rounded-xl flex-1"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
           >
             <RiSearchLine size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
@@ -76,21 +76,11 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>「{query}」に一致する商品がありません</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                <th className="pl-4 pr-2 py-3 w-10 text-xs font-semibold text-left" style={{ color: 'var(--text-muted)' }}>表示</th>
-                {['商品名', 'カテゴリ', '発注先', '販売価格', '最低在庫', '状態', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((product, i) => (
-                <ProductRow key={product.id} product={product} isLast={i === filtered.length - 1} />
-              ))}
-            </tbody>
-          </table>
+          <div className="grid gap-3 p-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))' }}>
+            {filtered.map(product => (
+              <ProductRow key={product.id} product={product} />
+            ))}
+          </div>
         )}
       </div>
     </div>
