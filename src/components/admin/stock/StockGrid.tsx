@@ -14,6 +14,12 @@ import {
 } from 'react-icons/ri'
 import { recordStockTransaction, recordPriceRevision } from '@/app/admin/(protected)/stock/actions'
 
+export type BatchInfo = {
+  cost_price:   number
+  quantity_rem: number
+  received_at:  string
+}
+
 export type StockItem = {
   id:            string
   name:          string
@@ -24,6 +30,7 @@ export type StockItem = {
   cost_price:    number | null
   quantity:      number
   min_quantity:  number
+  batches:       BatchInfo[]
 }
 
 export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
@@ -457,13 +464,24 @@ function StockCard({
               style={{ width: `${pct}%`, background: isLow ? 'var(--bg-dark)' : 'var(--text-muted)' }}
             />
           </div>
-          <div className="flex items-center justify-between mt-1">
-            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>最低 {item.min_quantity} {item.unit}</p>
-            {item.cost_price != null && (
-              <p className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>¥{item.cost_price.toLocaleString()}</p>
-            )}
-          </div>
+          <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>最低 {item.min_quantity} {item.unit}</p>
         </div>
+
+        {/* ロット別在庫 */}
+        {item.batches.length > 0 && (
+          <div className="flex flex-col gap-0.5">
+            {item.batches.map((b, i) => (
+              <div key={i} className="flex items-center justify-between tabular-nums">
+                <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                  ¥{b.cost_price.toLocaleString()}
+                </span>
+                <span className="text-[10px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                  {b.quantity_rem} {item.unit}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ±ボタン */}

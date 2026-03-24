@@ -3,6 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
 
+/**
+ * 入出庫トランザクションを記録する
+ *
+ * 価格関連の副作用（price_history / price_alerts / products.cost_price）は
+ * DBトリガー (trg_check_price_alert) が一元管理するため、JS側では行わない。
+ * ロット (inventory_batches) の追加・FIFO減算のみ JS 側で処理する。
+ */
 export async function recordStockTransaction(
   productId: string,
   type: 'in' | 'out' | 'adjustment',
@@ -31,36 +38,45 @@ export async function recordStockTransaction(
   )
   if (upsertError) throw new Error(upsertError.message)
 
+  // stock_transactions に記録
+  // type='in' & quantity>0 & cost_price ありの場合、DBトリガーが price_history / price_alerts / products.cost_price を自動更新
   await supabase.from('stock_transactions').insert({
     product_id: productId,
     type,
     quantity,
     cost_price: costPrice ?? null,
-    notes: notes ?? null,
+    notes:      notes ?? null,
   })
 
-  if (type === 'in' && costPrice != null) {
-    const { data: product } = await supabase
-      .from('products')
-      .select('cost_price')
-      .eq('id', productId)
-      .single()
+  // 入庫: ロット（inventory_batches）を新規作成
+  if (type === 'in' && quantity > 0) {
+    await supabase.from('inventory_batches').insert({
+      product_id:   productId,
+      cost_price:   costPrice ?? 0,
+      quantity_in:  quantity,
+      quantity_rem: quantity,
+      notes:        notes ?? null,
+    })
+  }
 
-    const prevPrice = product?.cost_price
+  // 出庫: FIFO でロット在庫を減算
+  if (type === 'out' && quantity > 0) {
+    const { data: batches } = await supabase
+      .from('inventory_batches')
+      .select('id, quantity_rem')
+      .eq('product_id', productId)
+      .gt('quantity_rem', 0)
+      .order('received_at', { ascending: true })
 
-    await supabase.from('products').update({ cost_price: costPrice }).eq('id', productId)
-    await supabase.from('price_history').insert({ product_id: productId, cost_price: costPrice })
-
-    if (prevPrice != null && prevPrice > 0) {
-      const changeRate = (costPrice - prevPrice) / prevPrice
-      if (changeRate >= 0.05) {
-        await supabase.from('price_alerts').insert({
-          product_id: productId,
-          previous_price: prevPrice,
-          new_price: costPrice,
-          change_rate: changeRate,
-        })
-      }
+    let remaining = quantity
+    for (const batch of (batches ?? [])) {
+      if (remaining <= 0) break
+      const deduct  = Math.min(remaining, Number(batch.quantity_rem))
+      await supabase
+        .from('inventory_batches')
+        .update({ quantity_rem: Number(batch.quantity_rem) - deduct })
+        .eq('id', batch.id)
+      remaining -= deduct
     }
   }
 
@@ -71,8 +87,9 @@ export async function recordStockTransaction(
 
 /**
  * 価格改定のみを記録する（在庫数は変えない）
- * stock_transactions に quantity=0 の 'in' レコードを挿入することで
- * DB trigger (trg_check_price_alert) が price_history / price_alerts / products.cost_price を自動更新する
+ *
+ * stock_transactions は使わず（ロットを作らないため）、
+ * price_history / price_alerts / products.cost_price を直接更新する。
  */
 export async function recordPriceRevision(
   productId: string,
@@ -80,14 +97,37 @@ export async function recordPriceRevision(
   notes?: string,
 ): Promise<void> {
   const supabase = await createServiceClient()
-  const { error } = await supabase.from('stock_transactions').insert({
-    product_id: productId,
-    type:       'in',
-    quantity:   0,
-    cost_price: newPrice,
-    notes:      notes?.trim() || '価格改定',
-  })
-  if (error) throw new Error(error.message)
+
+  // 現在価格を取得してアラート判定に使う
+  const { data: latest } = await supabase
+    .from('price_history')
+    .select('cost_price')
+    .eq('product_id', productId)
+    .order('recorded_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const prevPrice = latest?.cost_price != null ? Number(latest.cost_price) : null
+
+  // price_history に記録
+  await supabase.from('price_history').insert({ product_id: productId, cost_price: newPrice })
+
+  // products.cost_price を更新
+  await supabase.from('products').update({ cost_price: newPrice }).eq('id', productId)
+
+  // 5% 以上値上がりならアラート発行
+  if (prevPrice != null && prevPrice > 0) {
+    const changeRate = (newPrice - prevPrice) / prevPrice
+    if (changeRate >= 0.05) {
+      await supabase.from('price_alerts').insert({
+        product_id:     productId,
+        previous_price: prevPrice,
+        new_price:      newPrice,
+        change_rate:    changeRate,
+      })
+    }
+  }
+
   revalidatePath('/admin/stock')
   revalidatePath('/admin')
 }

@@ -4,20 +4,41 @@ import { StockGrid } from '@/components/admin/stock/StockGrid'
 export default async function StockPage() {
   const supabase = await createServiceClient()
 
-  const { data: products, error } = await supabase
-    .from('products')
-    .select(`
-      id, name, name_en, unit, image_url, cost_price,
-      categories(name),
-      stock(quantity, min_quantity)
-    `)
-    .order('name')
+  const [
+    { data: products, error },
+    { data: batchRows },
+  ] = await Promise.all([
+    supabase
+      .from('products')
+      .select(`
+        id, name, name_en, unit, image_url, cost_price,
+        categories(name),
+        stock(quantity, min_quantity)
+      `)
+      .order('name'),
+    supabase
+      .from('inventory_batches')
+      .select('product_id, cost_price, quantity_rem, received_at')
+      .gt('quantity_rem', 0)
+      .order('received_at', { ascending: true }),
+  ])
 
   if (error) console.error('[StockPage] Supabase error:', error.message)
 
+  // product_id ごとにロットをグループ化
+  const batchMap = new Map<string, { cost_price: number; quantity_rem: number; received_at: string }[]>()
+  for (const b of (batchRows ?? [])) {
+    const list = batchMap.get(b.product_id) ?? []
+    list.push({
+      cost_price:   Number(b.cost_price),
+      quantity_rem: Number(b.quantity_rem),
+      received_at:  b.received_at,
+    })
+    batchMap.set(b.product_id, list)
+  }
+
   const items = (products ?? []).map(p => {
     const stockRaw = p.stock as unknown
-    // PostgREST may return single object or array for 1:1 join
     const stockObj: { quantity: number; min_quantity: number } | null =
       Array.isArray(stockRaw) ? (stockRaw[0] ?? null) : (stockRaw as { quantity: number; min_quantity: number } | null)
 
@@ -31,6 +52,7 @@ export default async function StockPage() {
       cost_price:    p.cost_price != null ? Number(p.cost_price) : null,
       quantity:      stockObj?.quantity      ?? 0,
       min_quantity:  stockObj?.min_quantity  ?? 0,
+      batches:       batchMap.get(p.id) ?? [],
     }
   })
 
