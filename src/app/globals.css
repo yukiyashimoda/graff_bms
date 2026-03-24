@@ -4,26 +4,28 @@
    graff.bms — Modern Dashboard Design Tokens
    ============================================================ */
 :root {
-  --bg-base:    #f5f4f2;
-  --bg-surface: #fafaf8;
-  --bg-dark:    #2a2a28;
-  --bg-dark-2:  #1e1e1c;
+  --bg-base:    #ededed;
+  --bg-surface: #ede6df;
+  --bg-dark:    #091d26;
+  --bg-dark-2:  #051318;
 
-  --text-primary:   #1e1e1c;
-  --text-secondary: #6b6b68;
-  --text-muted:     #b0b0ad;
-  --text-invert:    #fafaf8;
+  --text-primary:   #091d26;
+  --text-secondary: #124d54;
+  --text-muted:     #6b9fa5;
+  --text-invert:    #ede6df;
 
-  --border:      #e4e3e0;
-  --border-dark: #3a3a38;
+  --accent:      #d84f2a;
+
+  --border:      #ccc6bf;
+  --border-dark: #1a4a52;
 
   --success: var(--text-secondary);
-  --warning: var(--text-secondary);
-  --danger:  var(--text-primary);
+  --warning: var(--accent);
+  --danger:  var(--accent);
   --info:    var(--text-secondary);
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 2px rgba(9,29,38,0.06);
+  --shadow-md: 0 4px 16px rgba(9,29,38,0.10), 0 1px 3px rgba(9,29,38,0.06);
 }
 
 @theme inline {
