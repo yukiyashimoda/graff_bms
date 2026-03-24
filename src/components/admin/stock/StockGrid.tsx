@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useOptimistic, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   RiAddFill,
@@ -39,8 +39,17 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
   const [query,     setQuery]   = useState('')
   const [lowOnly,   setLowOnly] = useState(false)
   const [catFilter, setCat]     = useState<string | null>(null)
-  const [saving,    setSaving]  = useState(false)
   const [showList,  setShowList] = useState(false)
+
+  const [isPending, startTransition] = useTransition()
+  const [optimisticItems, applyOptimistic] = useOptimistic(
+    items,
+    (state, updates: { id: string; quantity: number }[]) =>
+      state.map(item => {
+        const upd = updates.find(u => u.id === item.id)
+        return upd ? { ...item, quantity: upd.quantity } : item
+      }),
+  )
 
   const categories = useMemo(() => {
     const seen = new Set<string>()
@@ -63,38 +72,46 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
   const pendingIds    = Object.keys(deltas)
   const pendingCount  = pendingIds.length
 
-  async function handleSave() {
-    if (saving || pendingCount === 0) return
-    setSaving(true)
-    try {
-      const results: Record<string, number> = {}
-      await Promise.all(
-        pendingIds.map(async id => {
-          const delta = deltas[id]
+  function handleSave() {
+    if (isPending || pendingCount === 0) return
+
+    // デルタをスナップショットしてから即座にクリア
+    const snapshot = { ...deltas }
+    setDeltas({})
+
+    startTransition(async () => {
+      // 楽観的更新を即時適用 → UIが保存中でも新しい数量を表示
+      const optimisticUpdates = Object.entries(snapshot).map(([id, delta]) => ({
+        id,
+        quantity: (items.find(i => i.id === id)?.quantity ?? 0) + delta,
+      }))
+      applyOptimistic(optimisticUpdates)
+
+      // サーバーに保存
+      const results = await Promise.all(
+        Object.entries(snapshot).map(async ([id, delta]) => {
           const { newQuantity } = await recordStockTransaction(
             id,
             delta > 0 ? 'in' : 'out',
             Math.abs(delta),
           )
-          results[id] = newQuantity
+          return { id, newQuantity }
         })
       )
-      setItems(prev => prev.map(item =>
-        results[item.id] !== undefined ? { ...item, quantity: results[item.id] } : item
-      ))
-      setDeltas({})
+
+      // 実際のサーバー値でステートを確定
+      setItems(prev => prev.map(item => {
+        const r = results.find(r => r.id === item.id)
+        return r ? { ...item, quantity: r.newQuantity } : item
+      }))
       router.refresh()
-    } catch (e) {
-      console.error('在庫更新エラー:', e)
-    } finally {
-      setSaving(false)
-    }
+    })
   }
 
-  const lowCount = items.filter(i => (i.quantity + (deltas[i.id] ?? 0)) < i.min_quantity).length
+  const lowCount = optimisticItems.filter(i => (i.quantity + (deltas[i.id] ?? 0)) < i.min_quantity).length
 
   const filtered = useMemo(() => {
-    return items.filter(item => {
+    return optimisticItems.filter(item => {
       if (lowOnly && item.quantity >= item.min_quantity) return false
       if (catFilter && item.category_name !== catFilter) return false
       if (!query) return true
@@ -105,7 +122,7 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
         (item.category_name ?? '').toLowerCase().includes(q)
       )
     })
-  }, [items, query, lowOnly, catFilter])
+  }, [optimisticItems, query, lowOnly, catFilter])
 
   return (
     <>
@@ -217,12 +234,12 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={isPending}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
             style={{ background: 'rgba(255,255,255,0.15)' }}
           >
             <RiCheckFill size={14} />
-            {saving ? '保存中...' : '在庫を更新する'}
+            {isPending ? '保存中...' : '在庫を更新する'}
           </button>
         </div>
       )}
@@ -303,12 +320,12 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
               </button>
               <button
                 onClick={() => { setShowList(false); handleSave() }}
-                disabled={saving}
+                disabled={isPending}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                 style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
               >
                 <RiCheckFill size={14} />
-                {saving ? '保存中...' : '在庫を更新する'}
+                {isPending ? '保存中...' : '在庫を更新する'}
               </button>
             </div>
           </div>

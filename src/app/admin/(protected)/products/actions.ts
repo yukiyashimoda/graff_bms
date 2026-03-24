@@ -105,6 +105,8 @@ export async function createProduct(formData: FormData) {
   }
 
   revalidatePath('/admin/products')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
   redirect('/admin/products')
 }
 
@@ -112,12 +114,16 @@ export async function updateProductAvailability(id: string, is_available: boolea
   const supabase = await createServiceClient()
   await supabase.from('products').update({ is_available }).eq('id', id)
   revalidatePath('/admin/products')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
 }
 
 export async function updateDisplayOutOfStock(id: string, display_out_of_stock: boolean) {
   const supabase = await createServiceClient()
   await supabase.from('products').update({ display_out_of_stock }).eq('id', id)
   revalidatePath('/admin/products')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
 }
 
 export async function updateProduct(id: string, formData: FormData) {
@@ -174,6 +180,8 @@ export async function updateProduct(id: string, formData: FormData) {
   await supabase.from('products').update(update).eq('id', id)
 
   revalidatePath('/admin/products')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
   redirect('/admin/products')
 }
 
@@ -181,6 +189,8 @@ export async function deleteProduct(id: string) {
   const supabase = await createServiceClient()
   await supabase.from('products').delete().eq('id', id)
   revalidatePath('/admin/products')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
 }
 
 export async function bulkUpdateSellingPrices(
@@ -194,4 +204,6 @@ export async function bulkUpdateSellingPrices(
   )
   revalidatePath('/admin/products')
   revalidatePath('/admin/pricing')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
 }

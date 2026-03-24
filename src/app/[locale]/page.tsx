@@ -1,9 +1,14 @@
-import { unstable_noStore as noStore } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
 import { MenuClient } from '@/components/menu/MenuClient'
 
+// ja / en を静的生成 → 30秒 ISR
+export const revalidate = 30
+
+export function generateStaticParams() {
+  return [{ locale: 'ja' }, { locale: 'en' }]
+}
+
 export default async function MenuPage() {
-  noStore()
   const supabase = await createServiceClient()
 
   const { data: products, error } = await supabase

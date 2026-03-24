@@ -120,6 +120,8 @@ export async function recordStockTransaction(
 
   revalidatePath('/admin/stock')
   revalidatePath('/admin')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
   return { newQuantity }
 }
 
