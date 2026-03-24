@@ -50,8 +50,34 @@ export default async function OrderPrintPage({
         <PrintButton />
       </div>
 
+      {/* スマホ表示用スケーリング */}
+      <style>{`
+        @media screen and (max-width: 860px) {
+          .a4-doc {
+            width: 100% !important;
+            min-height: unset !important;
+            padding: 8vw 6vw !important;
+            font-size: 9pt !important;
+          }
+          .a4-doc h1 {
+            font-size: 16pt !important;
+            margin-bottom: 8mm !important;
+          }
+        }
+        @media print {
+          .a4-doc {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            padding: 20mm 18mm !important;
+            font-size: 10pt !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
+
       {/* A4 発注書 */}
       <div
+        className="a4-doc"
         style={{
           width: '210mm',
           minHeight: '297mm',
@@ -62,6 +88,7 @@ export default async function OrderPrintPage({
           fontFamily: '"Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif',
           fontSize: '10pt',
           boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+          position: 'relative',
         }}
       >
         {/* タイトル */}
@@ -139,14 +166,10 @@ export default async function OrderPrintPage({
         <div style={{
           position: 'absolute',
           bottom: '15mm',
-          left: '18mm',
           right: '18mm',
-          display: 'flex',
-          justifyContent: 'space-between',
           fontSize: '7pt',
           color: '#aaa',
         }}>
-          <span>graff. 統合管理システム</span>
           <span>No. {orderNo}</span>
         </div>
       </div>
