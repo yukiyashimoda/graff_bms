@@ -44,17 +44,9 @@ export async function recordStockTransaction(
   )
   if (upsertError) throw new Error(upsertError.message)
 
-  // stock_transactions に記録
-  // type='in' & quantity>0 & cost_price ありの場合、DBトリガーが price_history / price_alerts / products.cost_price を自動更新
-  await supabase.from('stock_transactions').insert({
-    product_id: productId,
-    type,
-    quantity,
-    cost_price: costPrice ?? null,
-    notes:      notes ?? null,
-  })
+  // 入庫: 先にロット情報を取得して実効価格を確定する
+  let effectiveCostPrice: number | null = costPrice ?? null
 
-  // 入庫: ロット（inventory_batches）を更新
   if (type === 'in' && quantity > 0) {
     const { data: latest } = await sb
       .from('inventory_batches')
@@ -67,6 +59,15 @@ export async function recordStockTransaction(
     const latestPrice   = latest ? Number(latest.cost_price) : null
     const incomingPrice = costPrice != null ? costPrice : latestPrice
 
+    // effectiveCostPrice: 履歴・トリガーに渡す実際の価格
+    if (incomingPrice != null) {
+      effectiveCostPrice = incomingPrice
+    } else {
+      // バッチも price も未設定 → products から取得
+      const { data: prod } = await supabase.from('products').select('cost_price').eq('id', productId).maybeSingle()
+      effectiveCostPrice = Number(prod?.cost_price ?? 0) || null
+    }
+
     if (latest && incomingPrice === latestPrice) {
       // 同じ価格 → 最新バッチに加算
       await sb.from('inventory_batches')
@@ -77,19 +78,25 @@ export async function recordStockTransaction(
         .eq('id', latest.id)
     } else {
       // 価格が異なる or バッチ未作成 → 新しいバッチを作成
-      const finalPrice = incomingPrice ?? (await (async () => {
-        const { data: prod } = await supabase.from('products').select('cost_price').eq('id', productId).maybeSingle()
-        return Number(prod?.cost_price ?? 0)
-      })())
       await sb.from('inventory_batches').insert({
         product_id:   productId,
-        cost_price:   finalPrice,
+        cost_price:   effectiveCostPrice ?? 0,
         quantity_in:  quantity,
         quantity_rem: quantity,
         notes:        notes ?? null,
       })
     }
   }
+
+  // stock_transactions に記録
+  // type='in' & quantity>0 & cost_price ありの場合、DBトリガーが price_history / price_alerts / products.cost_price を自動更新
+  await supabase.from('stock_transactions').insert({
+    product_id: productId,
+    type,
+    quantity,
+    cost_price: effectiveCostPrice,
+    notes:      notes ?? null,
+  })
 
   // 出庫: FIFO でロット在庫を減算
   if (type === 'out' && quantity > 0) {
