@@ -57,21 +57,26 @@ export function IssuerEditModal({ profile }: { profile: IssuerProfile }) {
     setSaving(true)
     setError(null)
     setSuccess(false)
-    const fd = new FormData()
-    fd.append('name',    name)
-    fd.append('phone',   phone)
-    fd.append('email',   email)
-    fd.append('address', address)
-    if (logoFile) fd.append('logo', logoFile)
-    if (removeLogo) fd.append('remove_logo', '1')
+    try {
+      const fd = new FormData()
+      fd.append('name',    name)
+      fd.append('phone',   phone)
+      fd.append('email',   email)
+      fd.append('address', address)
+      if (logoFile) fd.append('logo', logoFile)
+      if (removeLogo) fd.append('remove_logo', '1')
 
-    const result = await saveIssuerProfile(fd)
-    setSaving(false)
-    if (result.error) {
-      setError(result.error)
-    } else {
-      setSuccess(true)
-      setTimeout(() => { setSuccess(false); setOpen(false) }, 900)
+      const result = await saveIssuerProfile(fd)
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setSuccess(true)
+        setTimeout(() => { setSuccess(false); setOpen(false) }, 900)
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存に失敗しました')
+    } finally {
+      setSaving(false)
     }
   }
 
