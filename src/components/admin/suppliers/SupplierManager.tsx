@@ -14,7 +14,16 @@ import {
   RiMapPinFill,
 } from 'react-icons/ri'
 import { createSupplier, updateSupplier, deleteSupplier } from '@/app/admin/(protected)/suppliers/actions'
-import type { Supplier } from '@/lib/types/database'
+
+type Supplier = {
+  id:           string
+  name:         string
+  name_en:      string
+  contact_name: string | null
+  phone:        string | null
+  address:      string | null
+  notes:        string | null
+}
 
 type Props = { suppliers: Supplier[] }
 
