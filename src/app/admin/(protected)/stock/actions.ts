@@ -69,6 +69,29 @@ export async function recordStockTransaction(
   return { newQuantity }
 }
 
+/**
+ * 価格改定のみを記録する（在庫数は変えない）
+ * stock_transactions に quantity=0 の 'in' レコードを挿入することで
+ * DB trigger (trg_check_price_alert) が price_history / price_alerts / products.cost_price を自動更新する
+ */
+export async function recordPriceRevision(
+  productId: string,
+  newPrice: number,
+  notes?: string,
+): Promise<void> {
+  const supabase = await createServiceClient()
+  const { error } = await supabase.from('stock_transactions').insert({
+    product_id: productId,
+    type:       'in',
+    quantity:   0,
+    cost_price: newPrice,
+    notes:      notes?.trim() || '価格改定',
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath('/admin/stock')
+  revalidatePath('/admin')
+}
+
 export async function updateMinQuantity(productId: string, minQuantity: number) {
   const supabase = await createServiceClient()
   await supabase.from('stock').upsert(

@@ -16,6 +16,7 @@ import {
   RiPriceTag3Fill,
   RiHistoryFill,
   RiClipboardLine,
+  RiAlertFill,
   RiMenuFill,
   RiCloseFill,
   RiExternalLinkFill,
@@ -40,6 +41,7 @@ const mainNav = [
   { href: '/admin/suppliers',        label: '発注先管理',     icon: RiBuildingFill },
   { href: '/admin/pricing',          label: '原価計算',       icon: RiPriceTag3Fill },
   { href: '/admin/inventory',        label: '棚卸し管理',     icon: RiClipboardLine },
+  { href: '/admin/alerts',           label: '価格アラート',   icon: RiAlertFill },
 ]
 
 function PublicPageSection() {

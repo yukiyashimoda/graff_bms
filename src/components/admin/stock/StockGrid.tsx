@@ -10,8 +10,9 @@ import {
   RiArchiveFill,
   RiCheckFill,
   RiCloseFill,
+  RiMoneyDollarCircleFill,
 } from 'react-icons/ri'
-import { recordStockTransaction } from '@/app/admin/(protected)/stock/actions'
+import { recordStockTransaction, recordPriceRevision } from '@/app/admin/(protected)/stock/actions'
 
 export type StockItem = {
   id:            string
@@ -321,6 +322,25 @@ function StockCard({
     ? Math.min(100, Math.round((newQty / item.min_quantity) * 100))
     : 100
 
+  const [priceOpen,   setPriceOpen]   = useState(false)
+  const [priceInput,  setPriceInput]  = useState('')
+  const [notesInput,  setNotesInput]  = useState('')
+  const [priceSaving, setPriceSaving] = useState(false)
+
+  async function handlePriceRevision() {
+    const val = parseFloat(priceInput)
+    if (isNaN(val) || val <= 0) return
+    setPriceSaving(true)
+    try {
+      await recordPriceRevision(item.id, val, notesInput)
+      setPriceOpen(false)
+      setPriceInput('')
+      setNotesInput('')
+    } finally {
+      setPriceSaving(false)
+    }
+  }
+
   return (
     <div
       className="stock-card flex flex-col rounded-2xl overflow-hidden"
@@ -336,16 +356,74 @@ function StockCard({
     >
       <div className="px-4 pt-4 pb-3 flex flex-col gap-2.5 flex-1">
 
-        {/* カテゴリ + 不足バッジ */}
+        {/* カテゴリ + バッジ群 */}
         <div className="flex items-center justify-between gap-1">
           {item.category_name
             ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#102937', color: '#ededed' }}>{item.category_name}</span>
             : <span />
           }
-          {isLow && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>不足</span>
-          )}
+          <div className="flex items-center gap-1">
+            {isLow && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>不足</span>
+            )}
+            <button
+              onClick={() => { setPriceOpen(v => !v); setPriceInput(String(item.cost_price ?? '')); setNotesInput('') }}
+              title="価格改定"
+              className="flex items-center justify-center w-6 h-6 transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: priceOpen ? 'var(--bg-dark)' : 'transparent',
+                color:      priceOpen ? 'var(--text-invert)' : 'var(--text-muted)',
+                borderRadius: 6,
+              }}
+            >
+              <RiMoneyDollarCircleFill size={13} />
+            </button>
+          </div>
         </div>
+
+        {/* 価格改定フォーム */}
+        {priceOpen && (
+          <div className="flex flex-col gap-2 py-2 px-3 rounded-xl" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+            <p className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>新しい仕入れ価格</p>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={priceInput}
+              onChange={e => setPriceInput(e.target.value)}
+              placeholder="例: 1200"
+              className="w-full px-2 py-1.5 text-sm tabular-nums outline-none"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 8 }}
+              autoFocus
+            />
+            <textarea
+              rows={2}
+              value={notesInput}
+              onChange={e => setNotesInput(e.target.value)}
+              placeholder="備考（省略可）"
+              className="w-full px-2 py-1.5 text-[11px] outline-none resize-none"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 8 }}
+            />
+            <div className="flex gap-1.5">
+              <button
+                onClick={handlePriceRevision}
+                disabled={priceSaving || !priceInput || parseFloat(priceInput) <= 0}
+                className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', borderRadius: 8 }}
+              >
+                <RiCheckFill size={11} />
+                {priceSaving ? '保存中...' : '改定する'}
+              </button>
+              <button
+                onClick={() => setPriceOpen(false)}
+                className="px-3 py-1.5 text-[11px] font-medium transition-opacity hover:opacity-70"
+                style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 8 }}
+              >
+                <RiCloseFill size={12} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 商品名 */}
         <div>

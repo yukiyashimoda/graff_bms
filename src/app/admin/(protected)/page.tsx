@@ -128,20 +128,24 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* アラートバナー（未読アラートがある場合のみ） */}
+      {/* 価格上昇注意バナー */}
       {(alertCount ?? 0) > 0 && (
-        <div
-          className="rounded-2xl p-4 flex items-center gap-3"
-          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+        <Link
+          href="/admin/alerts"
+          className="rounded-2xl p-4 flex items-center gap-3 transition-opacity hover:opacity-90"
+          style={{ background: '#d84f2a', display: 'flex' }}
         >
-          <RiAlertFill size={15} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <p className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
-            価格アラートが {alertCount} 件あります
-          </p>
-          <Link href="/admin/alerts" className="ml-auto text-xs" style={{ color: 'var(--text-muted)' }}>
+          <RiAlertFill size={16} style={{ color: '#fff', flexShrink: 0 }} />
+          <div className="flex-1">
+            <p className="text-sm font-bold" style={{ color: '#fff' }}>価格上昇注意</p>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              前回比 5% 以上の値上がりが {alertCount} 件あります
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
             確認する →
-          </Link>
-        </div>
+          </span>
+        </Link>
       )}
 
     </div>
