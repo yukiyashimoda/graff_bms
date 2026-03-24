@@ -3,6 +3,15 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { PrintButton } from '@/components/admin/orders/PrintButton'
 import { RiArrowLeftLine } from 'react-icons/ri'
 
+const BRAND = '#3a8b9d'
+const BRAND_LIGHT = '#d8e9ed'
+const MIN_ROWS = 12  // 空行を含めた最低行数
+
+function formatDate(iso: string) {
+  const [y, m, d] = iso.split('-')
+  return `${y}年${Number(m)}月${Number(d)}日`
+}
+
 export default async function OrderPrintPage({
   params,
 }: {
@@ -30,7 +39,7 @@ export default async function OrderPrintPage({
     id: string; quantity: number; products: { name: string; unit: string }
   }[]
   const orderNo = order.id.slice(-8).toUpperCase()
-  const dateStr = order.order_date
+  const emptyRows = Math.max(0, MIN_ROWS - items.length)
 
   return (
     <>
@@ -50,28 +59,33 @@ export default async function OrderPrintPage({
         <PrintButton />
       </div>
 
-      {/* スマホ表示用スケーリング */}
       <style>{`
+        .a4-doc {
+          font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+          color: #333;
+        }
         @media screen and (max-width: 860px) {
           .a4-doc {
             width: 100% !important;
             min-height: unset !important;
-            padding: 8vw 6vw !important;
+            padding: 6vw 5vw !important;
             font-size: 9pt !important;
           }
-          .a4-doc h1 {
-            font-size: 16pt !important;
-            margin-bottom: 8mm !important;
+          .a4-title-banner {
+            font-size: 20px !important;
+            padding: 8px 0 !important;
           }
         }
         @media print {
+          body { background: none !important; }
           .a4-doc {
             width: 210mm !important;
             min-height: 297mm !important;
-            padding: 20mm 18mm !important;
-            font-size: 10pt !important;
+            padding: 20mm !important;
             box-shadow: none !important;
           }
+          .a4-title-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .a4-th           { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
 
@@ -81,74 +95,112 @@ export default async function OrderPrintPage({
         style={{
           width: '210mm',
           minHeight: '297mm',
+          padding: '20mm',
           margin: '0 auto',
-          padding: '20mm 18mm',
           background: '#fff',
-          color: '#1a1a1a',
-          fontFamily: '"Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif',
           fontSize: '10pt',
           boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-          position: 'relative',
+          boxSizing: 'border-box',
         }}
       >
-        {/* タイトル */}
-        <h1 style={{
-          textAlign: 'center',
-          fontSize: '22pt',
-          fontWeight: 'bold',
-          letterSpacing: '0.2em',
-          marginBottom: '16mm',
-        }}>
-          発注書
-        </h1>
-
-        {/* 日付・No. */}
-        <div style={{ textAlign: 'right', marginBottom: '8mm', lineHeight: '1.8' }}>
-          <div>発注日　{dateStr}</div>
-          {order.expected_date && <div>納品希望日　{order.expected_date}</div>}
-          <div>No.　{orderNo}</div>
+        {/* 伝票番号・日付（右上） */}
+        <div style={{ textAlign: 'right', fontSize: '12px', lineHeight: '1.8', marginBottom: '16px', color: '#555' }}>
+          <div>発行日：{formatDate(order.order_date)}</div>
+          {order.expected_date && <div>納品希望日：{formatDate(order.expected_date)}</div>}
+          <div>伝票番号：{orderNo}</div>
         </div>
 
-        {/* 区切り線 */}
-        <hr style={{ border: 'none', borderTop: '1.5px solid #1a1a1a', marginBottom: '8mm' }} />
+        {/* タイトルバナー */}
+        <div
+          className="a4-title-banner"
+          style={{
+            background: BRAND,
+            color: '#fff',
+            padding: '10px 16px',
+            fontSize: '26px',
+            fontWeight: 'bold',
+            letterSpacing: '1em',
+            marginBottom: '28px',
+          }}
+        >
+          発注書
+        </div>
 
         {/* 発注先 / 発注元 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10mm' }}>
-          <div>
-            <div style={{ fontSize: '14pt', fontWeight: 'bold' }}>
-              {supplier?.name ?? '—'}　<span style={{ fontSize: '12pt' }}>御中</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '28px' }}>
+
+          {/* 発注先（左） */}
+          <div style={{ width: '55%' }}>
+            {supplier?.address && (
+              <div style={{ fontSize: '12px', color: '#555', marginBottom: '6px', lineHeight: '1.6' }}>
+                {supplier.address}
+              </div>
+            )}
+            {supplier?.contact_name && (
+              <div style={{ fontSize: '12px', color: '#555', marginBottom: '6px' }}>
+                担当：{supplier.contact_name}
+              </div>
+            )}
+            <div style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              borderBottom: `2px solid ${BRAND}`,
+              paddingBottom: '5px',
+              display: 'inline-block',
+              width: '100%',
+            }}>
+              {supplier?.name ?? '—'}　御中
             </div>
-            {supplier?.address     && <div style={{ marginTop: '4mm', color: '#444', fontSize: '9pt' }}>{supplier.address}</div>}
-            {supplier?.contact_name && <div style={{ color: '#444', fontSize: '9pt' }}>担当　{supplier.contact_name}</div>}
-            {supplier?.phone        && <div style={{ color: '#444', fontSize: '9pt' }}>TEL　{supplier.phone}</div>}
           </div>
-          <div style={{ textAlign: 'right', fontSize: '9pt', color: '#444' }}>
-            <div style={{ fontWeight: 'bold', fontSize: '11pt', color: '#1a1a1a' }}>graff.</div>
+
+          {/* 発注元（右） */}
+          <div style={{ width: '40%', textAlign: 'right', fontSize: '12px', lineHeight: '1.7', color: '#555' }}>
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333', marginBottom: '4px' }}>
+              graff.
+            </div>
+            {supplier?.phone && <div>TEL：{supplier.phone}</div>}
           </div>
         </div>
 
-        <hr style={{ border: 'none', borderTop: '0.5px solid #ccc', marginBottom: '8mm' }} />
-
         {/* 本文 */}
-        <p style={{ marginBottom: '8mm' }}>下記の通り発注いたします。</p>
+        <p style={{ fontSize: '13px', marginBottom: '16px', color: '#333' }}>
+          下記の通り発注いたします。
+        </p>
 
         {/* 明細テーブル */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10pt' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', border: `1px solid ${BRAND}` }}>
           <thead>
-            <tr style={{ borderTop: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a' }}>
-              <th style={{ padding: '2mm 3mm', textAlign: 'left',  width: '12mm', fontWeight: 'bold' }}>No.</th>
-              <th style={{ padding: '2mm 3mm', textAlign: 'left',  fontWeight: 'bold' }}>商品名</th>
-              <th style={{ padding: '2mm 3mm', textAlign: 'right', width: '20mm', fontWeight: 'bold' }}>数量</th>
-              <th style={{ padding: '2mm 3mm', textAlign: 'center',width: '16mm', fontWeight: 'bold' }}>単位</th>
+            <tr>
+              <th
+                className="a4-th"
+                style={{ background: BRAND_LIGHT, border: `1px solid ${BRAND}`, padding: '10px', fontSize: '13px', textAlign: 'left', width: '75%' }}
+              >
+                商品名
+              </th>
+              <th
+                className="a4-th"
+                style={{ background: BRAND_LIGHT, border: `1px solid ${BRAND}`, padding: '10px', fontSize: '13px', textAlign: 'center', width: '25%' }}
+              >
+                数量
+              </th>
             </tr>
           </thead>
           <tbody>
-            {items.map((item, i) => (
-              <tr key={item.id} style={{ borderBottom: '0.5px solid #ddd' }}>
-                <td style={{ padding: '2.5mm 3mm', color: '#666' }}>{i + 1}</td>
-                <td style={{ padding: '2.5mm 3mm' }}>{item.products.name}</td>
-                <td style={{ padding: '2.5mm 3mm', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{item.quantity}</td>
-                <td style={{ padding: '2.5mm 3mm', textAlign: 'center', color: '#666' }}>{item.products.unit}</td>
+            {items.map(item => (
+              <tr key={item.id}>
+                <td style={{ border: `1px solid ${BRAND}`, padding: '10px', fontSize: '13px', height: '36px' }}>
+                  {item.products.name}
+                </td>
+                <td style={{ border: `1px solid ${BRAND}`, padding: '10px', fontSize: '13px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                  {item.quantity} {item.products.unit}
+                </td>
+              </tr>
+            ))}
+            {/* 空行 */}
+            {Array.from({ length: emptyRows }).map((_, i) => (
+              <tr key={`empty-${i}`}>
+                <td style={{ border: `1px solid ${BRAND}`, padding: '10px', height: '36px' }}> </td>
+                <td style={{ border: `1px solid ${BRAND}`, padding: '10px', height: '36px' }}> </td>
               </tr>
             ))}
           </tbody>
@@ -156,22 +208,11 @@ export default async function OrderPrintPage({
 
         {/* 備考 */}
         {order.notes && (
-          <div style={{ marginTop: '10mm', padding: '4mm', border: '0.5px solid #ccc' }}>
-            <div style={{ fontSize: '8pt', fontWeight: 'bold', marginBottom: '2mm', color: '#666' }}>備考</div>
-            <div style={{ fontSize: '9pt', color: '#444' }}>{order.notes}</div>
+          <div style={{ marginTop: '20px', padding: '10px 12px', border: `1px solid ${BRAND}` }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '6px', color: '#555' }}>備考</div>
+            <div style={{ fontSize: '12px', color: '#444', lineHeight: '1.6' }}>{order.notes}</div>
           </div>
         )}
-
-        {/* フッター */}
-        <div style={{
-          position: 'absolute',
-          bottom: '15mm',
-          right: '18mm',
-          fontSize: '7pt',
-          color: '#aaa',
-        }}>
-          <span>No. {orderNo}</span>
-        </div>
       </div>
     </>
   )
