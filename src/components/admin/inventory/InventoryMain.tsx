@@ -231,7 +231,8 @@ export function InventoryMain({
           >
             <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>棚卸し履歴</p>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[360px]">
             <tbody>
               {history.map((s, i) => (
                 <tr
@@ -265,6 +266,7 @@ export function InventoryMain({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

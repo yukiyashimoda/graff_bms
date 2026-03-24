@@ -276,7 +276,8 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
                 </div>
 
                 {/* トランザクション行 */}
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[480px]">
                   <tbody>
                     {txs.map((t, i) => (
                       <tr
@@ -357,6 +358,7 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )
           })}

@@ -293,7 +293,8 @@ export function AuditSheet({ session, items }: { session: Session; items: Item[]
         className="rounded-2xl overflow-hidden"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
       >
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[560px]">
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-base)' }}>
               {['商品名', 'システム在庫', '実測数', '差異', 'メモ'].map(h => (
@@ -411,6 +412,7 @@ export function AuditSheet({ session, items }: { session: Session; items: Item[]
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* 下部アクション（大きめ） */}

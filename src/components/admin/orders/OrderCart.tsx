@@ -183,25 +183,25 @@ export function OrderCart({ items }: { items: CartItem[] }) {
       {/* フローティングバー */}
       {pendingCount > 0 && (
         <div
-          className="fixed bottom-6 right-8 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl"
+          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 sm:bottom-6 z-40 flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 rounded-2xl"
           style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
         >
           <button
             onClick={() => setShowList(true)}
-            className="text-sm font-medium opacity-80 hover:opacity-100 transition-opacity underline underline-offset-2"
+            className="text-sm font-medium opacity-80 hover:opacity-100 transition-opacity underline underline-offset-2 flex-1 text-left sm:flex-none"
           >
             {pendingCount} 品目を発注中
           </button>
           <button
             onClick={() => setCart({})}
-            className="text-xs opacity-50 hover:opacity-90 transition-opacity"
+            className="text-xs opacity-50 hover:opacity-90 transition-opacity hidden sm:block"
           >
             リセット
           </button>
           <button
             onClick={() => setShowList(true)}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.15)' }}
           >
             <RiFileListFill size={14} />
@@ -251,7 +251,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
             </div>
 
             {/* 業者ごとのグループ */}
-            <div style={{ maxHeight: '55vh', overflowY: 'auto' }}>
+            <div style={{ maxHeight: '50dvh', overflowY: 'auto' }}>
               {bySupplier.map(([key, group]) => (
                 <div key={key}>
                   {/* 業者ヘッダー */}
