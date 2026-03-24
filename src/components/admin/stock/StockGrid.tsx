@@ -11,7 +11,6 @@ import {
   RiCheckFill,
   RiCloseFill,
 } from 'react-icons/ri'
-import { useRouter } from 'next/navigation'
 import { recordStockTransaction, recordPriceRevision } from '@/app/admin/(protected)/stock/actions'
 
 export type BatchInfo = {
