@@ -9,6 +9,9 @@ import {
   RiCloseFill,
   RiCheckFill,
   RiBuildingFill,
+  RiPhoneFill,
+  RiUserFill,
+  RiMapPinFill,
 } from 'react-icons/ri'
 import { createSupplier, updateSupplier, deleteSupplier } from '@/app/admin/(protected)/suppliers/actions'
 import type { Supplier } from '@/lib/types/database'
@@ -32,48 +35,27 @@ function toForm(s: Supplier): FormState {
 
 export function SupplierManager({ suppliers }: Props) {
   const router = useRouter()
-  const [adding,   setAdding]   = useState(false)
-  const [editId,   setEditId]   = useState<string | null>(null)
-  const [form,     setForm]     = useState<FormState>(emptyForm)
-  const [loading,  setLoading]  = useState(false)
+  const [adding,  setAdding]  = useState(false)
+  const [editId,  setEditId]  = useState<string | null>(null)
+  const [form,    setForm]    = useState<FormState>(emptyForm)
+  const [loading, setLoading] = useState(false)
 
-  function openAdd() {
-    setEditId(null)
-    setForm(emptyForm)
-    setAdding(true)
-  }
-
-  function openEdit(s: Supplier) {
-    setAdding(false)
-    setEditId(s.id)
-    setForm(toForm(s))
-  }
-
-  function close() {
-    setAdding(false)
-    setEditId(null)
-    setForm(emptyForm)
-  }
-
-  function set(key: keyof FormState, value: string) {
-    setForm(prev => ({ ...prev, [key]: value }))
-  }
+  function openAdd() { setEditId(null); setForm(emptyForm); setAdding(true) }
+  function openEdit(s: Supplier) { setAdding(false); setEditId(s.id); setForm(toForm(s)) }
+  function close() { setAdding(false); setEditId(null); setForm(emptyForm) }
+  function set(key: keyof FormState, value: string) { setForm(prev => ({ ...prev, [key]: value })) }
 
   async function handleCreate(fd: FormData) {
     setLoading(true)
     await createSupplier(fd)
-    setLoading(false)
-    close()
-    router.refresh()
+    setLoading(false); close(); router.refresh()
   }
 
   async function handleUpdate(fd: FormData) {
     if (!editId) return
     setLoading(true)
     await updateSupplier(editId, fd)
-    setLoading(false)
-    close()
-    router.refresh()
+    setLoading(false); close(); router.refresh()
   }
 
   async function handleDelete(id: string) {
@@ -107,24 +89,20 @@ export function SupplierManager({ suppliers }: Props) {
       {/* 追加 / 編集フォーム */}
       {isOpen && (
         <div
-          className="rounded-2xl p-6 space-y-4"
+          className="rounded-2xl p-5 space-y-4"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
               {adding ? '発注先を追加' : '発注先を編集'}
             </p>
-            <button
-              onClick={close}
-              className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-base)]"
-              style={{ color: 'var(--text-muted)' }}
-            >
+            <button onClick={close} className="p-2 rounded-xl hover:bg-[var(--bg-base)]" style={{ color: 'var(--text-muted)' }}>
               <RiCloseFill size={17} />
             </button>
           </div>
 
           <form action={adding ? handleCreate : handleUpdate} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="発注先名 *">
                 <input name="name" required value={form.name} onChange={e => set('name', e.target.value)}
                   placeholder="例: 山田酒販" className={inp} style={inpStyle} autoFocus />
@@ -134,8 +112,7 @@ export function SupplierManager({ suppliers }: Props) {
                   placeholder="e.g. Yamada Liquor" className={inp} style={inpStyle} />
               </Field>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="担当者名">
                 <input name="contact_name" value={form.contact_name} onChange={e => set('contact_name', e.target.value)}
                   placeholder="例: 山田 太郎" className={inp} style={inpStyle} />
@@ -145,17 +122,14 @@ export function SupplierManager({ suppliers }: Props) {
                   placeholder="例: 03-1234-5678" className={inp} style={inpStyle} />
               </Field>
             </div>
-
             <Field label="住所">
               <input name="address" value={form.address} onChange={e => set('address', e.target.value)}
                 placeholder="例: 東京都渋谷区..." className={inp} style={inpStyle} />
             </Field>
-
             <Field label="備考">
               <textarea name="notes" rows={2} value={form.notes} onChange={e => set('notes', e.target.value)}
                 placeholder="任意のメモ" className={`${inp} resize-none`} style={inpStyle} />
             </Field>
-
             <div className="flex gap-3 pt-1">
               <button
                 type="submit"
@@ -167,8 +141,7 @@ export function SupplierManager({ suppliers }: Props) {
                 {loading ? '保存中...' : (adding ? '追加する' : '更新する')}
               </button>
               <button
-                type="button"
-                onClick={close}
+                type="button" onClick={close}
                 className="px-5 py-2.5 rounded-xl text-sm font-medium"
                 style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               >
@@ -179,88 +152,90 @@ export function SupplierManager({ suppliers }: Props) {
         </div>
       )}
 
-      {/* 一覧 */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-      >
-        {suppliers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <RiBuildingFill size={32} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>発注先がまだありません</p>
-            <button
-              onClick={openAdd}
-              className="text-sm font-medium underline underline-offset-2"
-              style={{ color: 'var(--text-secondary)' }}
+      {/* カード一覧 */}
+      {suppliers.length === 0 ? (
+        <div
+          className="flex flex-col items-center justify-center py-20 gap-3 rounded-2xl"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+        >
+          <RiBuildingFill size={32} style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>発注先がまだありません</p>
+          <button onClick={openAdd} className="text-sm font-medium underline underline-offset-2" style={{ color: 'var(--text-secondary)' }}>
+            最初の発注先を追加する
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {suppliers.map(s => (
+            <div
+              key={s.id}
+              className="rounded-2xl p-4 flex flex-col gap-3"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
             >
-              最初の発注先を追加する
-            </button>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                {['発注先名', '担当者', '電話番号', '住所', ''].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {suppliers.map((s, i) => (
-                <tr
-                  key={s.id}
-                  className="group transition-colors hover:bg-[var(--bg-base)]"
-                  style={{ borderBottom: i === suppliers.length - 1 ? 'none' : '1px solid var(--border)' }}
+              {/* 名前 */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{s.name}</p>
+                  {s.name_en && (
+                    <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>{s.name_en}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => openEdit(s)}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    <RiPencilFill size={13} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    <RiDeleteBinFill size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {/* 詳細 */}
+              <div className="space-y-1.5">
+                {s.contact_name && (
+                  <div className="flex items-center gap-2">
+                    <RiUserFill size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{s.contact_name}</span>
+                  </div>
+                )}
+                {s.phone && (
+                  <div className="flex items-center gap-2">
+                    <RiPhoneFill size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <span className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>{s.phone}</span>
+                  </div>
+                )}
+                {s.address && (
+                  <div className="flex items-start gap-2">
+                    <RiMapPinFill size={11} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: 2 }} />
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.address}</span>
+                  </div>
+                )}
+                {!s.contact_name && !s.phone && !s.address && (
+                  <p className="text-xs" style={{ color: 'var(--text-muted)' }}>詳細情報なし</p>
+                )}
+              </div>
+
+              {/* 備考 */}
+              {s.notes && (
+                <p
+                  className="text-xs px-3 py-2 rounded-lg"
+                  style={{ background: 'var(--bg-base)', color: 'var(--text-muted)' }}
                 >
-                  <td className="px-4 py-3">
-                    <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{s.name}</p>
-                    {s.name_en && (
-                      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{s.name_en}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      {s.contact_name ?? '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                      {s.phone ?? '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 max-w-xs">
-                    <span className="text-xs truncate block" style={{ color: 'var(--text-secondary)' }}>
-                      {s.address ?? '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => openEdit(s)}
-                        title="編集"
-                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        <RiPencilFill size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(s.id)}
-                        title="削除"
-                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        <RiDeleteBinFill size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                  {s.notes}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
