@@ -1,0 +1,94 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "download": "Download",
+    "preview": "Preview",
+    "available": "Available",
+    "unavailable": "Out of Stock",
+    "all": "All"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "stock": "Inventory",
+    "orders": "Orders",
+    "menu": "Menu",
+    "alerts": "Alerts"
+  },
+  "products": {
+    "title": "Products",
+    "add": "Add Product",
+    "name": "Product Name",
+    "category": "Category",
+    "supplier": "Supplier",
+    "unit": "Unit",
+    "costPrice": "Cost Price",
+    "sellingPrice": "Selling Price",
+    "tags": "Tags",
+    "image": "Image",
+    "notes": "Notes",
+    "isAvailable": "Availability",
+    "searchPlaceholder": "Search products..."
+  },
+  "stock": {
+    "title": "Inventory",
+    "quantity": "Quantity",
+    "minQuantity": "Min Stock",
+    "addStock": "Stock In",
+    "removeStock": "Stock Out",
+    "adjust": "Adjust",
+    "history": "History",
+    "lowStock": "Low Stock"
+  },
+  "orders": {
+    "title": "Orders",
+    "create": "Create Order",
+    "supplier": "Supplier",
+    "orderDate": "Order Date",
+    "expectedDate": "Expected Date",
+    "status": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "received": "Received",
+      "cancelled": "Cancelled"
+    },
+    "generatePdf": "Generate PDF",
+    "items": "Line Items",
+    "quantity": "Quantity",
+    "unitPrice": "Unit Price"
+  },
+  "menu": {
+    "title": "Menu",
+    "cocktails": "Cocktails",
+    "searchPlaceholder": "Search drinks...",
+    "costRate": "Cost Rate"
+  },
+  "alerts": {
+    "priceAlert": "Price Alert",
+    "changeRate": "Change Rate",
+    "previousPrice": "Prev. Price",
+    "newPrice": "New Price",
+    "markAsRead": "Mark as Read"
+  },
+  "categories": {
+    "spirits": "Spirits",
+    "wine": "Wine",
+    "champagne": "Champagne",
+    "beer": "Beer",
+    "softDrink": "Soft Drink",
+    "food": "Food",
+    "others": "Others"
+  }
+}

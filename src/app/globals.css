@@ -1,26 +1,46 @@
 @import "tailwindcss";
 
+/* ============================================================
+   graff.bms — Modern Dashboard Design Tokens
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-base:    #f5f4f2;
+  --bg-surface: #fafaf8;
+  --bg-dark:    #2a2a28;
+  --bg-dark-2:  #1e1e1c;
+
+  --text-primary:   #1e1e1c;
+  --text-secondary: #6b6b68;
+  --text-muted:     #b0b0ad;
+  --text-invert:    #fafaf8;
+
+  --border:      #e4e3e0;
+  --border-dark: #3a3a38;
+
+  --success: var(--text-secondary);
+  --warning: var(--text-secondary);
+  --danger:  var(--text-primary);
+  --info:    var(--text-secondary);
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
+  --font-sans:        var(--font-sans);
+  --font-logo:        var(--font-silkscreen);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+* { box-sizing: border-box; }
+html { height: 100%; -webkit-font-smoothing: antialiased; }
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans, system-ui, sans-serif);
 }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
