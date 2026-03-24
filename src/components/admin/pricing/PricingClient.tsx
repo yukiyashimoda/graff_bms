@@ -161,7 +161,8 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>該当する商品がありません</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[540px]">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)' }}>
                 {['商品名 / VT', 'カテゴリ', '仕入れ価格', '販売価格', '原価率'].map(h => (
@@ -246,6 +247,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

@@ -240,7 +240,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* トップバー */}
         <header
-          className="h-14 flex items-center justify-between px-4 lg:px-6 gap-3"
+          className="h-14 flex items-center justify-between px-4 lg:px-6 gap-3 sticky top-0 z-30"
           style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}
         >
           {/* ハンバーガー（モバイルのみ） */}
