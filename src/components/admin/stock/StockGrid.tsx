@@ -26,12 +26,20 @@ export type StockItem = {
 
 export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
   const router  = useRouter()
-  const [items,   setItems]   = useState<StockItem[]>(initialItems)
-  const [deltas,  setDeltas]  = useState<Record<string, number>>({})
-  const [query,   setQuery]   = useState('')
-  const [lowOnly, setLowOnly] = useState(false)
-  const [saving,   setSaving]   = useState(false)
-  const [showList, setShowList] = useState(false)
+  const [items,     setItems]   = useState<StockItem[]>(initialItems)
+  const [deltas,    setDeltas]  = useState<Record<string, number>>({})
+  const [query,     setQuery]   = useState('')
+  const [lowOnly,   setLowOnly] = useState(false)
+  const [catFilter, setCat]     = useState<string | null>(null)
+  const [saving,    setSaving]  = useState(false)
+  const [showList,  setShowList] = useState(false)
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>()
+    return items
+      .map(i => i.category_name)
+      .filter((c): c is string => !!c && !seen.has(c) && !!seen.add(c))
+  }, [items])
 
   function adjustDelta(id: string, amount: number) {
     setDeltas(prev => {
@@ -80,6 +88,7 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
   const filtered = useMemo(() => {
     return items.filter(item => {
       if (lowOnly && item.quantity >= item.min_quantity) return false
+      if (catFilter && item.category_name !== catFilter) return false
       if (!query) return true
       const q = query.toLowerCase()
       return (
@@ -88,7 +97,7 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
         (item.category_name ?? '').toLowerCase().includes(q)
       )
     })
-  }, [items, query, lowOnly])
+  }, [items, query, lowOnly, catFilter])
 
   return (
     <>
@@ -106,6 +115,14 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
             className="flex-1 text-sm bg-transparent outline-none"
             style={{ color: 'var(--text-primary)' }}
           />
+        </div>
+
+        {/* カテゴリフィルター */}
+        <div className="flex gap-2 flex-wrap">
+          <CatBtn label="すべて" active={catFilter === null} onClick={() => setCat(null)} />
+          {categories.map(c => (
+            <CatBtn key={c} label={c} active={catFilter === c} onClick={() => setCat(c === catFilter ? null : c)} />
+          ))}
         </div>
 
         <button
@@ -400,5 +417,21 @@ function StockCard({
         </button>
       </div>
     </div>
+  )
+}
+
+function CatBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
+      style={{
+        background: active ? 'var(--bg-dark)' : 'var(--bg-surface)',
+        color:      active ? 'var(--text-invert)' : 'var(--text-secondary)',
+        border:     active ? 'none' : '1px solid var(--border)',
+      }}
+    >
+      {label}
+    </button>
   )
 }

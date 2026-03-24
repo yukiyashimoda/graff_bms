@@ -11,15 +11,16 @@ import {
 } from 'react-icons/ri'
 
 type TxRow = {
-  id:              string
-  type:            'in' | 'out' | 'adjustment'
-  quantity:        number
-  cost_price:      number | null
-  notes:           string | null
-  created_at:      string
-  product_name:    string
-  product_name_en: string
-  unit:            string
+  id:               string
+  type:             'in' | 'out' | 'adjustment'
+  quantity:         number
+  cost_price:       number | null
+  notes:            string | null
+  created_at:       string
+  product_name:     string
+  product_name_en:  string
+  unit:             string
+  product_category: string | null
 }
 
 const TYPE_LABEL = { in: '入庫', out: '出庫', adjustment: '調整' } as const
@@ -82,9 +83,18 @@ function downloadCSV(transactions: TxRow[], month: string) {
 }
 
 export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
-  const [query,      setQuery]      = useState('')
-  const [typeFilter, setTypeFilter] = useState<'in' | 'out' | 'adjustment' | null>(null)
+  const [query,       setQuery]      = useState('')
+  const [typeFilter,  setTypeFilter] = useState<'in' | 'out' | 'adjustment' | null>(null)
+  const [catFilter,   setCat]        = useState<string | null>(null)
   const [activeMonth, setActiveMonth] = useState<string | null>(null)
+
+  const categories = useMemo(() => {
+    const seen = new Set<string>()
+    return transactions
+      .map(t => t.product_category)
+      .filter((c): c is string => !!c && !seen.has(c) && !!seen.add(c))
+      .sort()
+  }, [transactions])
 
   // 月一覧
   const months = useMemo(() => {
@@ -113,6 +123,7 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
     return transactions.filter(t => {
       if (monthKey(t.created_at) !== selectedMonth) return false
       if (typeFilter && t.type !== typeFilter) return false
+      if (catFilter && t.product_category !== catFilter) return false
       if (query) {
         const q = query.toLowerCase()
         if (!t.product_name.toLowerCase().includes(q) &&
@@ -120,7 +131,7 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
       }
       return true
     })
-  }, [transactions, selectedMonth, typeFilter, query])
+  }, [transactions, selectedMonth, typeFilter, catFilter, query])
 
   // 日別グループ
   const byDay = useMemo(() => {
@@ -175,6 +186,35 @@ export function HistoryClient({ transactions }: { transactions: TxRow[] }) {
           ))}
         </div>
       )}
+
+      {/* カテゴリフィルター */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          onClick={() => setCat(null)}
+          className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
+          style={{
+            background: catFilter === null ? 'var(--bg-dark)' : 'var(--bg-surface)',
+            color:      catFilter === null ? 'var(--text-invert)' : 'var(--text-secondary)',
+            border:     catFilter === null ? 'none' : '1px solid var(--border)',
+          }}
+        >
+          すべて
+        </button>
+        {categories.map(c => (
+          <button
+            key={c}
+            onClick={() => setCat(c === catFilter ? null : c)}
+            className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
+            style={{
+              background: catFilter === c ? 'var(--bg-dark)' : 'var(--bg-surface)',
+              color:      catFilter === c ? 'var(--text-invert)' : 'var(--text-secondary)',
+              border:     catFilter === c ? 'none' : '1px solid var(--border)',
+            }}
+          >
+            {c}
+          </button>
+        ))}
+      </div>
 
       {/* フィルターバー */}
       <div className="flex items-center gap-3 flex-wrap">

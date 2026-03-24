@@ -12,23 +12,24 @@ export default async function StockHistoryPage() {
     .from('stock_transactions')
     .select(`
       id, type, quantity, cost_price, notes, created_at,
-      products(name, name_en, unit)
+      products(name, name_en, unit, categories(name))
     `)
     .gte('created_at', since.toISOString())
     .order('created_at', { ascending: false })
 
   const rows = (transactions ?? []).map(t => {
-    const p = t.products as unknown as { name: string; name_en: string; unit: string } | null
+    const p = t.products as unknown as { name: string; name_en: string; unit: string; categories: { name: string } | null } | null
     return {
-      id:           t.id,
-      type:         t.type as 'in' | 'out' | 'adjustment',
-      quantity:     Number(t.quantity),
-      cost_price:   t.cost_price != null ? Number(t.cost_price) : null,
-      notes:        t.notes,
-      created_at:   t.created_at,
-      product_name:    p?.name    ?? '—',
-      product_name_en: p?.name_en ?? '',
-      unit:            p?.unit    ?? '',
+      id:               t.id,
+      type:             t.type as 'in' | 'out' | 'adjustment',
+      quantity:         Number(t.quantity),
+      cost_price:       t.cost_price != null ? Number(t.cost_price) : null,
+      notes:            t.notes,
+      created_at:       t.created_at,
+      product_name:     p?.name    ?? '—',
+      product_name_en:  p?.name_en ?? '',
+      unit:             p?.unit    ?? '',
+      product_category: p?.categories?.name ?? null,
     }
   })
 
