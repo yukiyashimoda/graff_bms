@@ -173,9 +173,9 @@ export async function deleteStockTransaction(id: string): Promise<void> {
   revalidatePath('/admin')
 }
 
-export async function deleteMonthTransactions(month: string, password: string): Promise<void> {
+export async function deleteMonthTransactions(month: string, password: string): Promise<{ error?: string }> {
   const expected = process.env.BULK_DELETE_PASSWORD
-  if (!expected || password !== expected) throw new Error('パスワードが正しくありません')
+  if (!expected || password !== expected) return { error: 'パスワードが正しくありません' }
 
   const [y, m] = month.split('-')
   const from = new Date(Number(y), Number(m) - 1, 1).toISOString()
@@ -189,6 +189,7 @@ export async function deleteMonthTransactions(month: string, password: string): 
 
   revalidatePath('/admin/stock/history')
   revalidatePath('/admin')
+  return {}
 }
 
 export async function updateMinQuantity(productId: string, minQuantity: number) {

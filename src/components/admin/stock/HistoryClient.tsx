@@ -171,12 +171,16 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
     setBulkBusy(true)
     setBulkError(null)
     try {
-      await deleteMonthTransactions(selectedMonth, bulkPw)
+      const result = await deleteMonthTransactions(selectedMonth, bulkPw)
+      if (result?.error) {
+        setBulkError(result.error)
+        return
+      }
       setRows(prev => prev.filter(r => monthKey(r.created_at) !== selectedMonth))
       setBulkOpen(false)
       setBulkPw('')
-    } catch (e) {
-      setBulkError(e instanceof Error ? e.message : 'エラーが発生しました')
+    } catch {
+      setBulkError('エラーが発生しました')
     } finally {
       setBulkBusy(false)
     }
