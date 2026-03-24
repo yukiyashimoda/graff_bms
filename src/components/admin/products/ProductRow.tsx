@@ -176,6 +176,7 @@ export function ProductRow({ product }: { product: ProductWithRelations }) {
         </button>
         <Link
           href={`/admin/products/${product.id}/edit`}
+          prefetch={false}
           className="flex items-center justify-center py-2.5 transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
           style={{ color: 'var(--text-muted)' }}
         >
