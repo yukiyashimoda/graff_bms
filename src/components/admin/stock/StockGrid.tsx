@@ -11,7 +11,7 @@ import {
   RiCheckFill,
   RiCloseFill,
 } from 'react-icons/ri'
-import { recordStockTransaction, recordPriceRevision } from '@/app/admin/(protected)/stock/actions'
+import { recordStockTransaction } from '@/app/admin/(protected)/stock/actions'
 
 export type BatchInfo = {
   cost_price:   number
@@ -181,6 +181,13 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
                 const { [item.id]: _, ...rest } = deltas
                 setDeltas(rest)
               }}
+              onPriceIn={async (qty, price, notes) => {
+                const { newQuantity } = await recordStockTransaction(item.id, 'in', qty, price, notes)
+                setItems(prev => prev.map(i =>
+                  i.id === item.id ? { ...i, quantity: newQuantity, cost_price: price } : i
+                ))
+                router.refresh()
+              }}
             />
           ))}
         </div>
@@ -314,12 +321,13 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
 // ─── カード ──────────────────────────────────────────────────────────────────
 
 function StockCard({
-  item, delta, onAdjust, onReset,
+  item, delta, onAdjust, onReset, onPriceIn,
 }: {
-  item:     StockItem
-  delta:    number
-  onAdjust: (amount: number) => void
-  onReset:  () => void
+  item:       StockItem
+  delta:      number
+  onAdjust:   (amount: number) => void
+  onReset:    () => void
+  onPriceIn:  (qty: number, price: number, notes?: string) => Promise<void>
 }) {
   const newQty   = item.quantity + delta
   const isLow    = newQty < item.min_quantity && item.min_quantity > 0
@@ -328,24 +336,31 @@ function StockCard({
     ? Math.min(100, Math.round((newQty / item.min_quantity) * 100))
     : 100
 
-  const router = useRouter()
   const [priceOpen,   setPriceOpen]   = useState(false)
   const [priceInput,  setPriceInput]  = useState('')
+  const [qtyInput,    setQtyInput]    = useState('')
   const [notesInput,  setNotesInput]  = useState('')
   const [priceSaving, setPriceSaving] = useState(false)
   const [priceError,  setPriceError]  = useState<string | null>(null)
 
-  async function handlePriceRevision() {
-    const val = parseFloat(priceInput)
-    if (isNaN(val) || val <= 0) return
+  function openPriceForm() {
+    setPriceInput(String(item.cost_price ?? ''))
+    setQtyInput('')
+    setNotesInput('')
+    setPriceError(null)
+    setPriceOpen(true)
+  }
+
+  async function handlePriceIn() {
+    const price = parseFloat(priceInput)
+    const qty   = parseFloat(qtyInput)
+    if (isNaN(price) || price <= 0) { setPriceError('価格を入力してください'); return }
+    if (isNaN(qty)   || qty   <= 0) { setPriceError('入庫数を入力してください'); return }
     setPriceSaving(true)
     setPriceError(null)
     try {
-      await recordPriceRevision(item.id, val, notesInput)
+      await onPriceIn(qty, price, notesInput || undefined)
       setPriceOpen(false)
-      setPriceInput('')
-      setNotesInput('')
-      router.refresh()
     } catch (e) {
       setPriceError(e instanceof Error ? e.message : '保存に失敗しました')
     } finally {
@@ -379,7 +394,7 @@ function StockCard({
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>不足</span>
             )}
             <button
-              onClick={() => { setPriceOpen(v => !v); setPriceInput(String(item.cost_price ?? '')); setNotesInput(''); setPriceError(null) }}
+              onClick={() => priceOpen ? setPriceOpen(false) : openPriceForm()}
               className="px-2 py-0.5 text-[10px] font-semibold transition-all"
               style={{
                 background:   priceOpen ? 'var(--bg-dark)' : 'var(--bg-base)',
@@ -396,24 +411,38 @@ function StockCard({
         {/* 価格改定フォーム */}
         {priceOpen && (
           <div className="flex flex-col gap-2 py-2 px-3 rounded-xl" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-            <p className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>新しい仕入れ価格</p>
+            <p className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>価格改定 + 入庫</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div>
+                <p className="text-[9px] mb-0.5" style={{ color: 'var(--text-muted)' }}>仕入れ価格 *</p>
+                <input
+                  type="number" min="0" step="1"
+                  value={priceInput}
+                  onChange={e => setPriceInput(e.target.value)}
+                  placeholder="例: 1200"
+                  className="w-full px-2 py-1.5 text-[11px] tabular-nums outline-none"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 8 }}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <p className="text-[9px] mb-0.5" style={{ color: 'var(--text-muted)' }}>入庫数 *</p>
+                <input
+                  type="number" min="0" step="1"
+                  value={qtyInput}
+                  onChange={e => setQtyInput(e.target.value)}
+                  placeholder={item.unit}
+                  className="w-full px-2 py-1.5 text-[11px] tabular-nums outline-none"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 8 }}
+                />
+              </div>
+            </div>
             <input
-              type="number"
-              min="0"
-              step="1"
-              value={priceInput}
-              onChange={e => setPriceInput(e.target.value)}
-              placeholder="例: 1200"
-              className="w-full px-2 py-1.5 text-sm tabular-nums outline-none"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 8 }}
-              autoFocus
-            />
-            <textarea
-              rows={2}
+              type="text"
               value={notesInput}
               onChange={e => setNotesInput(e.target.value)}
               placeholder="備考（省略可）"
-              className="w-full px-2 py-1.5 text-[11px] outline-none resize-none"
+              className="w-full px-2 py-1.5 text-[11px] outline-none"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 8 }}
             />
             {priceError && (
@@ -421,13 +450,13 @@ function StockCard({
             )}
             <div className="flex gap-1.5">
               <button
-                onClick={handlePriceRevision}
-                disabled={priceSaving || !priceInput || parseFloat(priceInput) <= 0}
+                onClick={handlePriceIn}
+                disabled={priceSaving}
                 className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                 style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', borderRadius: 8 }}
               >
                 <RiCheckFill size={11} />
-                {priceSaving ? '保存中...' : '改定する'}
+                {priceSaving ? '保存中...' : '入庫・改定'}
               </button>
               <button
                 onClick={() => setPriceOpen(false)}
@@ -475,8 +504,8 @@ function StockCard({
           <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>最低 {item.min_quantity} {item.unit}</p>
         </div>
 
-        {/* ロット別在庫 */}
-        {item.batches.length > 0 && (
+        {/* ロット別在庫 / 仕入れ値 */}
+        {item.batches.length > 0 ? (
           <div className="flex flex-col gap-0.5">
             {item.batches.map((b, i) => (
               <div key={i} className="flex items-center justify-between tabular-nums">
@@ -489,7 +518,11 @@ function StockCard({
               </div>
             ))}
           </div>
-        )}
+        ) : item.cost_price != null ? (
+          <p className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+            仕入れ値 ¥{item.cost_price.toLocaleString()}
+          </p>
+        ) : null}
       </div>
 
       {/* ±ボタン */}
