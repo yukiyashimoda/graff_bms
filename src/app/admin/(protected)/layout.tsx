@@ -21,7 +21,8 @@ import {
   RiExternalLinkFill,
   RiArrowDownSLine,
 } from 'react-icons/ri'
-import { QRCodeSVG } from 'qrcode.react'
+import dynamic from 'next/dynamic'
+const QRCodeSVG = dynamic(() => import('qrcode.react').then(m => m.QRCodeSVG), { ssr: false })
 import { LogoutButton } from '@/components/admin/LogoutButton'
 
 const LOCALES = [
