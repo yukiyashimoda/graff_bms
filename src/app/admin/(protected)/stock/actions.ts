@@ -110,10 +110,12 @@ export async function recordPriceRevision(
   const prevPrice = latest?.cost_price != null ? Number(latest.cost_price) : null
 
   // price_history に記録
-  await supabase.from('price_history').insert({ product_id: productId, cost_price: newPrice })
+  const { error: histErr } = await supabase.from('price_history').insert({ product_id: productId, cost_price: newPrice })
+  if (histErr) throw new Error(histErr.message)
 
   // products.cost_price を更新
-  await supabase.from('products').update({ cost_price: newPrice }).eq('id', productId)
+  const { error: prodErr } = await supabase.from('products').update({ cost_price: newPrice }).eq('id', productId)
+  if (prodErr) throw new Error(prodErr.message)
 
   // 5% 以上値上がりならアラート発行
   if (prevPrice != null && prevPrice > 0) {

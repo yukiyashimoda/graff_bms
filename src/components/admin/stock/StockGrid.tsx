@@ -10,8 +10,8 @@ import {
   RiArchiveFill,
   RiCheckFill,
   RiCloseFill,
-  RiMoneyDollarCircleFill,
 } from 'react-icons/ri'
+import { useRouter } from 'next/navigation'
 import { recordStockTransaction, recordPriceRevision } from '@/app/admin/(protected)/stock/actions'
 
 export type BatchInfo = {
@@ -329,20 +329,26 @@ function StockCard({
     ? Math.min(100, Math.round((newQty / item.min_quantity) * 100))
     : 100
 
+  const router = useRouter()
   const [priceOpen,   setPriceOpen]   = useState(false)
   const [priceInput,  setPriceInput]  = useState('')
   const [notesInput,  setNotesInput]  = useState('')
   const [priceSaving, setPriceSaving] = useState(false)
+  const [priceError,  setPriceError]  = useState<string | null>(null)
 
   async function handlePriceRevision() {
     const val = parseFloat(priceInput)
     if (isNaN(val) || val <= 0) return
     setPriceSaving(true)
+    setPriceError(null)
     try {
       await recordPriceRevision(item.id, val, notesInput)
       setPriceOpen(false)
       setPriceInput('')
       setNotesInput('')
+      router.refresh()
+    } catch (e) {
+      setPriceError(e instanceof Error ? e.message : '保存に失敗しました')
     } finally {
       setPriceSaving(false)
     }
@@ -374,16 +380,16 @@ function StockCard({
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>不足</span>
             )}
             <button
-              onClick={() => { setPriceOpen(v => !v); setPriceInput(String(item.cost_price ?? '')); setNotesInput('') }}
-              title="価格改定"
-              className="flex items-center justify-center w-6 h-6 transition-all hover:scale-105 active:scale-95"
+              onClick={() => { setPriceOpen(v => !v); setPriceInput(String(item.cost_price ?? '')); setNotesInput(''); setPriceError(null) }}
+              className="px-2 py-0.5 text-[10px] font-semibold transition-all"
               style={{
-                background: priceOpen ? 'var(--bg-dark)' : 'transparent',
-                color:      priceOpen ? 'var(--text-invert)' : 'var(--text-muted)',
+                background:   priceOpen ? 'var(--bg-dark)' : 'var(--bg-base)',
+                color:        priceOpen ? 'var(--text-invert)' : 'var(--text-secondary)',
+                border:       `1px solid var(--border)`,
                 borderRadius: 6,
               }}
             >
-              <RiMoneyDollarCircleFill size={13} />
+              価格改定
             </button>
           </div>
         </div>
@@ -411,6 +417,9 @@ function StockCard({
               className="w-full px-2 py-1.5 text-[11px] outline-none resize-none"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 8 }}
             />
+            {priceError && (
+              <p className="text-[10px]" style={{ color: '#d84f2a' }}>{priceError}</p>
+            )}
             <div className="flex gap-1.5">
               <button
                 onClick={handlePriceRevision}
