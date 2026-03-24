@@ -498,7 +498,7 @@ function StockCard({
           </span>
           <span className="text-[11px] pb-0.5" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>
           {isLow && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full pb-0.5" style={{ color: '#d84f2a', border: '1px solid #d84f2a55' }}>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full pb-0.5" style={{ background: '#d84f2a', color: '#ededed' }}>
               不足
             </span>
           )}
