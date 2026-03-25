@@ -1,209 +1,174 @@
 'use client'
 
 import { useState, useMemo, useTransition } from 'react'
-import { RiSearchLine, RiAddLine, RiGlassesFill, RiEditLine, RiDeleteBinLine } from 'react-icons/ri'
-import { createGlass, updateGlass, deleteGlass, toggleGlassAvailability } from '@/app/admin/(protected)/products/glass-actions'
+import Stepper from '@mui/material/Stepper'
+import Step from '@mui/material/Step'
+import StepLabel from '@mui/material/StepLabel'
+import {
+  RiAddLine, RiGlassesFill, RiDeleteBinLine,
+  RiSearchLine, RiArrowLeftLine, RiAlertFill,
+} from 'react-icons/ri'
+import {
+  createGlass,
+  deleteGlass,
+  toggleGlassAvailability,
+} from '@/app/admin/(protected)/products/glass-actions'
+
+/* ── 型定義 ──────────────────────────────────────────────── */
 
 export type GlassRow = {
-  id:           string
-  name:         string
-  name_en:      string
-  type:         string
-  size_ml:      number | null
-  image_url:    string | null
-  notes:        string | null
-  is_available: boolean
-  sort_order:   number
+  id:              string
+  product_id:      string
+  product_name:    string
+  product_name_en: string
+  cost_price:      number | null
+  serving_ml:      number
+  bottle_ml:       number | null
+  selling_price:   number | null
+  opened_at:       string
+  is_available:    boolean
+  category_name:   string | null
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  highball:  'ハイボール',
-  rocks:     'ロック',
-  wine:      'ワイン',
-  champagne: 'シャンパン',
-  shot:      'ショット',
-  cocktail:  'カクテル',
-  beer:      'ビール',
-  other:     'その他',
+export type ProductOption = {
+  id:        string
+  name:      string
+  name_en:   string
+  cost_price: number | null
+  stock:      number
+  volume_ml:  number | null
+  category:   string | null
 }
 
-const TYPE_OPTIONS = Object.entries(TYPE_LABELS)
+/* ── 定数 ────────────────────────────────────────────────── */
 
-function GlassForm({
-  initial,
-  onSubmit,
-  onCancel,
-  submitting,
+const SERVING_PRESETS = [30, 45, 60, 90, 120, 150, 180]
+
+const STEP_LABELS = ['ボトル選択', '提供量', '価格・開栓日']
+
+const STEPPER_SX = {
+  p: 0,
+  '& .MuiStepIcon-root':            { color: '#ccc6bf', width: 28, height: 28 },
+  '& .MuiStepIcon-root.Mui-active': { color: '#091d26' },
+  '& .MuiStepIcon-root.Mui-completed': { color: '#091d26' },
+  '& .MuiStepIcon-text':            { fontSize: '0.65rem', fontWeight: 700 },
+  '& .MuiStepLabel-label': {
+    fontFamily: 'inherit',
+    fontSize: '11px',
+    marginTop: '4px',
+    color: '#6b9fa5',
+  },
+  '& .MuiStepLabel-label.Mui-active':    { color: '#091d26', fontWeight: 700 },
+  '& .MuiStepLabel-label.Mui-completed': { color: '#091d26' },
+  '& .MuiStepConnector-line': { borderColor: '#ccc6bf' },
+} as const
+
+/* ── ユーティリティ ──────────────────────────────────────── */
+
+function isWine(categoryName: string | null): boolean {
+  return !!categoryName && /wine|ワイン|ワイン/i.test(categoryName)
+}
+
+function daysSince(isoStr: string): number {
+  return (Date.now() - new Date(isoStr).getTime()) / 86_400_000
+}
+
+function todayLocalISO(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/* ── メインコンポーネント ────────────────────────────────── */
+
+export function GlassesClient({
+  glasses: init,
+  products,
 }: {
-  initial?: Partial<GlassRow>
-  onSubmit: (data: Omit<GlassRow, 'id' | 'sort_order'>) => void
-  onCancel: () => void
-  submitting: boolean
+  glasses: GlassRow[]
+  products: ProductOption[]
 }) {
-  const [name,         setName]         = useState(initial?.name         ?? '')
-  const [nameEn,       setNameEn]       = useState(initial?.name_en      ?? '')
-  const [type,         setType]         = useState(initial?.type         ?? 'other')
-  const [sizeMl,       setSizeMl]       = useState(initial?.size_ml?.toString() ?? '')
-  const [notes,        setNotes]        = useState(initial?.notes        ?? '')
-  const [isAvailable,  setIsAvailable]  = useState(initial?.is_available ?? true)
+  const [glasses, setGlasses]   = useState(init)
+  const [showForm, setShowForm] = useState(false)
+  const [step, setStep]         = useState(0)
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    onSubmit({
-      name,
-      name_en:      nameEn,
-      type,
-      size_ml:      sizeMl ? parseFloat(sizeMl) : null,
-      image_url:    initial?.image_url ?? null,
-      notes:        notes || null,
-      is_available: isAvailable,
-    })
-  }
+  /* step 1 */
+  const [query, setQuery]       = useState('')
+  const [selected, setSelected] = useState<ProductOption | null>(null)
 
-  const fieldStyle = {
-    background: 'var(--bg-base)',
-    border: '1px solid var(--border)',
-    color: 'var(--text-primary)',
-  }
+  /* step 2 */
+  const [servingPreset, setServingPreset] = useState<number | null>(null)
+  const [customServing, setCustomServing] = useState('')
+  const [bottleMl, setBottleMl]           = useState('')
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1 col-span-2 sm:col-span-1">
-          <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>グラス名 *</label>
-          <input
-            required
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className="w-full px-3 h-10 text-sm rounded-xl outline-none"
-            style={fieldStyle}
-          />
-        </div>
-        <div className="space-y-1 col-span-2 sm:col-span-1">
-          <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>英語名</label>
-          <input
-            value={nameEn}
-            onChange={e => setNameEn(e.target.value)}
-            className="w-full px-3 h-10 text-sm rounded-xl outline-none"
-            style={fieldStyle}
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>種類</label>
-          <select
-            value={type}
-            onChange={e => setType(e.target.value)}
-            className="w-full px-3 h-10 text-sm rounded-xl outline-none"
-            style={fieldStyle}
-          >
-            {TYPE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>容量 (ml)</label>
-          <input
-            type="number"
-            min="0"
-            step="0.1"
-            value={sizeMl}
-            onChange={e => setSizeMl(e.target.value)}
-            placeholder="例: 300"
-            className="w-full px-3 h-10 text-sm rounded-xl outline-none"
-            style={fieldStyle}
-          />
-        </div>
-        <div className="space-y-1 col-span-2">
-          <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>メモ</label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={2}
-            className="w-full px-3 py-2 text-sm rounded-xl outline-none resize-none"
-            style={fieldStyle}
-          />
-        </div>
-        <div className="col-span-2 flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="glass-available"
-            checked={isAvailable}
-            onChange={e => setIsAvailable(e.target.checked)}
-            className="w-4 h-4"
-          />
-          <label htmlFor="glass-available" className="text-sm" style={{ color: 'var(--text-primary)' }}>
-            公開する
-          </label>
-        </div>
-      </div>
+  /* step 3 */
+  const [sellingPrice, setSellingPrice] = useState('')
+  const [openedAt, setOpenedAt]         = useState(todayLocalISO())
 
-      <div className="flex gap-2 justify-end pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 h-9 text-sm rounded-xl transition-opacity hover:opacity-70"
-          style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-        >
-          キャンセル
-        </button>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="px-4 h-9 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
-          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
-        >
-          {submitting ? '保存中...' : '保存'}
-        </button>
-      </div>
-    </form>
-  )
-}
-
-export function GlassesClient({ glasses: initial }: { glasses: GlassRow[] }) {
-  const [glasses,   setGlasses]  = useState(initial)
-  const [query,     setQuery]    = useState('')
-  const [typeFilter, setTypeFilter] = useState<string | null>(null)
-  const [showForm,  setShowForm] = useState(false)
-  const [editing,   setEditing]  = useState<GlassRow | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const types = useMemo(() => {
-    const seen = new Set<string>()
-    glasses.forEach(g => seen.add(g.type))
-    return Array.from(seen).sort()
-  }, [glasses])
+  /* ── 派生値 ── */
 
-  const filtered = useMemo(() => {
-    return glasses.filter(g => {
-      if (typeFilter && g.type !== typeFilter) return false
-      if (!query.trim()) return true
-      const q = query.toLowerCase()
-      return g.name.toLowerCase().includes(q) || (g.name_en ?? '').toLowerCase().includes(q)
-    })
-  }, [glasses, query, typeFilter])
+  const filteredProducts = useMemo(() => {
+    if (!query.trim()) return products
+    const q = query.toLowerCase()
+    return products.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      (p.name_en ?? '').toLowerCase().includes(q) ||
+      (p.category ?? '').toLowerCase().includes(q),
+    )
+  }, [products, query])
 
-  function handleCreate(data: Omit<GlassRow, 'id' | 'sort_order'>) {
-    startTransition(async () => {
-      const result = await createGlass(data)
-      if (result.data) {
-        setGlasses(prev => [...prev, result.data!])
-        setShowForm(false)
-      }
-    })
+  const effectiveServingMl = servingPreset ?? (customServing ? parseFloat(customServing) : null)
+
+  const effectiveBottleMl = bottleMl
+    ? parseFloat(bottleMl)
+    : (selected?.volume_ml ?? null)
+
+  const costPerGlass = useMemo(() => {
+    if (!selected?.cost_price || !effectiveServingMl || !effectiveBottleMl) return null
+    return (selected.cost_price / effectiveBottleMl) * effectiveServingMl
+  }, [selected, effectiveServingMl, effectiveBottleMl])
+
+  const costRate = useMemo(() => {
+    if (!costPerGlass || !sellingPrice) return null
+    const p = parseFloat(sellingPrice)
+    if (!p || p <= 0) return null
+    return (costPerGlass / p) * 100
+  }, [costPerGlass, sellingPrice])
+
+  const canNext1 = !!selected
+  const canNext2 = !!effectiveServingMl && effectiveServingMl > 0
+
+  /* ── ハンドラ ── */
+
+  function resetForm() {
+    setStep(0); setQuery(''); setSelected(null)
+    setServingPreset(null); setCustomServing(''); setBottleMl('')
+    setSellingPrice(''); setOpenedAt(todayLocalISO())
+    setShowForm(false)
   }
 
-  function handleUpdate(data: Omit<GlassRow, 'id' | 'sort_order'>) {
-    if (!editing) return
+  function handleRegister() {
+    if (!selected || !effectiveServingMl) return
     startTransition(async () => {
-      const result = await updateGlass(editing.id, data)
+      const result = await createGlass({
+        product_id:    selected.id,
+        serving_ml:    effectiveServingMl,
+        bottle_ml:     effectiveBottleMl,
+        selling_price: sellingPrice ? parseFloat(sellingPrice) : null,
+        opened_at:     new Date(openedAt).toISOString(),
+        is_available:  true,
+      })
       if (result.data) {
-        setGlasses(prev => prev.map(g => g.id === editing.id ? result.data! : g))
-        setEditing(null)
+        setGlasses(prev => [result.data!, ...prev])
+        resetForm()
       }
     })
   }
 
   function handleDelete(id: string) {
-    if (!confirm('このグラスを削除しますか？')) return
+    if (!confirm('このグラス提供を削除しますか？\n（在庫は自動で戻りません）')) return
     startTransition(async () => {
       await deleteGlass(id)
       setGlasses(prev => prev.filter(g => g.id !== id))
@@ -217,18 +182,28 @@ export function GlassesClient({ glasses: initial }: { glasses: GlassRow[] }) {
     })
   }
 
+  /* ── 共通スタイル ── */
+
+  const fieldBase = {
+    background: 'var(--bg-base)',
+    border: '1px solid var(--border)',
+    color: 'var(--text-primary)',
+  } as const
+
+  /* ── レンダリング ── */
+
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>グラス管理</h2>
-            <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {(query || typeFilter) ? `${filtered.length} / ${glasses.length} 件` : `${glasses.length} 件`}
-            </p>
-          </div>
+
+      {/* ヘッダー */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>グラス管理</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{glasses.length} 件</p>
+        </div>
+        {!showForm && (
           <button
-            onClick={() => { setEditing(null); setShowForm(true) }}
+            onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 px-4 h-10 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 flex-shrink-0"
             style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
           >
@@ -236,50 +211,343 @@ export function GlassesClient({ glasses: initial }: { glasses: GlassRow[] }) {
             <span className="hidden sm:inline">グラスを追加</span>
             <span className="sm:hidden">追加</span>
           </button>
-        </div>
-
-        {/* タイプフィルター */}
-        {types.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <TypeBtn label="すべて" active={typeFilter === null} onClick={() => setTypeFilter(null)} />
-            {types.map(t => (
-              <TypeBtn key={t} label={TYPE_LABELS[t] ?? t} active={typeFilter === t} onClick={() => setTypeFilter(t)} />
-            ))}
-          </div>
         )}
-
-        {/* 検索 */}
-        <div
-          className="flex items-center gap-2 px-3 h-11 rounded-xl"
-          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-        >
-          <RiSearchLine size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="グラス名で検索..."
-            className="flex-1 text-sm bg-transparent outline-none"
-            style={{ color: 'var(--text-primary)' }}
-          />
-        </div>
       </div>
 
-      {/* 追加フォーム */}
-      {showForm && !editing && (
+      {/* ━━━ Stepperフォーム ━━━ */}
+      {showForm && (
         <div
-          className="rounded-2xl p-5"
+          className="rounded-2xl overflow-hidden"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
-          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>新規グラス</p>
-          <GlassForm
-            onSubmit={handleCreate}
-            onCancel={() => setShowForm(false)}
-            submitting={isPending}
-          />
+          {/* フォームヘッダー */}
+          <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>グラスを追加</p>
+              <button
+                onClick={resetForm}
+                className="text-xs px-3 h-7 rounded-lg transition-opacity hover:opacity-70"
+                style={{ color: 'var(--text-muted)', background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+              >
+                キャンセル
+              </button>
+            </div>
+
+            {/* MUI Stepper */}
+            <Stepper activeStep={step} alternativeLabel sx={STEPPER_SX}>
+              {STEP_LABELS.map(label => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </div>
+
+          {/* ステップコンテンツ */}
+          <div className="p-5">
+
+            {/* ────────── Step 1: ボトルを選んでください ────────── */}
+            {step === 0 && (
+              <div className="space-y-4">
+                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  ボトルを選んでください
+                </p>
+
+                {/* 検索 */}
+                <div
+                  className="flex items-center gap-2 px-3 h-10 rounded-xl"
+                  style={fieldBase}
+                >
+                  <RiSearchLine size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <input
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="商品名・カテゴリで検索..."
+                    className="flex-1 text-sm bg-transparent outline-none"
+                    style={{ color: 'var(--text-primary)' }}
+                    autoFocus
+                  />
+                </div>
+
+                {/* 商品リスト */}
+                <div
+                  className="rounded-xl overflow-hidden overflow-y-auto"
+                  style={{ maxHeight: 280, border: '1px solid var(--border)' }}
+                >
+                  {filteredProducts.length === 0 ? (
+                    <p className="text-sm text-center py-10" style={{ color: 'var(--text-muted)' }}>
+                      商品が見つかりません
+                    </p>
+                  ) : (
+                    filteredProducts.map((p, i) => {
+                      const isActive = selected?.id === p.id
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => setSelected(p)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors"
+                          style={{
+                            borderBottom: i < filteredProducts.length - 1 ? '1px solid var(--border)' : undefined,
+                            background: isActive ? 'var(--bg-dark)' : 'var(--bg-surface)',
+                          }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className="text-sm font-medium truncate"
+                              style={{ color: isActive ? 'var(--text-invert)' : 'var(--text-primary)' }}
+                            >
+                              {p.name}
+                            </p>
+                            {p.category && (
+                              <p className="text-[11px] truncate" style={{ color: isActive ? '#9ab4bc' : 'var(--text-muted)' }}>
+                                {p.category}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right flex-shrink-0 space-y-0.5">
+                            <p className="text-[11px] font-semibold tabular-nums" style={{ color: isActive ? '#9ab4bc' : 'var(--text-muted)' }}>
+                              在庫 {p.stock}
+                            </p>
+                            {p.volume_ml && (
+                              <p className="text-[10px] tabular-nums" style={{ color: isActive ? '#9ab4bc' : 'var(--text-muted)' }}>
+                                {p.volume_ml}ml
+                              </p>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ────────── Step 2: 提供量を選択してください ────────── */}
+            {step === 1 && selected && (
+              <div className="space-y-5">
+                {/* 選択ボトル表示 */}
+                <div
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
+                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+                >
+                  <RiGlassesFill size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <span className="font-medium truncate" style={{ color: 'var(--text-primary)' }}>{selected.name}</span>
+                </div>
+
+                {/* 提供量プリセット */}
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    提供量を選択してください
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {SERVING_PRESETS.map(ml => (
+                      <button
+                        key={ml}
+                        onClick={() => { setServingPreset(ml); setCustomServing('') }}
+                        className="px-3.5 h-9 rounded-xl text-sm font-semibold transition-all"
+                        style={servingPreset === ml
+                          ? { background: 'var(--bg-dark)', color: 'var(--text-invert)' }
+                          : { background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+                        }
+                      >
+                        {ml}ml
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* カスタム */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>カスタム</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={customServing}
+                      onChange={e => { setCustomServing(e.target.value); setServingPreset(null) }}
+                      placeholder="ml"
+                      className="w-20 px-3 h-9 text-sm rounded-xl outline-none tabular-nums"
+                      style={fieldBase}
+                    />
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>ml</span>
+                  </div>
+                </div>
+
+                {/* ボトル容量 */}
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>ボトル容量</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={bottleMl !== '' ? bottleMl : (selected.volume_ml?.toString() ?? '')}
+                      onChange={e => setBottleMl(e.target.value)}
+                      placeholder="例: 700"
+                      className="w-28 px-3 h-9 text-sm rounded-xl outline-none tabular-nums"
+                      style={fieldBase}
+                    />
+                    <span className="text-sm" style={{ color: 'var(--text-muted)' }}>ml</span>
+                  </div>
+
+                  {/* 1本あたり何杯 */}
+                  {effectiveServingMl && effectiveBottleMl && (
+                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                      1本あたり 約{' '}
+                      <span className="font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                        {Math.floor(effectiveBottleMl / effectiveServingMl)}
+                      </span>{' '}
+                      杯
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ────────── Step 3: 価格・開栓日 ────────── */}
+            {step === 2 && selected && (
+              <div className="space-y-5">
+                {/* サマリー */}
+                <div className="flex flex-wrap gap-2">
+                  <div className="px-3 py-2 rounded-xl text-sm" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>ボトル: </span>
+                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{selected.name}</span>
+                  </div>
+                  <div className="px-3 py-2 rounded-xl text-sm tabular-nums" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>提供量: </span>
+                    <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{effectiveServingMl}ml</span>
+                  </div>
+                </div>
+
+                {/* 一杯あたり原価 */}
+                {costPerGlass != null ? (
+                  <div
+                    className="flex items-stretch gap-0 rounded-xl overflow-hidden"
+                    style={{ border: '1px solid var(--border)' }}
+                  >
+                    <div className="flex-1 px-4 py-3" style={{ background: 'var(--bg-base)' }}>
+                      <p className="text-[11px] mb-0.5" style={{ color: 'var(--text-muted)' }}>一杯あたり原価</p>
+                      <p className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                        ¥{costPerGlass.toFixed(1)}
+                      </p>
+                    </div>
+                    {effectiveBottleMl && (
+                      <div className="px-4 py-3" style={{ background: 'var(--bg-surface)', borderLeft: '1px solid var(--border)' }}>
+                        <p className="text-[11px] mb-0.5" style={{ color: 'var(--text-muted)' }}>ボトル原価</p>
+                        <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                          ¥{(selected.cost_price ?? 0).toLocaleString()}
+                        </p>
+                        <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          {effectiveBottleMl}ml
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs px-3 py-2 rounded-xl" style={{ background: 'var(--bg-base)', color: 'var(--text-muted)' }}>
+                    ボトル容量または原価が未設定のため原価計算できません
+                  </p>
+                )}
+
+                {/* 販売価格 */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    販売価格
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>¥</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="10"
+                      value={sellingPrice}
+                      onChange={e => setSellingPrice(e.target.value)}
+                      placeholder="例: 800"
+                      className="w-36 px-3 h-10 text-sm rounded-xl outline-none tabular-nums"
+                      style={fieldBase}
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* 原価率バー */}
+                  {costRate != null && (
+                    <div className="flex items-center gap-3 mt-1">
+                      <div
+                        className="h-2 rounded-full overflow-hidden flex-1 max-w-36"
+                        style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${Math.min(100, costRate)}%`,
+                            background: costRate > 50 ? '#ef4444' : costRate > 30 ? '#f59e0b' : '#22c55e',
+                          }}
+                        />
+                      </div>
+                      <p
+                        className="text-sm font-bold tabular-nums"
+                        style={{ color: costRate > 50 ? '#ef4444' : costRate > 30 ? '#f59e0b' : '#22c55e' }}
+                      >
+                        原価率 {costRate.toFixed(1)}%
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 開栓日 */}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    開栓日
+                  </label>
+                  <input
+                    type="date"
+                    value={openedAt}
+                    onChange={e => setOpenedAt(e.target.value)}
+                    className="px-3 h-10 text-sm rounded-xl outline-none"
+                    style={fieldBase}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ナビゲーション */}
+            <div
+              className="flex items-center gap-2 mt-6 pt-4"
+              style={{ borderTop: '1px solid var(--border)' }}
+            >
+              {step > 0 && (
+                <button
+                  onClick={() => setStep(s => s - 1)}
+                  className="flex items-center gap-1.5 px-4 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-70"
+                  style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                >
+                  <RiArrowLeftLine size={14} />
+                  戻る
+                </button>
+              )}
+              <div className="flex-1" />
+              {step < 2 ? (
+                <button
+                  onClick={() => setStep(s => s + 1)}
+                  disabled={step === 0 ? !canNext1 : !canNext2}
+                  className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                >
+                  次へ
+                </button>
+              ) : (
+                <button
+                  onClick={handleRegister}
+                  disabled={isPending}
+                  className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                >
+                  {isPending ? '登録中...' : '登録する'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* 一覧 */}
+      {/* ━━━ グラス一覧 ━━━ */}
       <div
         className="rounded-2xl overflow-hidden"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
@@ -287,70 +555,98 @@ export function GlassesClient({ glasses: initial }: { glasses: GlassRow[] }) {
         {glasses.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <RiGlassesFill size={32} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>グラスがまだありません</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-2">
-            <RiSearchLine size={28} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>「{query}」に一致するグラスがありません</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>グラス提供がまだありません</p>
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {filtered.map(g => (
-              <div key={g.id}>
-                {editing?.id === g.id ? (
-                  <div className="p-5">
-                    <p className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>編集: {g.name}</p>
-                    <GlassForm
-                      initial={editing}
-                      onSubmit={handleUpdate}
-                      onCancel={() => setEditing(null)}
-                      submitting={isPending}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 px-5 py-4">
+            {glasses.map(g => {
+              const cPerGlass = g.cost_price && g.bottle_ml
+                ? (g.cost_price / g.bottle_ml) * g.serving_ml
+                : null
+              const rate = cPerGlass && g.selling_price
+                ? (cPerGlass / g.selling_price) * 100
+                : null
+              const days   = daysSince(g.opened_at)
+              const wine   = isWine(g.category_name)
+              const alert  = wine && days > 3
+
+              return (
+                <div key={g.id} className="px-4 py-3 sm:px-5 sm:py-4">
+                  <div className="flex items-start gap-3">
                     {/* アイコン */}
                     <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: 'var(--bg-base)' }}
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+                      style={{ background: alert ? '#fef2f2' : 'var(--bg-base)' }}
                     >
-                      <RiGlassesFill size={16} style={{ color: 'var(--text-muted)' }} />
+                      <RiGlassesFill size={16} style={{ color: alert ? '#ef4444' : 'var(--text-muted)' }} />
                     </div>
 
-                    {/* 名前 */}
+                    {/* 商品情報 */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: g.is_available ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                        {g.name}
-                      </p>
-                      <p className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
-                        {TYPE_LABELS[g.type] ?? g.type}
-                        {g.size_ml ? ` · ${g.size_ml}ml` : ''}
-                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p
+                          className="text-sm font-semibold truncate"
+                          style={{ color: g.is_available ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        >
+                          {g.product_name}
+                        </p>
+
+                        {/* ワインアラートバッジ */}
+                        {alert && (
+                          <span
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0"
+                            style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca' }}
+                          >
+                            <RiAlertFill size={10} />
+                            開栓から{Math.floor(days)}日経過
+                          </span>
+                        )}
+                      </div>
+
+                      {/* サブ情報行 */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                        <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          {g.serving_ml}ml / 杯
+                          {g.bottle_ml ? ` · 1本 ${g.bottle_ml}ml` : ''}
+                        </p>
+                        <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          開栓: {new Date(g.opened_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
                     </div>
 
-                    {/* 公開トグル */}
-                    <button
-                      onClick={() => handleToggle(g.id, !g.is_available)}
-                      className="px-2.5 h-6 text-[10px] font-semibold rounded-full transition-opacity hover:opacity-80"
-                      style={g.is_available
-                        ? { background: '#22c55e22', color: '#16a34a' }
-                        : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                      }
-                    >
-                      {g.is_available ? '公開中' : '非公開'}
-                    </button>
+                    {/* 右側: 価格・原価率・操作 */}
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                      {/* 価格・原価率（sm以上） */}
+                      <div className="text-right hidden sm:block">
+                        {g.selling_price != null && (
+                          <p className="text-sm font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                            ¥{g.selling_price.toLocaleString()}
+                          </p>
+                        )}
+                        {rate != null && (
+                          <p
+                            className="text-[11px] tabular-nums"
+                            style={{ color: rate > 50 ? '#ef4444' : rate > 30 ? '#f59e0b' : '#22c55e' }}
+                          >
+                            原価率 {rate.toFixed(1)}%
+                          </p>
+                        )}
+                      </div>
 
-                    {/* 操作 */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/* 提供トグル */}
                       <button
-                        onClick={() => { setShowForm(false); setEditing(g) }}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
-                        style={{ color: 'var(--text-muted)' }}
-                        title="編集"
+                        onClick={() => handleToggle(g.id, !g.is_available)}
+                        className="px-2.5 h-6 text-[10px] font-semibold rounded-full transition-opacity hover:opacity-80 whitespace-nowrap"
+                        style={g.is_available
+                          ? { background: '#22c55e22', color: '#16a34a' }
+                          : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                        }
                       >
-                        <RiEditLine size={14} />
+                        {g.is_available ? '提供中' : '停止中'}
                       </button>
+
+                      {/* 削除 */}
                       <button
                         onClick={() => handleDelete(g.id)}
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
@@ -361,27 +657,31 @@ export function GlassesClient({ glasses: initial }: { glasses: GlassRow[] }) {
                       </button>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* 価格・原価率（モバイル） */}
+                  {(g.selling_price != null || rate != null) && (
+                    <div className="flex items-center gap-3 mt-2 ml-12 sm:hidden">
+                      {g.selling_price != null && (
+                        <p className="text-sm font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                          ¥{g.selling_price.toLocaleString()}
+                        </p>
+                      )}
+                      {rate != null && (
+                        <p
+                          className="text-[11px] tabular-nums"
+                          style={{ color: rate > 50 ? '#ef4444' : rate > 30 ? '#f59e0b' : '#22c55e' }}
+                        >
+                          原価率 {rate.toFixed(1)}%
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
     </div>
-  )
-}
-
-function TypeBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="px-3 py-1 rounded-full text-xs font-semibold transition-opacity hover:opacity-80"
-      style={active
-        ? { background: '#102937', color: '#ededed' }
-        : { background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
-      }
-    >
-      {label}
-    </button>
   )
 }

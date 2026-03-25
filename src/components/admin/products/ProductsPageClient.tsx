@@ -2,25 +2,26 @@
 
 import { useState } from 'react'
 import { ProductsClient } from './ProductsClient'
-import { GlassesClient, type GlassRow } from './GlassesClient'
+import { GlassesClient, type GlassRow, type ProductOption } from './GlassesClient'
 import { CocktailsClient, type CocktailRow } from './CocktailsClient'
 import type { ProductWithRelations } from '@/lib/types/database'
 
 type Tab = 'products' | 'glasses' | 'cocktails'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'products',  label: '商品一覧'   },
-  { id: 'glasses',   label: 'グラス管理' },
+  { id: 'products',  label: '商品一覧'     },
+  { id: 'glasses',   label: 'グラス管理'   },
   { id: 'cocktails', label: 'カクテル管理' },
 ]
 
 type Props = {
-  products:  ProductWithRelations[]
-  glasses:   GlassRow[]
-  cocktails: CocktailRow[]
+  products:       ProductWithRelations[]
+  glasses:        GlassRow[]
+  productOptions: ProductOption[]
+  cocktails:      CocktailRow[]
 }
 
-export function ProductsPageClient({ products, glasses, cocktails }: Props) {
+export function ProductsPageClient({ products, glasses, productOptions, cocktails }: Props) {
   const [active, setActive] = useState<Tab>('products')
 
   return (
@@ -47,8 +48,8 @@ export function ProductsPageClient({ products, glasses, cocktails }: Props) {
       </div>
 
       {/* パネル */}
-      {active === 'products'  && <ProductsClient  products={products}   />}
-      {active === 'glasses'   && <GlassesClient   glasses={glasses}     />}
+      {active === 'products'  && <ProductsClient  products={products} />}
+      {active === 'glasses'   && <GlassesClient   glasses={glasses} products={productOptions} />}
       {active === 'cocktails' && <CocktailsClient cocktails={cocktails} />}
     </div>
   )
