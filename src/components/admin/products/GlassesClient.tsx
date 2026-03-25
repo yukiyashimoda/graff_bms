@@ -110,13 +110,16 @@ export function GlassesClient({
   /* ── 派生値 ── */
 
   const filteredProducts = useMemo(() => {
-    if (!query.trim()) return products
-    const q = query.toLowerCase()
-    return products.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      (p.name_en ?? '').toLowerCase().includes(q) ||
-      (p.category ?? '').toLowerCase().includes(q),
-    )
+    return products.filter(p => {
+      if (p.stock <= 0) return false
+      if (!query.trim()) return true
+      const q = query.toLowerCase()
+      return (
+        p.name.toLowerCase().includes(q) ||
+        (p.name_en ?? '').toLowerCase().includes(q) ||
+        (p.category ?? '').toLowerCase().includes(q)
+      )
+    })
   }, [products, query])
 
   const effectiveServingMl = servingPreset ?? (customServing ? parseFloat(customServing) : null)
@@ -217,7 +220,7 @@ export function GlassesClient({
       {/* ━━━ Stepperフォーム ━━━ */}
       {showForm && (
         <div
-          className="rounded-2xl overflow-hidden"
+          className="glass-stepper rounded-2xl overflow-hidden"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
           {/* フォームヘッダー */}
