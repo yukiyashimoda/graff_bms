@@ -48,11 +48,11 @@ export async function saveIssuerProfile(formData: FormData): Promise<{ error?: s
       const ext  = logoFile.name.split('.').pop() ?? 'png'
       const path = `logos/company-logo.${ext}`
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
+        .from(process.env.STORAGE_BUCKET!)
         .upload(path, logoFile, { upsert: true })
       if (uploadError) return { error: `ロゴのアップロードに失敗しました: ${uploadError.message}` }
       const { data: urlData } = supabase.storage
-        .from('product-images')
+        .from(process.env.STORAGE_BUCKET!)
         .getPublicUrl(path)
       logo_url = urlData.publicUrl
     }

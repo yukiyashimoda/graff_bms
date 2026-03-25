@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { RiArrowLeftLine, RiAddLine, RiDeleteBinFill } from 'react-icons/ri'
 import { createOrder } from '@/app/admin/(protected)/orders/actions'
@@ -15,8 +15,6 @@ type LineItem = {
   unit_price: number | null
 }
 
-let keyCounter = 0
-
 export function OrderForm({
   suppliers,
   products,
@@ -27,10 +25,11 @@ export function OrderForm({
   const [supplierId, setSupplierId] = useState('')
   const [items, setItems]           = useState<LineItem[]>([])
   const [submitting, setSubmitting]  = useState(false)
+  const keyCounter = useRef(0)
 
   function addItem() {
-    keyCounter++
-    setItems(prev => [...prev, { key: keyCounter, product_id: '', quantity: 1, unit_price: null }])
+    keyCounter.current++
+    setItems(prev => [...prev, { key: keyCounter.current, product_id: '', quantity: 1, unit_price: null }])
   }
 
   function removeItem(key: number) {

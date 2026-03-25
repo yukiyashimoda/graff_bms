@@ -26,6 +26,18 @@ function formatDate(iso: string) {
   })
 }
 
+// コンポーネント外部で定義することで、毎レンダリング時のオブジェクト生成を回避
+const STATUS_LABEL: Record<string, string> = {
+  in_progress: '棚卸し中',
+  submitted:   '申請中',
+  approved:    '承認済み',
+}
+const STATUS_COLOR: Record<string, string> = {
+  in_progress: '#fb923c',
+  submitted:   '#60a5fa',
+  approved:    '#22c55e',
+}
+
 export function InventoryMain({
   intervalDays,
   isOverdue,
@@ -76,16 +88,6 @@ export function InventoryMain({
     }
   }
 
-  const statusLabel: Record<string, string> = {
-    in_progress: '棚卸し中',
-    submitted:   '申請中',
-    approved:    '承認済み',
-  }
-  const statusColor: Record<string, string> = {
-    in_progress: '#fb923c',
-    submitted:   '#60a5fa',
-    approved:    '#22c55e',
-  }
 
   return (
     <div className="space-y-5">
@@ -172,11 +174,11 @@ export function InventoryMain({
               <span
                 className="text-xs font-semibold px-2.5 py-1 rounded-full"
                 style={{
-                  background: `${statusColor[activeSession.status]}20`,
-                  color:      statusColor[activeSession.status],
+                  background: `${STATUS_COLOR[activeSession.status]}20`,
+                  color:      STATUS_COLOR[activeSession.status],
                 }}
               >
-                {statusLabel[activeSession.status]}
+                {STATUS_LABEL[activeSession.status]}
               </span>
             </div>
 

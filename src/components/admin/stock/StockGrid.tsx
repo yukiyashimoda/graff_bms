@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useOptimistic, useTransition } from 'react'
+import { useState, useMemo, useOptimistic, useTransition, useCallback, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   RiAddFill,
@@ -58,7 +58,9 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
       .filter((c): c is string => !!c && !seen.has(c) && !!seen.add(c))
   }, [items])
 
-  function adjustDelta(id: string, amount: number) {
+  // ─── 安定したコールバック（useCallback で参照を固定し StockCard の無駄な再レンダリングを防ぐ） ───
+
+  const handleAdjust = useCallback((id: string, amount: number) => {
     setDeltas(prev => {
       const next = (prev[id] ?? 0) + amount
       if (next === 0) {
@@ -67,27 +69,51 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
       }
       return { ...prev, [id]: next }
     })
-  }
+  }, [])
 
-  const pendingIds    = Object.keys(deltas)
-  const pendingCount  = pendingIds.length
+  const handleReset = useCallback((id: string) => {
+    setDeltas(prev => {
+      const { [id]: _, ...rest } = prev
+      return rest
+    })
+  }, [])
+
+  const handlePriceIn = useCallback(async (
+    id: string, qty: number, price: number, notes?: string,
+  ) => {
+    const { newQuantity } = await recordStockTransaction(id, 'in', qty, price, notes)
+    setItems(prev => prev.map(i =>
+      i.id === id ? { ...i, quantity: newQuantity, cost_price: price } : i
+    ))
+    router.refresh()
+  }, [router])
+
+  const handleCatClick = useCallback((cat: string | null) => {
+    if (cat === null) {
+      setCat(null)
+    } else {
+      setCat(prev => prev === cat ? null : cat)
+    }
+  }, [])
+
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const pendingIds   = Object.keys(deltas)
+  const pendingCount = pendingIds.length
 
   function handleSave() {
     if (isPending || pendingCount === 0) return
 
-    // デルタをスナップショットしてから即座にクリア
     const snapshot = { ...deltas }
     setDeltas({})
 
     startTransition(async () => {
-      // 楽観的更新を即時適用 → UIが保存中でも新しい数量を表示
       const optimisticUpdates = Object.entries(snapshot).map(([id, delta]) => ({
         id,
         quantity: (items.find(i => i.id === id)?.quantity ?? 0) + delta,
       }))
       applyOptimistic(optimisticUpdates)
 
-      // サーバーに保存
       const results = await Promise.all(
         Object.entries(snapshot).map(async ([id, delta]) => {
           const { newQuantity } = await recordStockTransaction(
@@ -99,7 +125,6 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
         })
       )
 
-      // 実際のサーバー値でステートを確定
       setItems(prev => prev.map(item => {
         const r = results.find(r => r.id === item.id)
         return r ? { ...item, quantity: r.newQuantity } : item
@@ -144,9 +169,9 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
 
         {/* カテゴリフィルター */}
         <div className="flex gap-2 flex-wrap">
-          <CatBtn label="すべて" active={catFilter === null} onClick={() => setCat(null)} />
+          <CatBtn label="すべて" active={catFilter === null} cat={null} onCatClick={handleCatClick} />
           {categories.map(c => (
-            <CatBtn key={c} label={c} active={catFilter === c} onClick={() => setCat(c === catFilter ? null : c)} />
+            <CatBtn key={c} label={c} active={catFilter === c} cat={c} onCatClick={handleCatClick} />
           ))}
         </div>
 
@@ -193,18 +218,9 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
               key={item.id}
               item={item}
               delta={deltas[item.id] ?? 0}
-              onAdjust={amount => adjustDelta(item.id, amount)}
-              onReset={() => {
-                const { [item.id]: _, ...rest } = deltas
-                setDeltas(rest)
-              }}
-              onPriceIn={async (qty, price, notes) => {
-                const { newQuantity } = await recordStockTransaction(item.id, 'in', qty, price, notes)
-                setItems(prev => prev.map(i =>
-                  i.id === item.id ? { ...i, quantity: newQuantity, cost_price: price } : i
-                ))
-                router.refresh()
-              }}
+              onAdjust={handleAdjust}
+              onReset={handleReset}
+              onPriceIn={handlePriceIn}
             />
           ))}
         </div>
@@ -256,7 +272,6 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* ヘッダー */}
             <div
               className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: '1px solid var(--border)' }}
@@ -273,7 +288,6 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
               </button>
             </div>
 
-            {/* 一覧 */}
             <div className="divide-y" style={{ maxHeight: '60vh', overflowY: 'auto', borderColor: 'var(--border)' }}>
               {pendingIds.map(id => {
                 const item  = items.find(i => i.id === id)!
@@ -306,7 +320,6 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
               })}
             </div>
 
-            {/* フッター */}
             <div
               className="flex gap-3 px-5 py-4"
               style={{ borderTop: '1px solid var(--border)' }}
@@ -337,14 +350,16 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
 
 // ─── カード ──────────────────────────────────────────────────────────────────
 
-function StockCard({
+// memo: onAdjust/onReset/onPriceIn が useCallback で固定されているため、
+// delta や item が変化しない限り再レンダリングをスキップする
+const StockCard = memo(function StockCard({
   item, delta, onAdjust, onReset, onPriceIn,
 }: {
   item:       StockItem
   delta:      number
-  onAdjust:   (amount: number) => void
-  onReset:    () => void
-  onPriceIn:  (qty: number, price: number, notes?: string) => Promise<void>
+  onAdjust:   (id: string, amount: number) => void
+  onReset:    (id: string) => void
+  onPriceIn:  (id: string, qty: number, price: number, notes?: string) => Promise<void>
 }) {
   const newQty   = item.quantity + delta
   const isLow    = newQty < item.min_quantity && item.min_quantity > 0
@@ -376,7 +391,7 @@ function StockCard({
     setPriceSaving(true)
     setPriceError(null)
     try {
-      await onPriceIn(qty, price, notesInput || undefined)
+      await onPriceIn(item.id, qty, price, notesInput || undefined)
       setPriceOpen(false)
     } catch (e) {
       setPriceError(e instanceof Error ? e.message : '保存に失敗しました')
@@ -548,7 +563,7 @@ function StockCard({
         }}
       >
         <button
-          onClick={() => onAdjust(-1)}
+          onClick={() => onAdjust(item.id, -1)}
           className="flex items-center justify-center py-3 transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)] active:scale-95"
           style={{ color: 'var(--text-secondary)', borderRight: '1px solid var(--border)' }}
         >
@@ -557,7 +572,7 @@ function StockCard({
 
         {hasDelta && (
           <button
-            onClick={onReset}
+            onClick={() => onReset(item.id)}
             className="flex items-center justify-center px-3 py-3 text-[11px] font-semibold transition-all hover:bg-[var(--bg-base)] active:scale-95"
             style={{ color: 'var(--text-muted)', borderRight: '1px solid var(--border)' }}
           >
@@ -566,7 +581,7 @@ function StockCard({
         )}
 
         <button
-          onClick={() => onAdjust(1)}
+          onClick={() => onAdjust(item.id, 1)}
           className="flex items-center justify-center py-3 transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)] active:scale-95"
           style={{ color: 'var(--text-secondary)' }}
         >
@@ -575,12 +590,22 @@ function StockCard({
       </div>
     </div>
   )
-}
+})
 
-function CatBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+// ─── カテゴリフィルターボタン ─────────────────────────────────────────────────
+
+// memo: onCatClick が useCallback で固定されているため、active が変化しない限り再レンダリングをスキップ
+const CatBtn = memo(function CatBtn({
+  label, active, cat, onCatClick,
+}: {
+  label:      string
+  active:     boolean
+  cat:        string | null
+  onCatClick: (cat: string | null) => void
+}) {
   return (
     <button
-      onClick={onClick}
+      onClick={() => onCatClick(cat)}
       className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
       style={{
         background: active ? 'var(--bg-dark)' : 'var(--bg-surface)',
@@ -591,4 +616,4 @@ function CatBtn({ label, active, onClick }: { label: string; active: boolean; on
       {label}
     </button>
   )
-}
+})

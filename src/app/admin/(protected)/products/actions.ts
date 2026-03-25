@@ -31,11 +31,11 @@ export async function createProduct(formData: FormData) {
     const ext = imageFile.name.split('.').pop()
     const path = `products/${Date.now()}.${ext}`
     const { error: uploadError } = await supabase.storage
-      .from('product-images')
+      .from(process.env.STORAGE_BUCKET!)
       .upload(path, imageFile)
 
     if (!uploadError) {
-      const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+      const { data } = supabase.storage.from(process.env.STORAGE_BUCKET!).getPublicUrl(path)
       image_url = data.publicUrl
     }
   }
@@ -151,10 +151,10 @@ export async function updateProduct(id: string, formData: FormData) {
     const ext  = imageFile.name.split('.').pop()
     const path = `products/${Date.now()}.${ext}`
     const { error: uploadError } = await supabase.storage
-      .from('product-images')
+      .from(process.env.STORAGE_BUCKET!)
       .upload(path, imageFile)
     if (!uploadError) {
-      const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+      const { data } = supabase.storage.from(process.env.STORAGE_BUCKET!).getPublicUrl(path)
       image_url = data.publicUrl
     }
   }
