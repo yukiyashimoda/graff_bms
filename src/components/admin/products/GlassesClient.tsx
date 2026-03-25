@@ -274,8 +274,8 @@ export function GlassesClient({
 
                 {/* 商品リスト */}
                 <div
-                  className="rounded-xl overflow-hidden overflow-y-auto"
-                  style={{ maxHeight: 280, border: '1px solid var(--border)' }}
+                  className="overflow-y-auto"
+                  style={{ maxHeight: 280, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}
                 >
                   {filteredProducts.length === 0 ? (
                     <p className="text-sm text-center py-10" style={{ color: 'var(--text-muted)' }}>
