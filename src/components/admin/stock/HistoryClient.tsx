@@ -59,6 +59,15 @@ function monthLabel(key: string) {
 function dayKey(iso: string) {
   return iso.slice(0, 10)
 }
+function yearKey(iso: string) {
+  return new Date(iso).getFullYear()
+}
+function dayLabel(dk: string) {
+  const [, m, d] = dk.split('-')
+  const date = new Date(dk)
+  const days = ['日','月','火','水','木','金','土']
+  return `${Number(m)}/${Number(d)}（${days[date.getDay()]}）`
+}
 
 function downloadCSV(transactions: TxRow[], month: string) {
   const [y, m] = month.split('-')
@@ -91,7 +100,9 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
   const [query,       setQuery]      = useState('')
   const [typeFilter,  setTypeFilter] = useState<'in' | 'out' | 'adjustment' | null>(null)
   const [catFilter,   setCat]        = useState<string | null>(null)
+  const [activeYear,  setActiveYear] = useState<number | null>(null)
   const [activeMonth, setActiveMonth] = useState<string | null>(null)
+  const [activeDay,   setActiveDay]  = useState<string | null>(null)
 
   // 個別削除
   const [confirmId,   setConfirmId]  = useState<string | null>(null)
@@ -111,13 +122,34 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
       .sort()
   }, [rows])
 
-  const months = useMemo(() => {
-    const seen = new Set<string>()
-    rows.forEach(t => seen.add(monthKey(t.created_at)))
+  const years = useMemo(() => {
+    const seen = new Set<number>()
+    rows.forEach(t => seen.add(yearKey(t.created_at)))
     return Array.from(seen).sort().reverse()
   }, [rows])
 
-  const selectedMonth = activeMonth ?? months[0] ?? null
+  const selectedYear = activeYear ?? years[0] ?? null
+
+  const months = useMemo(() => {
+    const seen = new Set<string>()
+    rows
+      .filter(t => yearKey(t.created_at) === selectedYear)
+      .forEach(t => seen.add(monthKey(t.created_at)))
+    return Array.from(seen).sort().reverse()
+  }, [rows, selectedYear])
+
+  const selectedMonth = useMemo(() => {
+    if (activeMonth && months.includes(activeMonth)) return activeMonth
+    return months[0] ?? null
+  }, [activeMonth, months])
+
+  const daysInMonth = useMemo(() => {
+    const seen = new Set<string>()
+    rows
+      .filter(t => monthKey(t.created_at) === selectedMonth)
+      .forEach(t => seen.add(dayKey(t.created_at)))
+    return Array.from(seen).sort().reverse()
+  }, [rows, selectedMonth])
 
   const monthlySummary = useMemo(() => {
     const txs = rows.filter(t => monthKey(t.created_at) === selectedMonth)
@@ -133,6 +165,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
   const filtered = useMemo(() => {
     return rows.filter(t => {
       if (monthKey(t.created_at) !== selectedMonth) return false
+      if (activeDay && dayKey(t.created_at) !== activeDay) return false
       if (typeFilter && t.type !== typeFilter) return false
       if (catFilter && t.product_category !== catFilter) return false
       if (query) {
@@ -142,7 +175,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
       }
       return true
     })
-  }, [rows, selectedMonth, typeFilter, catFilter, query])
+  }, [rows, selectedMonth, activeDay, typeFilter, catFilter, query])
 
   const byDay = useMemo(() => {
     const map = new Map<string, TxRow[]>()
@@ -187,14 +220,34 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+
+      {/* 年タブ（複数年あるときのみ表示） */}
+      {years.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+          {years.map(y => (
+            <button
+              key={y}
+              onClick={() => { setActiveYear(y); setActiveMonth(null); setActiveDay(null) }}
+              className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+              style={{
+                background: y === selectedYear ? 'var(--bg-dark)' : 'var(--bg-surface)',
+                color:      y === selectedYear ? 'var(--text-invert)' : 'var(--text-secondary)',
+                border:     y === selectedYear ? 'none' : '1px solid var(--border)',
+              }}
+            >
+              {y}年
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 月タブ */}
       <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
         {months.map(m => (
           <button
             key={m}
-            onClick={() => setActiveMonth(m)}
+            onClick={() => { setActiveMonth(m); setActiveDay(null) }}
             className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all"
             style={{
               background: m === selectedMonth ? 'var(--bg-dark)' : 'var(--bg-surface)',
@@ -206,6 +259,38 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
           </button>
         ))}
       </div>
+
+      {/* 日ピル */}
+      {daysInMonth.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+          <button
+            onClick={() => setActiveDay(null)}
+            className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+            style={{
+              background: activeDay === null ? 'var(--bg-dark)' : 'var(--bg-surface)',
+              color:      activeDay === null ? 'var(--text-invert)' : 'var(--text-secondary)',
+              border:     activeDay === null ? 'none' : '1px solid var(--border)',
+            }}
+          >
+            全日
+          </button>
+          {daysInMonth.map(dk => (
+            <button
+              key={dk}
+              onClick={() => setActiveDay(activeDay === dk ? null : dk)}
+              className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+              style={{
+                background: activeDay === dk ? 'var(--bg-dark)' : 'var(--bg-surface)',
+                color:      activeDay === dk ? 'var(--text-invert)' : 'var(--text-secondary)',
+                border:     activeDay === dk ? 'none' : '1px solid var(--border)',
+              }}
+            >
+              {dayLabel(dk)}
+            </button>
+          ))}
+        </div>
+      )}
+
 
       {/* 月サマリー */}
       {selectedMonth && (
