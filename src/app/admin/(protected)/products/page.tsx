@@ -65,8 +65,10 @@ export default async function ProductsPage() {
     name:      p.name,
     name_en:   p.name_en,
     cost_price: p.cost_price,
-    stock:     p.stock?.[0]?.quantity ?? 0,
-    volume_ml: p.spirits_details?.[0]?.volume_ml ?? p.soft_drink_details?.[0]?.volume_ml ?? null,
+    stock:     (Array.isArray(p.stock) ? p.stock[0]?.quantity : p.stock?.quantity) ?? 0,
+    volume_ml: (Array.isArray(p.spirits_details) ? p.spirits_details[0]?.volume_ml : p.spirits_details?.volume_ml)
+            ?? (Array.isArray(p.soft_drink_details) ? p.soft_drink_details[0]?.volume_ml : p.soft_drink_details?.volume_ml)
+            ?? null,
     category:  p.categories?.name ?? null,
   }))
 
