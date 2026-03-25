@@ -7,7 +7,7 @@ import StepLabel from '@mui/material/StepLabel'
 import {
   RiAddLine, RiCupFill, RiEditLine, RiDeleteBinLine,
   RiSearchLine, RiArrowLeftLine, RiCheckLine, RiCloseLine,
-  RiPriceTag3Fill, RiLockLine, RiArrowDownSLine, RiAlertLine,
+  RiPriceTag3Fill, RiArrowDownSLine, RiAlertLine,
 } from 'react-icons/ri'
 import {
   createCocktailWithIngredients,
@@ -15,7 +15,6 @@ import {
   replaceIngredients,
   deleteCocktail,
   toggleCocktailAvailability,
-  verifyRecipePassword,
 } from '@/app/admin/(protected)/products/cocktail-actions'
 import type { ProductOption } from './GlassesClient'
 
@@ -102,14 +101,6 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
   const [cocktails, setCocktails] = useState(init)
   const [isPending, startTransition] = useTransition()
 
-  /* ── パスワード保護 ── */
-  const [isUnlocked,       setIsUnlocked]       = useState(false)
-  const [showPwPrompt,     setShowPwPrompt]      = useState(false)
-  const [pendingExpandId,  setPendingExpandId]   = useState<string | null>(null)
-  const [pwInput,          setPwInput]           = useState('')
-  const [pwError,          setPwError]           = useState(false)
-  const [pwPending,        setPwPending]          = useState(false)
-
   /* ── 展開 ── */
   const [expandedId,  setExpandedId]  = useState<string | null>(null)
   const [editingId,   setEditingId]   = useState<string | null>(null)
@@ -176,30 +167,6 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
 
   const canNext1 = selectedProducts.length > 0
   const canNext2 = ingDrafts.every(d => parseFloat(d.quantity) > 0) && ingDrafts.length > 0
-
-  /* ── パスワードハンドラ ── */
-  function tryExpand(id: string) {
-    if (isUnlocked) { setExpandedId(id === expandedId ? null : id); return }
-    setPendingExpandId(id)
-    setShowPwPrompt(true)
-    setPwInput('')
-    setPwError(false)
-  }
-
-  async function handlePwSubmit() {
-    setPwPending(true)
-    const { ok } = await verifyRecipePassword(pwInput)
-    setPwPending(false)
-    if (ok) {
-      setIsUnlocked(true)
-      setShowPwPrompt(false)
-      setExpandedId(pendingExpandId)
-      setPendingExpandId(null)
-      setPwInput('')
-    } else {
-      setPwError(true)
-    }
-  }
 
   /* ── Stepper ── */
   function toggleProduct(p: ProductOption) {
@@ -373,43 +340,6 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
         )}
       </div>
 
-      {/* パスワードプロンプト */}
-      {showPwPrompt && (
-        <div className="glass-stepper rounded-2xl p-5 space-y-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <RiLockLine size={15} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>レシピを表示するにはパスワードが必要です</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="password"
-              value={pwInput}
-              onChange={e => { setPwInput(e.target.value); setPwError(false) }}
-              onKeyDown={e => e.key === 'Enter' && handlePwSubmit()}
-              placeholder="パスワード"
-              className="flex-1 px-3 h-10 text-sm rounded-xl outline-none"
-              style={{ ...fieldBase, borderColor: pwError ? '#ef4444' : undefined }}
-              autoFocus
-            />
-            <button
-              onClick={handlePwSubmit}
-              disabled={pwPending || !pwInput}
-              className="px-4 h-10 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
-              style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
-            >
-              {pwPending ? '...' : '確認'}
-            </button>
-            <button
-              onClick={() => { setShowPwPrompt(false); setPendingExpandId(null) }}
-              className="w-10 h-10 rounded-xl flex items-center justify-center transition-opacity hover:opacity-70"
-              style={{ background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-            >
-              <RiCloseLine size={16} />
-            </button>
-          </div>
-          {pwError && <p className="text-xs" style={{ color: '#ef4444' }}>パスワードが正しくありません</p>}
-        </div>
-      )}
 
       {/* ━━━ Stepperフォーム ━━━ */}
       {showForm && (
@@ -589,7 +519,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
                 <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
                   {/* 展開ボタン */}
                   <button
-                    onClick={() => tryExpand(c.id)}
+                    onClick={() => setExpandedId(id => id === c.id ? null : c.id)}
                     className="flex-1 flex items-center gap-3 min-w-0 text-left"
                   >
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--bg-base)' }}>
@@ -643,7 +573,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
                 </div>
 
                 {/* ── 詳細パネル（PW解除後） ── */}
-                {expandedId === c.id && isUnlocked && (
+                {expandedId === c.id && (
                   <div className="px-5 py-4 space-y-4" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-base)' }}>
                     {/* 材料・原価 */}
                     {c.ingredients.length > 0 && (
