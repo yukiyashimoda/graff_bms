@@ -90,7 +90,8 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
   }
 
   return (
-    <div className="space-y-4">
+    <>
+    <div className="space-y-4 pb-24">
       {/* ツールバー */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* 検索 */}
@@ -137,17 +138,18 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
           ))}
         </div>
 
-        {/* 更新ボタン */}
-        <button
-          onClick={handleSave}
-          disabled={saving || dirtyCount === 0}
-          className="flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 ml-auto"
-          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
-        >
-          <RiCheckFill size={14} />
-          {saving ? '保存中...' : saved ? '保存済み' : `${dirtyCount > 0 ? `${dirtyCount}件を` : ''}更新`}
-        </button>
       </div>
+
+      {/* フローティング更新ボタン（左下固定） */}
+      <button
+        onClick={handleSave}
+        disabled={saving || dirtyCount === 0}
+        className="fixed bottom-6 left-6 z-40 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-sm font-semibold shadow-lg transition-all disabled:opacity-0 disabled:pointer-events-none hover:opacity-90 active:scale-95"
+        style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+      >
+        <RiCheckFill size={16} />
+        {saving ? '保存中...' : saved ? '保存しました' : `${dirtyCount}件を更新`}
+      </button>
 
       {/* カード一覧 */}
       {filtered.length === 0 ? (
@@ -235,23 +237,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
         </div>
       )}
 
-      {/* 変更件数フッター */}
-      {dirtyCount > 0 && (
-        <div className="flex items-center justify-between px-1">
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {dirtyCount} 件に未保存の変更があります
-          </p>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-1.5 text-xs font-semibold transition-opacity hover:opacity-70 disabled:opacity-40"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            <RiCheckFill size={13} />
-            {saving ? '保存中...' : '今すぐ保存'}
-          </button>
-        </div>
-      )}
     </div>
+    </>
   )
 }
