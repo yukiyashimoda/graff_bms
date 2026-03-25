@@ -82,28 +82,26 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
         </div>
       </div>
 
-      <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-        {products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <RiArchiveFill size={32} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>商品がまだありません</p>
-            <Link href="/admin/products/new" className="text-sm font-medium underline underline-offset-2" style={{ color: 'var(--text-secondary)' }}>
-              最初の商品を追加する
-            </Link>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-2">
-            <RiSearchLine size={28} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>「{query}」に一致する商品がありません</p>
-          </div>
-        ) : (
-          <div className="grid gap-3 p-3 sm:p-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 165px), 1fr))' }}>
-            {filtered.map(product => (
-              <ProductRow key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </div>
+      {products.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <RiArchiveFill size={32} style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>商品がまだありません</p>
+          <Link href="/admin/products/new" className="text-sm font-medium underline underline-offset-2" style={{ color: 'var(--text-secondary)' }}>
+            最初の商品を追加する
+          </Link>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-2">
+          <RiSearchLine size={28} style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>「{query}」に一致する商品がありません</p>
+        </div>
+      ) : (
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 165px), 1fr))' }}>
+          {filtered.map(product => (
+            <ProductRow key={product.id} product={product} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

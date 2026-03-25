@@ -7,9 +7,11 @@ import StepLabel from '@mui/material/StepLabel'
 import {
   RiAddLine, RiGlassesFill, RiDeleteBinLine,
   RiSearchLine, RiArrowLeftLine, RiAlertFill,
+  RiEditLine, RiCloseLine,
 } from 'react-icons/ri'
 import {
   createGlass,
+  updateGlass,
   deleteGlass,
   toggleGlassAvailability,
 } from '@/app/admin/(protected)/products/glass-actions'
@@ -107,6 +109,13 @@ export function GlassesClient({
 
   const [isPending, startTransition] = useTransition()
 
+  /* ── 編集 ── */
+  const [editingId,    setEditingId]    = useState<string | null>(null)
+  const [editServing,  setEditServing]  = useState('')
+  const [editBottle,   setEditBottle]   = useState('')
+  const [editPrice,    setEditPrice]    = useState('')
+  const [editOpenedAt, setEditOpenedAt] = useState('')
+
   /* ── 派生値 ── */
 
   const filteredProducts = useMemo(() => {
@@ -166,6 +175,38 @@ export function GlassesClient({
       if (result.data) {
         setGlasses(prev => [result.data!, ...prev])
         resetForm()
+      }
+    })
+  }
+
+  function startEdit(g: GlassRow) {
+    if (editingId === g.id) { setEditingId(null); return }
+    setEditingId(g.id)
+    setEditServing(g.serving_ml.toString())
+    setEditBottle(g.bottle_ml?.toString() ?? '')
+    setEditPrice(g.selling_price?.toString() ?? '')
+    setEditOpenedAt(g.opened_at.slice(0, 10))
+  }
+
+  function handleSaveEdit(id: string) {
+    const serving = parseFloat(editServing)
+    if (!serving || serving <= 0) return
+    startTransition(async () => {
+      const res = await updateGlass(id, {
+        serving_ml:    serving,
+        bottle_ml:     editBottle ? parseFloat(editBottle) : null,
+        selling_price: editPrice  ? parseFloat(editPrice)  : null,
+        opened_at:     new Date(editOpenedAt).toISOString(),
+      })
+      if (!res.error) {
+        setGlasses(prev => prev.map(g => g.id === id ? {
+          ...g,
+          serving_ml:    serving,
+          bottle_ml:     editBottle ? parseFloat(editBottle) : null,
+          selling_price: editPrice  ? parseFloat(editPrice)  : null,
+          opened_at:     new Date(editOpenedAt).toISOString(),
+        } : g))
+        setEditingId(null)
       }
     })
   }
@@ -608,6 +649,9 @@ export function GlassesClient({
 
                       {/* サブ情報行 */}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                        {g.category_name && (
+                          <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>{g.category_name}</p>
+                        )}
                         <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
                           {g.serving_ml}ml / 杯
                           {g.bottle_ml ? ` · 1本 ${g.bottle_ml}ml` : ''}
@@ -649,6 +693,16 @@ export function GlassesClient({
                         {g.is_available ? '提供中' : '停止中'}
                       </button>
 
+                      {/* 編集 */}
+                      <button
+                        onClick={() => startEdit(g)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
+                        style={{ color: editingId === g.id ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                        title="編集"
+                      >
+                        {editingId === g.id ? <RiCloseLine size={15} /> : <RiEditLine size={14} />}
+                      </button>
+
                       {/* 削除 */}
                       <button
                         onClick={() => handleDelete(g.id)}
@@ -677,6 +731,49 @@ export function GlassesClient({
                           原価率 {rate.toFixed(1)}%
                         </p>
                       )}
+                    </div>
+                  )}
+
+                  {/* 編集パネル */}
+                  {editingId === g.id && (
+                    <div className="glass-stepper mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>提供量 (ml)</label>
+                          <input type="number" min="1" value={editServing} onChange={e => setEditServing(e.target.value)}
+                            className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>ボトル容量 (ml)</label>
+                          <input type="number" min="1" value={editBottle} onChange={e => setEditBottle(e.target.value)}
+                            placeholder="例: 700" className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>販売価格</label>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>¥</span>
+                            <input type="number" min="0" value={editPrice} onChange={e => setEditPrice(e.target.value)}
+                              className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>開栓日</label>
+                          <input type="date" value={editOpenedAt} onChange={e => setEditOpenedAt(e.target.value)}
+                            className="w-full px-3 h-9 text-sm rounded-xl outline-none" style={fieldBase} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 justify-end">
+                        <button onClick={() => setEditingId(null)}
+                          className="px-4 h-8 text-sm rounded-xl transition-opacity hover:opacity-70"
+                          style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                          キャンセル
+                        </button>
+                        <button onClick={() => handleSaveEdit(g.id)} disabled={isPending}
+                          className="px-5 h-8 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
+                          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>
+                          {isPending ? '保存中...' : '保存'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -70,6 +70,22 @@ export async function deleteGlass(id: string): Promise<{ error?: string }> {
   return {}
 }
 
+type UpdateData = {
+  serving_ml:    number
+  bottle_ml:     number | null
+  selling_price: number | null
+  opened_at:     string
+}
+
+export async function updateGlass(id: string, data: UpdateData): Promise<{ error?: string }> {
+  const supabase = await createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).from('glasses').update(data).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/admin/products')
+  return {}
+}
+
 export async function toggleGlassAvailability(id: string, is_available: boolean): Promise<{ error?: string }> {
   const supabase = await createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
