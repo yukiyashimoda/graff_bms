@@ -144,7 +144,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
       <button
         onClick={handleSave}
         disabled={saving || dirtyCount === 0}
-        className="fixed bottom-6 left-6 z-40 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-sm font-semibold shadow-lg transition-all disabled:opacity-0 disabled:pointer-events-none hover:opacity-90 active:scale-95"
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-sm font-semibold shadow-lg transition-all disabled:opacity-0 disabled:pointer-events-none hover:opacity-90 active:scale-95"
         style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
       >
         <RiCheckFill size={16} />
