@@ -54,13 +54,13 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
           </div>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* 検索窓 */}
           <div
-            className="flex items-center gap-2 px-3 h-9 rounded-xl flex-1"
+            className="flex items-center gap-2 px-3 h-11 rounded-xl flex-1"
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
           >
-            <RiSearchLine size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <RiSearchLine size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -72,11 +72,12 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
 
           <Link
             href="/admin/products/new"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 flex-shrink-0"
+            className="flex items-center gap-1.5 px-4 h-11 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 flex-shrink-0"
             style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
           >
-            <RiAddLine size={15} />
-            商品を追加
+            <RiAddLine size={16} />
+            <span className="hidden sm:inline">商品を追加</span>
+            <span className="sm:hidden">追加</span>
           </Link>
         </div>
       </div>
@@ -96,7 +97,7 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>「{query}」に一致する商品がありません</p>
           </div>
         ) : (
-          <div className="grid gap-3 p-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))' }}>
+          <div className="grid gap-3 p-3 sm:p-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 165px), 1fr))' }}>
             {filtered.map(product => (
               <ProductRow key={product.id} product={product} />
             ))}
