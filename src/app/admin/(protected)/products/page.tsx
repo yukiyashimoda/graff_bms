@@ -4,6 +4,15 @@ import type { ProductWithRelations } from '@/lib/types/database'
 import type { GlassRow, ProductOption } from '@/components/admin/products/GlassesClient'
 import type { CocktailRow } from '@/components/admin/products/CocktailsClient'
 
+const ML_PER: Record<string, number> = { ml: 1, cl: 10, oz: 29.57, dash: 0.6, tsp: 5 }
+
+function calcIngCost(qty: number, unit: string, cost: number | null, vol: number | null): number | null {
+  if (!cost || qty <= 0) return null
+  const f = ML_PER[unit]
+  if (f !== undefined) return vol ? (cost / vol) * qty * f : null
+  return cost * qty
+}
+
 export default async function ProductsPage() {
   const supabase = await createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,10 +42,11 @@ export default async function ProductsPage() {
       .select('id, name, name_en, cost_price, categories(name), stock(quantity), spirits_details(volume_ml), soft_drink_details(volume_ml)')
       .order('name', { ascending: true }),
 
-    // カクテルタブ用
-    supabase
-      .from('cocktail_cost_view')
-      .select('cocktail_id, name, name_en, selling_price, total_cost, cost_rate_pct'),
+    // カクテルタブ用（材料・在庫含む）
+    sb
+      .from('cocktails')
+      .select('id, name, name_en, description, selling_price, image_url, tags, is_available, sort_order, recipe_steps, cocktail_ingredients(id, product_id, quantity, unit, products(name, cost_price, spirits_details(volume_ml), soft_drink_details(volume_ml), stock(quantity)))')
+      .order('sort_order', { ascending: true }),
   ])
 
   /* ── グラス行を整形 ── */
@@ -73,30 +83,54 @@ export default async function ProductsPage() {
   }))
 
   /* ── カクテル行を整形 ── */
-  const { data: cocktailDetails } = await supabase
-    .from('cocktails')
-    .select('id, description, image_url, tags, is_available, sort_order')
-    .order('sort_order', { ascending: true })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cocktails: CocktailRow[] = ((cocktailsRaw ?? []) as any[]).map((row) => {
+    const rawIngs = Array.isArray(row.cocktail_ingredients)
+      ? row.cocktail_ingredients
+      : (row.cocktail_ingredients ? [row.cocktail_ingredients] : [])
 
-  const detailMap = new Map((cocktailDetails ?? []).map((d: { id: string }) => [d.id, d]))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ingredients = rawIngs.map((ing: any, idx: number) => {
+      const p = ing.products
+      const vol = (Array.isArray(p?.spirits_details)    ? p.spirits_details[0]?.volume_ml    : p?.spirits_details?.volume_ml)
+               ?? (Array.isArray(p?.soft_drink_details) ? p.soft_drink_details[0]?.volume_ml : p?.soft_drink_details?.volume_ml)
+               ?? null
+      return {
+        id:           ing.id ?? `ing-${idx}`,
+        product_id:   ing.product_id,
+        product_name: p?.name ?? '',
+        quantity:     ing.quantity,
+        unit:         ing.unit,
+        cost_price:   p?.cost_price ?? null,
+        volume_ml:    vol,
+        stock:        (Array.isArray(p?.stock) ? p.stock[0]?.quantity : p?.stock?.quantity) ?? 0,
+      }
+    })
 
-  const cocktails: CocktailRow[] = (cocktailsRaw ?? []).map((v: {
-    cocktail_id: string; name: string; name_en: string
-    selling_price: number | null; total_cost: number; cost_rate_pct: number | null
-  }) => {
-    const d = detailMap.get(v.cocktail_id) as { description: string; image_url: string | null; tags: string[]; is_available: boolean; sort_order: number } | undefined
+    let totalCostAcc = 0
+    let costKnown = true
+    for (const ing of ingredients) {
+      const ingCost = calcIngCost(ing.quantity, ing.unit, ing.cost_price, ing.volume_ml)
+      if (ingCost == null) { costKnown = false; break }
+      totalCostAcc += ingCost
+    }
+    const total_cost: number | null = costKnown ? totalCostAcc : null
+    const cost_rate_pct = total_cost != null && row.selling_price ? (total_cost / row.selling_price) * 100 : null
+
     return {
-      id:            v.cocktail_id,
-      name:          v.name,
-      name_en:       v.name_en,
-      description:   d?.description   ?? '',
-      selling_price: v.selling_price,
-      image_url:     d?.image_url     ?? null,
-      tags:          d?.tags          ?? [],
-      is_available:  d?.is_available  ?? true,
-      sort_order:    d?.sort_order    ?? 0,
-      total_cost:    v.total_cost,
-      cost_rate_pct: v.cost_rate_pct,
+      id:            row.id,
+      name:          row.name,
+      name_en:       row.name_en ?? '',
+      description:   row.description ?? '',
+      selling_price: row.selling_price,
+      image_url:     row.image_url ?? null,
+      tags:          row.tags ?? [],
+      is_available:  row.is_available ?? true,
+      sort_order:    row.sort_order ?? 0,
+      recipe_steps:  row.recipe_steps ?? [],
+      ingredients,
+      total_cost,
+      cost_rate_pct,
     }
   })
 

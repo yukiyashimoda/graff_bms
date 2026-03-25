@@ -50,7 +50,7 @@ export function ProductsPageClient({ products, glasses, productOptions, cocktail
       {/* パネル */}
       {active === 'products'  && <ProductsClient  products={products} />}
       {active === 'glasses'   && <GlassesClient   glasses={glasses} products={productOptions} />}
-      {active === 'cocktails' && <CocktailsClient cocktails={cocktails} />}
+      {active === 'cocktails' && <CocktailsClient cocktails={cocktails} products={productOptions} />}
     </div>
   )
 }
