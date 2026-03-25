@@ -274,7 +274,7 @@ export function GlassesClient({
 
                 {/* 商品リスト */}
                 <div
-                  className="overflow-y-auto"
+                  className="glass-bottle-list overflow-y-auto"
                   style={{ maxHeight: 280, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}
                 >
                   {filteredProducts.length === 0 ? (

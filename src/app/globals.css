@@ -41,6 +41,7 @@ button, input, textarea, select { border-radius: 100vh !important; }
 .order-card button, .stock-card button { border-radius: unset !important; }
 .glass-stepper input, .glass-stepper textarea,
 .glass-stepper select { border-radius: 12px !important; }
+.glass-bottle-list button { border-radius: 0 !important; }
 html { height: 100%; -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
 body {
   min-height: 100%;
