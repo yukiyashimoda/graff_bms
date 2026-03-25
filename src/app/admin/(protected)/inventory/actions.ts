@@ -137,45 +137,12 @@ export async function approveInventorySession(
   })
   if (authError) return { error: 'パスワードが正しくありません' }
 
-  // 3. 棚卸し品目を取得
-  const { data: items } = await supabase
-    .from('inventory_session_items')
-    .select('product_id, system_quantity, actual_quantity')
-    .eq('session_id', sessionId)
-
-  if (!items) return { error: 'データ取得に失敗しました' }
-
-  // 4. 差異がある商品に adjustment トランザクション記録 + 在庫更新
-  const diffs = items.filter(
-    i => i.actual_quantity != null && i.actual_quantity !== i.system_quantity,
-  )
-
-  if (diffs.length > 0) {
-    await Promise.all([
-      // stock_transactions に差異記録
-      supabase.from('stock_transactions').insert(
-        diffs.map(i => ({
-          product_id: i.product_id,
-          type:       'adjustment' as const,
-          quantity:   Number(i.actual_quantity) - Number(i.system_quantity),
-          notes:      '棚卸し差異調整',
-        })),
-      ),
-      // stock テーブルを実測値で上書き
-      ...diffs.map(i =>
-        supabase
-          .from('stock')
-          .update({ quantity: i.actual_quantity ?? undefined })
-          .eq('product_id', i.product_id),
-      ),
-    ])
-  }
-
-  // 5. セッションを approved に
-  await supabase
-    .from('inventory_sessions')
-    .update({ status: 'approved', approved_at: new Date().toISOString() })
-    .eq('id', sessionId)
+  // 3. 差異調整 + セッション承認をDB関数で一括実行（N往復 → 1往復）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc('apply_inventory_session_adjustments', {
+    p_session_id: sessionId,
+  })
+  if (error) return { error: error.message }
 
   revalidatePath('/admin/inventory')
   revalidatePath(`/admin/inventory/${sessionId}`)

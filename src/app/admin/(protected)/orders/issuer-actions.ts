@@ -30,43 +30,48 @@ export async function getIssuerProfile(): Promise<IssuerProfile> {
 }
 
 export async function saveIssuerProfile(formData: FormData): Promise<{ error?: string }> {
-  const supabase = await createServiceClient()
+  try {
+    const supabase = await createServiceClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any
 
-  const name    = (formData.get('name')    as string) || null
-  const phone   = (formData.get('phone')   as string) || null
-  const email   = (formData.get('email')   as string) || null
-  const address = (formData.get('address') as string) || null
-  const logoFile = formData.get('logo') as File | null
+    const name    = (formData.get('name')    as string) || null
+    const phone   = (formData.get('phone')   as string) || null
+    const email   = (formData.get('email')   as string) || null
+    const address = (formData.get('address') as string) || null
+    const logoFile = formData.get('logo') as File | null
 
-  let logo_url: string | null | undefined = undefined
+    let logo_url: string | null | undefined = undefined
 
-  // ロゴ画像のアップロード
-  if (logoFile && logoFile.size > 0) {
-    const ext  = logoFile.name.split('.').pop() ?? 'png'
-    const path = `logos/company-logo.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(path, logoFile, { upsert: true })
-    if (uploadError) return { error: 'ロゴのアップロードに失敗しました' }
-    const { data: urlData } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(path)
-    logo_url = urlData.publicUrl
+    // ロゴ画像のアップロード
+    if (logoFile && logoFile.size > 0) {
+      const ext  = logoFile.name.split('.').pop() ?? 'png'
+      const path = `logos/company-logo.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(path, logoFile, { upsert: true })
+      if (uploadError) return { error: `ロゴのアップロードに失敗しました: ${uploadError.message}` }
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(path)
+      logo_url = urlData.publicUrl
+    }
+
+    // ロゴ削除フラグ
+    if (formData.get('remove_logo') === '1') logo_url = null
+
+    const update: Record<string, unknown> = {
+      id: 1, name, phone, email, address,
+      updated_at: new Date().toISOString(),
+    }
+    if (logo_url !== undefined) update.logo_url = logo_url
+
+    const { error } = await sb.from('company_profile').upsert(update)
+    if (error) return { error: error.message }
+
+    revalidatePath('/admin/orders')
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : '保存に失敗しました' }
   }
-
-  // ロゴ削除フラグ
-  if (formData.get('remove_logo') === '1') {
-    logo_url = null
-  }
-
-  const update: Record<string, unknown> = { id: 1, name, phone, email, address, updated_at: new Date().toISOString() }
-  if (logo_url !== undefined) update.logo_url = logo_url
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb2 = supabase as any
-  const { error } = await sb2.from('company_profile').upsert(update)
-  if (error) return { error: error.message }
-
-  revalidatePath('/admin/orders')
-  return {}
 }

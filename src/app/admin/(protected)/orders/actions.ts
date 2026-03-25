@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
-import { recordStockTransaction } from '@/app/admin/(protected)/stock/actions'
 
 type OrderItem = {
   product_id: string
@@ -66,21 +65,12 @@ export async function updateOrderStatus(
 export async function receiveOrder(orderId: string) {
   const supabase = await createServiceClient()
 
-  const { data: items } = await supabase
-    .from('purchase_order_items')
-    .select('product_id, quantity, unit_price')
-    .eq('purchase_order_id', orderId)
-
-  await supabase.from('purchase_orders').update({ status: 'received' }).eq('id', orderId)
-
-  for (const item of (items ?? [])) {
-    await recordStockTransaction(
-      item.product_id,
-      'in',
-      item.quantity,
-      item.unit_price ?? null,
-    )
-  }
+  // 全品目の入庫 + 発注書ステータス更新をDB関数で一括実行（品目数 × N往復 → 1往復）
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc('receive_purchase_order', {
+    p_order_id: orderId,
+  })
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
@@ -95,7 +85,7 @@ export async function deleteOrder(orderId: string) {
   revalidatePath('/admin/orders')
 }
 
-// カートから業者ごとに発注書を一括作成
+// カートから業者ごとに発注書を一括作成（業者数 × 2往復 → 1往復）
 export async function createOrdersFromCart(
   cartItems: {
     product_id:  string
@@ -106,37 +96,13 @@ export async function createOrdersFromCart(
 ): Promise<{ count: number }> {
   const supabase = await createServiceClient()
 
-  // 業者ごとにグループ化
-  const bySupplier = new Map<string, typeof cartItems>()
-  for (const item of cartItems) {
-    if (!bySupplier.has(item.supplier_id)) bySupplier.set(item.supplier_id, [])
-    bySupplier.get(item.supplier_id)!.push(item)
-  }
-
-  const today = new Date().toISOString().split('T')[0]
-
-  await Promise.all(
-    Array.from(bySupplier.entries()).map(async ([supplier_id, items]) => {
-      const { data: order } = await supabase
-        .from('purchase_orders')
-        .insert({ supplier_id, status: 'draft', order_date: today })
-        .select('id')
-        .single()
-
-      if (order) {
-        await supabase.from('purchase_order_items').insert(
-          items.map(i => ({
-            purchase_order_id: order.id,
-            product_id:        i.product_id,
-            quantity:          i.quantity,
-            unit_price:        i.unit_price,
-          }))
-        )
-      }
-    })
-  )
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).rpc('create_orders_from_cart', {
+    p_cart_items: cartItems,
+  })
+  if (error) throw new Error(error.message)
 
   revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
-  return { count: bySupplier.size }
+  return { count: Number(data) }
 }
