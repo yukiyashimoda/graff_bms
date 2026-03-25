@@ -48,6 +48,7 @@ export async function createOrder(formData: FormData) {
     )
   }
 
+  revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
   redirect('/admin/orders')
 }
@@ -58,6 +59,7 @@ export async function updateOrderStatus(
 ) {
   const supabase = await createServiceClient()
   await supabase.from('purchase_orders').update({ status }).eq('id', orderId)
+  revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
 }
 
@@ -80,6 +82,7 @@ export async function receiveOrder(orderId: string) {
     )
   }
 
+  revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
   revalidatePath('/admin/stock')
   revalidatePath('/admin')
@@ -88,6 +91,7 @@ export async function receiveOrder(orderId: string) {
 export async function deleteOrder(orderId: string) {
   const supabase = await createServiceClient()
   await supabase.from('purchase_orders').delete().eq('id', orderId)
+  revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
 }
 
@@ -132,6 +136,7 @@ export async function createOrdersFromCart(
     })
   )
 
+  revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
   return { count: bySupplier.size }
 }
