@@ -30,6 +30,8 @@ export async function createClient() {
 
 /** Service Role クライアント（サーバーサイド専用・RLS バイパス） */
 export async function createServiceClient() {
+  // cookies() を呼ぶことで Next.js にこのページが動的であることを伝える
+  await cookies()
   return createSupabaseClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
