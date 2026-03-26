@@ -132,8 +132,6 @@ export function OrdersPageClient({
       const d    = new Date(order.expected_date)
       const days = ['日', '月', '火', '水', '木', '金', '土']
       deliveryLine += ` ${d.getMonth() + 1}月${d.getDate()}日（${days[d.getDay()]}）15:00〜18:00`
-    } else {
-      deliveryLine += ' ご調整ください'
     }
 
     return [
