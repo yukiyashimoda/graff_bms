@@ -404,19 +404,12 @@ const StockCard = memo(function StockCard({
     >
       <div className="px-4 pt-4 pb-3 flex flex-col gap-2.5 flex-1">
 
-        {/* カテゴリ + 価格改定ボタン */}
-        <div className="flex items-center justify-between gap-1">
+        {/* カテゴリ */}
+        <div>
           {item.category_name
             ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#102937', color: '#ededed' }}>{item.category_name}</span>
             : <span />
           }
-          <button
-            onClick={() => onOpenPriceModal({ id: item.id, name: item.name, unit: item.unit, cost_price: item.cost_price })}
-            className="px-2 py-0.5 text-[10px] font-semibold transition-all"
-            style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 6 }}
-          >
-            価格改定
-          </button>
         </div>
 
         {/* 商品名 */}
@@ -473,6 +466,17 @@ const StockCard = memo(function StockCard({
             ¥{item.cost_price.toLocaleString()} × {item.quantity}{item.unit}
           </p>
         ) : null}
+
+        {/* 価格改定ボタン */}
+        <div className="flex justify-end mt-auto pt-1">
+          <button
+            onClick={() => onOpenPriceModal({ id: item.id, name: item.name, unit: item.unit, cost_price: item.cost_price })}
+            className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-opacity hover:opacity-70"
+            style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
+            価格改定
+          </button>
+        </div>
       </div>
 
       {/* ±ボタン */}
