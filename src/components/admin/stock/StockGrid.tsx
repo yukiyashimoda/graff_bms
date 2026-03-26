@@ -11,7 +11,7 @@ import {
   RiCheckFill,
   RiCloseFill,
 } from 'react-icons/ri'
-import { recordStockTransaction } from '@/app/admin/(protected)/stock/actions'
+import { recordStockTransaction, batchStockTransactions } from '@/app/admin/(protected)/stock/actions'
 
 export type BatchInfo = {
   cost_price:   number
@@ -114,15 +114,12 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
       }))
       applyOptimistic(optimisticUpdates)
 
-      const results = await Promise.all(
-        Object.entries(snapshot).map(async ([id, delta]) => {
-          const { newQuantity } = await recordStockTransaction(
-            id,
-            delta > 0 ? 'in' : 'out',
-            Math.abs(delta),
-          )
-          return { id, newQuantity }
-        })
+      const { results } = await batchStockTransactions(
+        Object.entries(snapshot).map(([id, delta]) => ({
+          productId: id,
+          type:      delta > 0 ? 'in' : 'out' as 'in' | 'out',
+          quantity:  Math.abs(delta),
+        }))
       )
 
       setItems(prev => prev.map(item => {

@@ -83,6 +83,34 @@ export async function recordPriceRevision(
   revalidatePath('/admin')
 }
 
+export async function batchStockTransactions(
+  items: { productId: string; type: 'in' | 'out'; quantity: number }[],
+): Promise<{ results: { id: string; newQuantity: number }[] }> {
+  const supabase = await createServiceClient()
+  const results: { id: string; newQuantity: number }[] = []
+
+  for (const item of items) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc('process_stock_transaction', {
+      p_product_id: item.productId,
+      p_type:       item.type,
+      p_quantity:   item.quantity,
+      p_cost_price: null,
+      p_notes:      null,
+    })
+    if (error) throw new Error(error.message)
+    results.push({ id: item.productId, newQuantity: Number(data) })
+  }
+
+  // 一括でまとめて revalidate（N回 → 1回）
+  revalidatePath('/admin/stock')
+  revalidatePath('/admin')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
+
+  return { results }
+}
+
 export async function deleteStockTransaction(id: string): Promise<void> {
   const supabase = await createServiceClient()
   await supabase.from('stock_transactions').delete().eq('id', id)
