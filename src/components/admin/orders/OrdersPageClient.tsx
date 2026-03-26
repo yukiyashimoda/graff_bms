@@ -110,11 +110,13 @@ export function OrdersPageClient({
   cartItems,
   orders: initialOrders,
   suppliers,
+  orderTextTemplate,
 }: {
-  cartItems:     CartItem[]
-  orders:        Order[]
-  suppliers:     Supplier[]
-  issuerProfile: IssuerProfile
+  cartItems:          CartItem[]
+  orders:             Order[]
+  suppliers:          Supplier[]
+  issuerProfile:      IssuerProfile
+  orderTextTemplate:  string
 }) {
   const [tab,       setTab]      = useState<Tab>('order')
   const [orders,    setOrders]   = useState<Order[]>(initialOrders)
@@ -134,15 +136,9 @@ export function OrdersPageClient({
       deliveryLine += ` ${d.getMonth() + 1}月${d.getDate()}日（${days[d.getDay()]}）15:00〜18:00`
     }
 
-    return [
-      'お世話になっております。',
-      '下記の通り発注をお願いいたします。',
-      '',
-      '【注文内容】',
-      itemLines,
-      '',
-      deliveryLine,
-    ].join('\n')
+    return orderTextTemplate
+      .replace('{{items}}', itemLines)
+      .replace('{{delivery}}', deliveryLine)
   }
 
   function handleOpenTextModal(order: Order) {

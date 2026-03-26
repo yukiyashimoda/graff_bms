@@ -1,10 +1,14 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { OrdersPageClient } from '@/components/admin/orders/OrdersPageClient'
 import { getIssuerProfile } from './issuer-actions'
+import { getAppSettings } from '../settings/actions'
 
 export default async function OrdersPage() {
   const supabase = await createServiceClient()
-  const issuerProfile = await getIssuerProfile()
+  const [issuerProfile, appSettings] = await Promise.all([
+    getIssuerProfile(),
+    getAppSettings(),
+  ])
 
   const [
     { data: products },
@@ -93,6 +97,7 @@ export default async function OrdersPage() {
       orders={orderRows}
       suppliers={suppliers ?? []}
       issuerProfile={issuerProfile}
+      orderTextTemplate={appSettings.order_text_template}
     />
   )
 }
