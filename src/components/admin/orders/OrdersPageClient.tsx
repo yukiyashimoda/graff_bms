@@ -286,12 +286,9 @@ export function OrdersPageClient({
                 {/* 品目リスト */}
                 <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
                   {order.items.map(item => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between gap-3 px-5 py-4"
-                    >
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 px-5 py-4">
                       {/* 商品名 + 数量 */}
-                      <div className="flex items-baseline gap-3 min-w-0">
+                      <div className="flex items-baseline gap-3 min-w-0 flex-1">
                         <p className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                           {item.product_name}
                         </p>
@@ -307,7 +304,7 @@ export function OrdersPageClient({
                       </div>
 
                       {/* 検品ボタン */}
-                      <div className="flex flex-wrap gap-1.5 flex-shrink-0 justify-end">
+                      <div className="flex flex-wrap gap-1.5 sm:flex-shrink-0">
                         {INSPECTION_BUTTONS.map(btn => {
                           const isActive = item.inspection_status === btn.status
                           return (
