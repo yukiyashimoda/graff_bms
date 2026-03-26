@@ -89,12 +89,41 @@ export async function updateItemInspectionStatus(
   itemId: string,
   status: 'arrived' | 'partial' | 'missing' | 'price_changed' | null,
 ) {
-  const supabase = await createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await (supabase as any)
+  const supabase = await createServiceClient() as any
+
+  await supabase
     .from('purchase_order_items')
     .update({ inspection_status: status })
     .eq('id', itemId)
+
+  // 終売設定時: 全品目完了ならオーダーを received に更新
+  if (status === 'missing') {
+    const { data: item } = await supabase
+      .from('purchase_order_items')
+      .select('purchase_order_id')
+      .eq('id', itemId)
+      .single()
+
+    if (item) {
+      const { data: siblings } = await supabase
+        .from('purchase_order_items')
+        .select('quantity, received_quantity, inspection_status')
+        .eq('purchase_order_id', item.purchase_order_id)
+
+      const allDone = (siblings ?? []).every(
+        (s: { quantity: number; received_quantity: number; inspection_status: string | null }) =>
+          Number(s.received_quantity) >= Number(s.quantity) || s.inspection_status === 'missing'
+      )
+      if (allDone) {
+        await supabase
+          .from('purchase_orders')
+          .update({ status: 'received' })
+          .eq('id', item.purchase_order_id)
+      }
+    }
+  }
+
   revalidatePath('/admin/orders')
 }
 
@@ -136,17 +165,16 @@ export async function receiveOrderItem(
   if (unitPrice != null) patch.unit_price = unitPrice
   await supabase.from('purchase_order_items').update(patch).eq('id', itemId)
 
-  // 全品目が受領済みならオーダーを completed に更新
+  // 全品目が受領済み or 終売ならオーダーを received に更新
   const { data: siblings } = await supabase
     .from('purchase_order_items')
-    .select('id, quantity, received_quantity')
+    .select('id, quantity, received_quantity, inspection_status')
     .eq('purchase_order_id', item.purchase_order_id)
 
-  const allDone = (siblings ?? []).every((s: { id: string; quantity: number; received_quantity: number }) =>
-    s.id === itemId
-      ? fullyReceived
-      : Number(s.received_quantity) >= Number(s.quantity)
-  )
+  const allDone = (siblings ?? []).every((s: { id: string; quantity: number; received_quantity: number; inspection_status: string | null }) => {
+    if (s.id === itemId) return fullyReceived
+    return Number(s.received_quantity) >= Number(s.quantity) || s.inspection_status === 'missing'
+  })
   if (allDone) {
     await supabase
       .from('purchase_orders')
