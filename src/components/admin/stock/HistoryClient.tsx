@@ -7,7 +7,6 @@ import {
   RiEqualizerFill,
   RiSearchLine,
   RiDownloadLine,
-  RiFilePdfLine,
   RiDeleteBinFill,
   RiLockFill,
   RiCloseFill,
@@ -29,14 +28,14 @@ type TxRow = {
 
 const TYPE_LABEL = { in: '入庫', out: '出庫', adjustment: '調整' } as const
 const TYPE_ICON  = {
-  in:         <RiAddBoxFill   size={11} />,
-  out:        <RiSubtractFill size={11} />,
-  adjustment: <RiEqualizerFill size={11} />,
+  in:         <RiAddBoxFill    size={10} />,
+  out:        <RiSubtractFill  size={10} />,
+  adjustment: <RiEqualizerFill size={10} />,
 }
 const TYPE_COLOR = {
   in:         { bg: 'var(--bg-dark)',  color: 'var(--text-invert)' },
-  out:        { bg: 'var(--bg-base)',  color: 'var(--text-secondary)' },
-  adjustment: { bg: 'var(--bg-base)',  color: 'var(--text-muted)' },
+  out:        { bg: 'var(--bg-base)',  color: 'var(--text-secondary)', border: '1px solid var(--border)' },
+  adjustment: { bg: 'var(--bg-base)',  color: 'var(--text-muted)',     border: '1px solid var(--border)' },
 }
 
 function formatJpDate(iso: string) {
@@ -56,12 +55,8 @@ function monthLabel(key: string) {
   const [y, m] = key.split('-')
   return `${y}年${Number(m)}月`
 }
-function dayKey(iso: string) {
-  return iso.slice(0, 10)
-}
-function yearKey(iso: string) {
-  return new Date(iso).getFullYear()
-}
+function dayKey(iso: string) { return iso.slice(0, 10) }
+function yearKey(iso: string) { return new Date(iso).getFullYear() }
 function dayLabel(dk: string) {
   const [, m, d] = dk.split('-')
   const date = new Date(dk)
@@ -104,11 +99,9 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
   const [activeMonth, setActiveMonth] = useState<string | null>(null)
   const [activeDay,   setActiveDay]  = useState<string | null>(null)
 
-  // 個別削除
   const [confirmId,   setConfirmId]  = useState<string | null>(null)
   const [deleting,    setDeleting]   = useState(false)
 
-  // 一括削除
   const [bulkOpen,    setBulkOpen]   = useState(false)
   const [bulkPw,      setBulkPw]     = useState('')
   const [bulkError,   setBulkError]  = useState<string | null>(null)
@@ -154,10 +147,10 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
   const monthlySummary = useMemo(() => {
     const txs = rows.filter(t => monthKey(t.created_at) === selectedMonth)
     return {
-      inCount:   txs.filter(t => t.type === 'in').length,
-      outCount:  txs.filter(t => t.type === 'out').length,
-      adjCount:  txs.filter(t => t.type === 'adjustment').length,
-      inCost:    txs.filter(t => t.type === 'in' && t.cost_price != null)
+      inCount:  txs.filter(t => t.type === 'in').length,
+      outCount: txs.filter(t => t.type === 'out').length,
+      adjCount: txs.filter(t => t.type === 'adjustment').length,
+      inCost:   txs.filter(t => t.type === 'in' && t.cost_price != null)
                    .reduce((s, t) => s + (t.cost_price ?? 0) * t.quantity, 0),
     }
   }, [rows, selectedMonth])
@@ -205,10 +198,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
     setBulkError(null)
     try {
       const result = await deleteMonthTransactions(selectedMonth, bulkPw)
-      if (result?.error) {
-        setBulkError(result.error)
-        return
-      }
+      if (result?.error) { setBulkError(result.error); return }
       setRows(prev => prev.filter(r => monthKey(r.created_at) !== selectedMonth))
       setBulkOpen(false)
       setBulkPw('')
@@ -222,7 +212,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
   return (
     <div className="space-y-4">
 
-      {/* 年タブ（複数年あるときのみ表示） */}
+      {/* 年タブ */}
       {years.length > 1 && (
         <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
           {years.map(y => (
@@ -291,14 +281,13 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
         </div>
       )}
 
-
       {/* 月サマリー */}
       {selectedMonth && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: '入庫',     value: `${monthlySummary.inCount} 件`,  sub: '今月の入庫回数' },
-            { label: '出庫',     value: `${monthlySummary.outCount} 件`, sub: '今月の出庫回数' },
-            { label: '調整',     value: `${monthlySummary.adjCount} 件`, sub: '今月の調整回数' },
+            { label: '入庫',      value: `${monthlySummary.inCount} 件`,  sub: '今月の入庫回数' },
+            { label: '出庫',      value: `${monthlySummary.outCount} 件`, sub: '今月の出庫回数' },
+            { label: '調整',      value: `${monthlySummary.adjCount} 件`, sub: '今月の調整回数' },
             { label: '仕入れ総額', value: monthlySummary.inCost > 0 ? `¥${monthlySummary.inCost.toLocaleString()}` : '—', sub: '入庫コスト合計' },
           ].map(s => (
             <div
@@ -344,7 +333,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
       </div>
 
       {/* フィルターバー */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         <div
           className="flex items-center gap-2 px-3 h-9 rounded-xl flex-1 min-w-40"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
@@ -370,11 +359,10 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
             }}
           >
             {TYPE_ICON[type]}
-            {TYPE_LABEL[type]}
+            <span className="ml-1">{TYPE_LABEL[type]}</span>
           </button>
         ))}
 
-        {/* ダウンロード + 一括削除 */}
         <div className="flex items-center gap-2 ml-auto">
           <button
             onClick={() => selectedMonth && downloadCSV(
@@ -388,16 +376,6 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
             <RiDownloadLine size={13} />
             CSV
           </button>
-          <a
-            href={selectedMonth ? `/api/stock/history/pdf?month=${selectedMonth}` : '#'}
-            download
-            onClick={e => { if (!selectedMonth) e.preventDefault() }}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-all"
-            style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)', textDecoration: 'none' }}
-          >
-            <RiFilePdfLine size={13} />
-            PDF
-          </a>
           <button
             onClick={() => { setBulkPw(''); setBulkError(null); setBulkOpen(true) }}
             disabled={!selectedMonth}
@@ -452,49 +430,58 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
                 </div>
 
                 {/* トランザクション行 */}
-                <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[480px]">
-                  <tbody>
-                    {txs.map((t, i) => (
-                      <tr
+                <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                  {txs.map(t => {
+                    const tc = TYPE_COLOR[t.type]
+                    return (
+                      <div
                         key={t.id}
-                        className="transition-colors hover:bg-[var(--bg-base)] group"
-                        style={{ borderBottom: i < txs.length - 1 ? '1px solid var(--border)' : 'none' }}
+                        className="group flex items-stretch gap-3 px-4 py-3 transition-colors hover:bg-[var(--bg-base)]"
                       >
-                        {/* 時刻 */}
-                        <td className="pl-4 pr-3 py-3 w-14 shrink-0">
-                          <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                            {formatTime(t.created_at)}
-                          </span>
-                        </td>
+                        {/* 左: 3段テキスト */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
 
-                        {/* 種別バッジ */}
-                        <td className="px-2 py-3 w-16">
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-                            style={TYPE_COLOR[t.type]}
-                          >
-                            {TYPE_ICON[t.type]}
-                            {TYPE_LABEL[t.type]}
-                          </span>
-                        </td>
+                          {/* 1段目: 種別タグ + 時刻 */}
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold shrink-0"
+                              style={{ background: tc.bg, color: tc.color, border: (tc as { border?: string }).border }}
+                            >
+                              {TYPE_ICON[t.type]}
+                              {TYPE_LABEL[t.type]}
+                            </span>
+                            <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                              {formatTime(t.created_at)}
+                            </span>
+                          </div>
 
-                        {/* 商品名 */}
-                        <td className="px-3 py-3">
-                          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                          {/* 2段目: 商品名 */}
+                          <p className="text-sm font-semibold leading-snug truncate" style={{ color: 'var(--text-primary)' }}>
                             {t.product_name}
                           </p>
-                          {t.product_name_en && (
-                            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                              {t.product_name_en}
-                            </p>
-                          )}
-                        </td>
 
-                        {/* 数量 */}
-                        <td className="px-3 py-3 w-24 text-right">
+                          {/* 3段目: 備考 + 金額 */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {t.notes && (
+                              <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                                {t.notes}
+                              </span>
+                            )}
+                            {t.type === 'in' && t.cost_price != null && (
+                              <span className="text-[11px] tabular-nums shrink-0" style={{ color: 'var(--text-secondary)' }}>
+                                ¥{t.cost_price.toLocaleString()}/本
+                                <span className="ml-1" style={{ color: 'var(--text-muted)' }}>
+                                  計¥{(t.cost_price * t.quantity).toLocaleString()}
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 右: 本数（3段ぶち抜き）+ 削除 */}
+                        <div className="flex flex-col items-end justify-center gap-1 shrink-0">
                           <span
-                            className="text-sm font-bold tabular-nums"
+                            className="text-lg font-bold tabular-nums leading-none"
                             style={{
                               color: t.type === 'in' ? '#22c55e'
                                    : t.type === 'out' ? '#f87171'
@@ -502,50 +489,23 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
                             }}
                           >
                             {t.type === 'in' ? '+' : t.type === 'out' ? '−' : ''}
-                            {t.quantity} {t.unit}
+                            {t.quantity}
                           </span>
-                        </td>
-
-                        {/* 仕入価格 */}
-                        <td className="px-3 py-3 w-32 text-right">
-                          {t.type === 'in' && t.cost_price != null ? (
-                            <div>
-                              <p className="text-xs tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-                                ¥{t.cost_price.toLocaleString()}/本
-                              </p>
-                              <p className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                                計 ¥{(t.cost_price * t.quantity).toLocaleString()}
-                              </p>
-                            </div>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>—</span>
-                          )}
-                        </td>
-
-                        {/* メモ */}
-                        <td className="px-3 py-3">
-                          {t.notes && (
-                            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                              {t.notes}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 削除ボタン */}
-                        <td className="pr-3 py-3 w-10 text-right">
+                          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                            {t.unit}
+                          </span>
                           <button
                             onClick={() => setConfirmId(t.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
                             style={{ color: 'var(--text-muted)' }}
                             title="削除"
                           >
-                            <RiDeleteBinFill size={13} />
+                            <RiDeleteBinFill size={12} />
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )
@@ -569,10 +529,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
               <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>履歴を削除しますか？</p>
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>この操作は取り消せません。</p>
             </div>
-            <div
-              className="flex gap-3 px-6 py-4"
-              style={{ borderTop: '1px solid var(--border)' }}
-            >
+            <div className="flex gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border)' }}>
               <button
                 onClick={() => setConfirmId(null)}
                 disabled={deleting}
@@ -594,7 +551,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
         </div>
       )}
 
-      {/* 一括削除 パスワードモーダル */}
+      {/* 一括削除モーダル */}
       {bulkOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -606,7 +563,6 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
             onClick={e => e.stopPropagation()}
           >
-            {/* ヘッダー */}
             <div
               className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: '1px solid var(--border)' }}
@@ -626,7 +582,6 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
                 <RiCloseFill size={17} />
               </button>
             </div>
-
             <div className="px-5 py-4 space-y-3">
               <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 選択中の月の入出庫履歴をすべて削除します。この操作は取り消せません。
@@ -648,11 +603,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
                 )}
               </div>
             </div>
-
-            <div
-              className="flex gap-3 px-5 py-4"
-              style={{ borderTop: '1px solid var(--border)' }}
-            >
+            <div className="flex gap-3 px-5 py-4" style={{ borderTop: '1px solid var(--border)' }}>
               <button
                 onClick={() => setBulkOpen(false)}
                 disabled={bulkBusy}
