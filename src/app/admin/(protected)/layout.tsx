@@ -33,7 +33,7 @@ const LOCALES = [
 
 const mainNav = [
   { href: '/admin',                  label: 'ダッシュボード', icon: RiDashboardFill },
-  { href: '/admin/products',         label: '商品管理',       icon: RiArchiveFill },
+  { href: '/admin/products',         label: 'メニュー管理',   icon: RiArchiveFill },
   { href: '/admin/stock',            label: '入出庫管理',     icon: RiBarChartBoxFill },
   { href: '/admin/stock/history',    label: '入出庫履歴',     icon: RiHistoryFill },
   { href: '/admin/orders',           label: '発注管理',       icon: RiFileListFill },

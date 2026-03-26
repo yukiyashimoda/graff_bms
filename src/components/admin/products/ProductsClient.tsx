@@ -38,7 +38,7 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
     <div className="max-w-5xl space-y-6">
       <div className="space-y-3">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>商品管理</h1>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>メニュー管理</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
             {(query || catFilter) ? `${filtered.length} / ${products.length} 件` : `${products.length} 件`}
           </p>

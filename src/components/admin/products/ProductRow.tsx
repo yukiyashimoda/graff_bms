@@ -71,7 +71,6 @@ export function ProductRow({ product }: { product: ProductWithRelations }) {
       style={{
         background: 'var(--bg-surface)',
         border:     isLow ? '1.5px solid #d84f2a44' : '1px solid var(--border)',
-        opacity:    visible ? 1 : 0.55,
       }}
     >
       <div className="px-4 pt-4 pb-3 flex flex-col gap-3 flex-1">
@@ -94,6 +93,7 @@ export function ProductRow({ product }: { product: ProductWithRelations }) {
               background: visible ? 'var(--bg-dark)' : 'var(--bg-base)',
               color:      visible ? 'var(--text-invert)' : 'var(--text-muted)',
               border:     visible ? 'none' : '1px solid var(--border)',
+              opacity:    visible ? 1 : 0.4,
             }}
           >
             {visible ? <RiEyeFill size={12} /> : <RiEyeOffFill size={12} />}
