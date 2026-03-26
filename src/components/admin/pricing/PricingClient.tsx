@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { RiCheckFill, RiSearchLine, RiPriceTag3Fill } from 'react-icons/ri'
-import { bulkUpdateSellingPrices } from '@/app/admin/(protected)/products/actions'
+import { bulkUpdateSellingPrices, bulkUpdateShotPrices } from '@/app/admin/(protected)/products/actions'
 
 type ProductRow = {
   id:            string
@@ -12,22 +12,73 @@ type ProductRow = {
   cost_price:    number | null
   selling_price: number | null
   category_name: string | null
+  shot_price:    number | null
+  volume_ml:     number | null
+  is_spirits:    boolean
 }
 
-function calcRate(cost: number | null, sell: string): number | null {
-  const c = cost
-  const s = parseFloat(sell)
-  if (!c || !s || s === 0) return null
+// ボトル原価率
+function bottleRate(cost: number | null, sell: string): number | null {
+  const c = cost, s = parseFloat(sell)
+  if (!c || !s) return null
   return Math.round((c / s) * 1000) / 10
 }
 
+// シングル原価率 (30ml換算)
+function shotRate(cost: number | null, volume: number | null, shotSell: string): number | null {
+  const c = cost, v = volume, s = parseFloat(shotSell)
+  if (!c || !v || !s) return null
+  const costPerShot = (c / v) * 30
+  return Math.round((costPerShot / s) * 1000) / 10
+}
+
 function RateChip({ rate }: { rate: number | null }) {
-  if (rate === null) return <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>—</span>
+  if (rate === null) return <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>—</span>
   const color = rate > 40 ? '#f87171' : rate > 30 ? '#fb923c' : '#22c55e'
+  return <span className="text-xs font-bold tabular-nums" style={{ color }}>{rate}%</span>
+}
+
+function PriceRow({
+  label, sublabel, value, onChange, rateNode,
+}: {
+  label: string
+  sublabel?: string
+  value: string
+  onChange: (v: string) => void
+  rateNode: React.ReactNode
+}) {
   return (
-    <span className="text-sm font-bold tabular-nums" style={{ color }}>
-      {rate}%
-    </span>
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+          {label}
+          {sublabel && <span className="ml-1 font-normal" style={{ color: 'var(--text-muted)' }}>{sublabel}</span>}
+        </span>
+        <div className="flex items-center gap-1">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>原価率</span>
+          {rateNode}
+        </div>
+      </div>
+      <div
+        className="flex items-center gap-2 px-3 py-2.5 rounded-xl min-w-0"
+        style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+      >
+        <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>販売価格</span>
+        <div className="flex items-center gap-1 ml-auto min-w-0">
+          <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>¥</span>
+          <input
+            type="number"
+            min="0"
+            step="100"
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder="0"
+            className="w-0 flex-1 text-base tabular-nums outline-none text-right bg-transparent"
+            style={{ color: 'var(--text-primary)' }}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -35,14 +86,15 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
   const router = useRouter()
 
   const [prices, setPrices] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      products.map(p => [p.id, p.selling_price != null ? String(p.selling_price) : ''])
-    )
+    Object.fromEntries(products.map(p => [p.id, p.selling_price != null ? String(p.selling_price) : '']))
   )
-  const [query,     setQuery]   = useState('')
-  const [catFilter, setCat]     = useState<string | null>(null)
-  const [saving,    setSaving]  = useState(false)
-  const [saved,     setSaved]   = useState(false)
+  const [shotPrices, setShotPrices] = useState<Record<string, string>>(() =>
+    Object.fromEntries(products.map(p => [p.id, p.shot_price != null ? String(p.shot_price) : '']))
+  )
+  const [query,     setQuery]  = useState('')
+  const [catFilter, setCat]    = useState<string | null>(null)
+  const [saving,    setSaving] = useState(false)
+  const [saved,     setSaved]  = useState(false)
 
   const categories = useMemo(() => {
     const seen = new Set<string>()
@@ -51,18 +103,17 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
       .filter((c): c is string => !!c && !seen.has(c) && !!seen.add(c))
   }, [products])
 
-  const filtered = useMemo(() => {
-    return products.filter(p => {
-      if (catFilter && p.category_name !== catFilter) return false
-      if (!query) return true
-      const q = query.toLowerCase()
-      return p.name.toLowerCase().includes(q) || p.name_en.toLowerCase().includes(q)
-    })
-  }, [products, query, catFilter])
+  const filtered = useMemo(() => products.filter(p => {
+    if (catFilter && p.category_name !== catFilter) return false
+    if (!query) return true
+    const q = query.toLowerCase()
+    return p.name.toLowerCase().includes(q) || p.name_en.toLowerCase().includes(q)
+  }), [products, query, catFilter])
 
   const dirtyCount = products.filter(p => {
-    const current = p.selling_price != null ? String(p.selling_price) : ''
-    return prices[p.id] !== current
+    const origSell = p.selling_price != null ? String(p.selling_price) : ''
+    const origShot = p.shot_price    != null ? String(p.shot_price)    : ''
+    return prices[p.id] !== origSell || (p.is_spirits && shotPrices[p.id] !== origShot)
   }).length
 
   async function handleSave() {
@@ -70,17 +121,26 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
     setSaving(true)
     setSaved(false)
     try {
-      const items = products
-        .filter(p => {
-          const current = p.selling_price != null ? String(p.selling_price) : ''
-          return prices[p.id] !== current
-        })
+      const sellItems = products
+        .filter(p => prices[p.id] !== (p.selling_price != null ? String(p.selling_price) : ''))
         .map(p => {
-          const val = parseFloat(prices[p.id])
-          return { id: p.id, selling_price: isNaN(val) ? null : val }
+          const v = parseFloat(prices[p.id])
+          return { id: p.id, selling_price: isNaN(v) ? null : v }
         })
-      if (items.length > 0) {
-        await bulkUpdateSellingPrices(items)
+
+      const shotItems = products
+        .filter(p => p.is_spirits && shotPrices[p.id] !== (p.shot_price != null ? String(p.shot_price) : ''))
+        .map(p => {
+          const v = parseFloat(shotPrices[p.id])
+          return { id: p.id, shot_price: isNaN(v) ? null : v }
+        })
+
+      await Promise.all([
+        sellItems.length > 0 ? bulkUpdateSellingPrices(sellItems) : Promise.resolve(),
+        shotItems.length > 0 ? bulkUpdateShotPrices(shotItems)    : Promise.resolve(),
+      ])
+
+      if (sellItems.length > 0 || shotItems.length > 0) {
         setSaved(true)
         router.refresh()
       }
@@ -90,11 +150,9 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
   }
 
   return (
-    <>
     <div className="space-y-4 pb-24">
       {/* ツールバー */}
       <div className="flex flex-col gap-2">
-        {/* 検索 */}
         <div
           className="flex items-center gap-2 px-3 h-11 rounded-xl"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
@@ -108,9 +166,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
             style={{ color: 'var(--text-primary)' }}
           />
         </div>
-
-        {/* カテゴリフィルター */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="filter-tabs flex gap-2 flex-wrap">
           <button
             onClick={() => setCat(null)}
             className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
@@ -139,7 +195,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
         </div>
       </div>
 
-      {/* フローティング更新ボタン（左下固定） */}
+      {/* フローティング保存ボタン */}
       <button
         onClick={handleSave}
         disabled={saving || dirtyCount === 0}
@@ -162,15 +218,16 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           {filtered.map(p => {
-            const isDirty = prices[p.id] !== (p.selling_price != null ? String(p.selling_price) : '')
-            const rate    = calcRate(p.cost_price, prices[p.id])
+            const isDirty =
+              prices[p.id] !== (p.selling_price != null ? String(p.selling_price) : '') ||
+              (p.is_spirits && shotPrices[p.id] !== (p.shot_price != null ? String(p.shot_price) : ''))
 
             return (
               <div
                 key={p.id}
                 className="rounded-2xl p-4 flex flex-col gap-3 overflow-hidden"
                 style={{
-                  background: isDirty ? 'var(--bg-surface)' : 'var(--bg-surface)',
+                  background: 'var(--bg-surface)',
                   border: `1px solid ${isDirty ? 'var(--bg-dark)' : 'var(--border)'}`,
                 }}
               >
@@ -204,39 +261,40 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
                   </span>
                 </div>
 
-                {/* 販売価格入力 */}
-                <div
-                  className="flex items-center gap-2 px-3 py-3 rounded-xl min-w-0"
-                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
-                >
-                  <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>販売価格</span>
-                  <div className="flex items-center gap-1 ml-auto min-w-0">
-                    <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>¥</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="100"
-                      value={prices[p.id]}
-                      onChange={e => setPrices(prev => ({ ...prev, [p.id]: e.target.value }))}
-                      placeholder="0"
-                      className="w-0 flex-1 text-base tabular-nums outline-none text-right bg-transparent"
-                      style={{ color: 'var(--text-primary)' }}
+                {p.is_spirits ? (
+                  /* ─── スピリッツ: シングル + ボトル ─── */
+                  <>
+                    <div style={{ borderTop: '1px solid var(--border)', margin: '0 -4px' }} />
+                    <PriceRow
+                      label="シングル"
+                      sublabel="(30ml換算)"
+                      value={shotPrices[p.id]}
+                      onChange={v => setShotPrices(prev => ({ ...prev, [p.id]: v }))}
+                      rateNode={<RateChip rate={shotRate(p.cost_price, p.volume_ml, shotPrices[p.id])} />}
                     />
-                  </div>
-                </div>
-
-                {/* 原価率 */}
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>原価率</span>
-                  <RateChip rate={rate} />
-                </div>
+                    <PriceRow
+                      label="ボトル"
+                      value={prices[p.id]}
+                      onChange={v => setPrices(prev => ({ ...prev, [p.id]: v }))}
+                      rateNode={<RateChip rate={bottleRate(p.cost_price, prices[p.id])} />}
+                    />
+                  </>
+                ) : (
+                  /* ─── 通常商品 ─── */
+                  <>
+                    <PriceRow
+                      label="販売価格"
+                      value={prices[p.id]}
+                      onChange={v => setPrices(prev => ({ ...prev, [p.id]: v }))}
+                      rateNode={<RateChip rate={bottleRate(p.cost_price, prices[p.id])} />}
+                    />
+                  </>
+                )}
               </div>
             )
           })}
         </div>
       )}
-
     </div>
-    </>
   )
 }

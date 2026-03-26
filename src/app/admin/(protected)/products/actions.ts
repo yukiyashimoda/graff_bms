@@ -207,3 +207,19 @@ export async function bulkUpdateSellingPrices(
   revalidatePath('/ja', 'page')
   revalidatePath('/en', 'page')
 }
+
+export async function bulkUpdateShotPrices(
+  items: { id: string; shot_price: number | null }[]
+) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServiceClient() as any
+  await Promise.all(
+    items.map(({ id, shot_price }) =>
+      supabase.from('spirits_details').update({ shot_price }).eq('product_id', id)
+    )
+  )
+  revalidatePath('/admin/products')
+  revalidatePath('/admin/pricing')
+  revalidatePath('/ja', 'page')
+  revalidatePath('/en', 'page')
+}
