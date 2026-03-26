@@ -46,7 +46,7 @@ export function ProductsClient({ products }: { products: ProductWithRelations[] 
 
         {/* カテゴリフィルター */}
         {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="filter-tabs flex flex-wrap gap-2">
             <CatBtn label="すべて" active={catFilter === null} onClick={() => setCatFilter(null)} />
             {categories.map(c => (
               <CatBtn key={c} label={c} active={catFilter === c} onClick={() => setCatFilter(c)} />
