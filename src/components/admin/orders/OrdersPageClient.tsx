@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react'
 import {
   RiPrinterFill,
-  RiSendPlaneFill,
   RiCheckboxCircleFill,
   RiDeleteBinFill,
   RiFileListLine,
@@ -196,16 +195,6 @@ export function OrdersPageClient({
                       >
                         <RiPrinterFill size={14} />
                       </a>
-                      {order.status === 'draft' && (
-                        <button
-                          onClick={() => handleStatusUpdate(order.id, 'sent')}
-                          className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
-                          style={{ color: 'var(--text-secondary)' }}
-                          title="送付済みにする"
-                        >
-                          <RiSendPlaneFill size={14} />
-                        </button>
-                      )}
                       {order.status === 'sent' && (
                         <button
                           onClick={() => handleReceive(order.id)}
