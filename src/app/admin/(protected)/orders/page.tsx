@@ -26,7 +26,7 @@ export default async function OrdersPage() {
       .select(`
         id, status, order_date, expected_date, created_at, notes,
         suppliers!supplier_id(name),
-        purchase_order_items(id, quantity, unit_price, inspection_status, products(name, unit))
+        purchase_order_items(id, quantity, unit_price, received_quantity, inspection_status, products(name, unit))
       `)
       .order('created_at', { ascending: false }),
 
@@ -64,7 +64,7 @@ export default async function OrdersPage() {
     const sup   = o.suppliers as unknown as { name: string } | null
     const items = o.purchase_order_items as unknown as {
       id: string; quantity: number; unit_price: number | null
-      inspection_status: string | null
+      received_quantity: number; inspection_status: string | null
       products: { name: string; unit: string }
     }[]
     return {
@@ -79,6 +79,7 @@ export default async function OrdersPage() {
         id:                i.id,
         quantity:          i.quantity,
         unit_price:        i.unit_price ?? null,
+        received_quantity: Number(i.received_quantity ?? 0),
         product_name:      i.products.name,
         product_unit:      i.products.unit,
         inspection_status: (i.inspection_status ?? null) as 'arrived' | 'partial' | 'missing' | 'price_changed' | null,

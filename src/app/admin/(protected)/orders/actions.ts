@@ -98,6 +98,68 @@ export async function updateItemInspectionStatus(
   revalidatePath('/admin/orders')
 }
 
+// 品目単位の入庫処理（一部到着・価格改定対応）
+export async function receiveOrderItem(
+  itemId: string,
+  receiveQty: number,
+  unitPrice: number | null,
+  isPriceChange: boolean = false,
+): Promise<{ newReceivedQty: number; fullyReceived: boolean }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServiceClient() as any
+
+  const { data: item } = await supabase
+    .from('purchase_order_items')
+    .select('product_id, quantity, received_quantity, unit_price, purchase_order_id')
+    .eq('id', itemId)
+    .single()
+  if (!item) throw new Error('Item not found')
+
+  const effectivePrice = unitPrice ?? item.unit_price ?? null
+  const newReceivedQty  = Number(item.received_quantity) + receiveQty
+  const fullyReceived   = newReceivedQty >= Number(item.quantity)
+
+  // 在庫入庫 (price_history / alerts は DB トリガーが自動更新)
+  await supabase.rpc('process_stock_transaction', {
+    p_product_id: item.product_id,
+    p_type:       'in',
+    p_quantity:   receiveQty,
+    p_cost_price: effectivePrice,
+    p_notes:      isPriceChange ? '価格改定入庫' : null,
+  })
+
+  // 品目更新
+  const patch: Record<string, unknown> = {
+    received_quantity: newReceivedQty,
+    inspection_status: fullyReceived ? 'arrived' : 'partial',
+  }
+  if (unitPrice != null) patch.unit_price = unitPrice
+  await supabase.from('purchase_order_items').update(patch).eq('id', itemId)
+
+  // 全品目が受領済みならオーダーを completed に更新
+  const { data: siblings } = await supabase
+    .from('purchase_order_items')
+    .select('id, quantity, received_quantity')
+    .eq('purchase_order_id', item.purchase_order_id)
+
+  const allDone = (siblings ?? []).every((s: { id: string; quantity: number; received_quantity: number }) =>
+    s.id === itemId
+      ? fullyReceived
+      : Number(s.received_quantity) >= Number(s.quantity)
+  )
+  if (allDone) {
+    await supabase
+      .from('purchase_orders')
+      .update({ status: 'received' })
+      .eq('id', item.purchase_order_id)
+  }
+
+  revalidatePath('/admin/orders')
+  revalidatePath('/admin/stock')
+  revalidatePath('/admin')
+  return { newReceivedQty, fullyReceived }
+}
+
 // カートから業者ごとに発注書を一括作成（業者数 × 2往復 → 1往復）
 export async function createOrdersFromCart(
   cartItems: {

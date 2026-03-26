@@ -3,40 +3,22 @@
 import { useState, useTransition } from 'react'
 import {
   RiPrinterFill,
-  RiCheckboxCircleFill,
   RiDeleteBinFill,
   RiFileListLine,
+  RiCloseFill,
 } from 'react-icons/ri'
 import { OrderCart } from './OrderCart'
 import { SupplierManager } from '@/components/admin/suppliers/SupplierManager'
-import { updateOrderStatus, receiveOrder, deleteOrder, updateItemInspectionStatus } from '@/app/admin/(protected)/orders/actions'
+import {
+  updateOrderStatus,
+  deleteOrder,
+  updateItemInspectionStatus,
+  receiveOrderItem,
+} from '@/app/admin/(protected)/orders/actions'
 import type { CartItem } from './OrderCart'
 import type { IssuerProfile } from '@/app/admin/(protected)/orders/issuer-actions'
 
 type InspectionStatus = 'arrived' | 'partial' | 'missing' | 'price_changed' | null
-
-const INSPECTION_BUTTONS: { status: InspectionStatus & string; label: string; activeStyle: React.CSSProperties }[] = [
-  {
-    status: 'arrived',
-    label: '到着',
-    activeStyle: { background: '#22c55e', color: '#fff', border: '1px solid #16a34a' },
-  },
-  {
-    status: 'partial',
-    label: '一部到着',
-    activeStyle: { background: '#f59e0b', color: '#fff', border: '1px solid #d97706' },
-  },
-  {
-    status: 'missing',
-    label: '欠品',
-    activeStyle: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
-  },
-  {
-    status: 'price_changed',
-    label: '価格変更',
-    activeStyle: { background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed' },
-  },
-]
 
 type Tab = 'order' | 'history' | 'suppliers'
 
@@ -52,6 +34,16 @@ type Supplier = {
 
 type OrderStatus = 'draft' | 'sent' | 'received' | 'cancelled'
 
+type OrderItem = {
+  id:                string
+  quantity:          number
+  unit_price:        number | null
+  received_quantity: number
+  product_name:      string
+  product_unit:      string
+  inspection_status: InspectionStatus
+}
+
 type Order = {
   id:            string
   status:        OrderStatus
@@ -60,16 +52,30 @@ type Order = {
   created_at:    string
   notes:         string | null
   supplier_name: string | null
-  items: {
-    id:                string
-    quantity:          number
-    unit_price:        number | null
-    product_name:      string
-    product_unit:      string
-    inspection_status: InspectionStatus
-  }[]
+  items:         OrderItem[]
 }
 
+// ─── モーダル型 ──────────────────────────────────────────────
+type PartialModal = {
+  orderId:      string
+  itemId:       string
+  productName:  string
+  unit:         string
+  remaining:    number
+  isPriceChange: boolean
+  newPrice:     number | null
+}
+
+type PriceModal = {
+  orderId:       string
+  itemId:        string
+  productName:   string
+  unit:          string
+  remaining:     number
+  originalPrice: number | null
+}
+
+// ─── ステータス表示 ───────────────────────────────────────────
 const STATUS_LABEL: Record<OrderStatus, string> = {
   draft:     '下書き',
   sent:      '送付済み',
@@ -83,32 +89,44 @@ const STATUS_STYLE: Record<OrderStatus, React.CSSProperties> = {
   cancelled: { background: 'var(--bg-base)',  color: 'var(--text-muted)',     border: '1px solid var(--border)' },
 }
 
+// ─── 検品ボタン定義 ───────────────────────────────────────────
+const INSP_BTNS = [
+  { key: 'arrived',       label: '到着',     active: { background: '#22c55e', color: '#fff', border: '1px solid #16a34a' } },
+  { key: 'partial',       label: '一部到着', active: { background: '#f59e0b', color: '#fff', border: '1px solid #d97706' } },
+  { key: 'missing',       label: '欠品',     active: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' } },
+  { key: 'price_changed', label: '価格改定', active: { background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed' } },
+] as const
+
+const idle: React.CSSProperties = {
+  background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)',
+}
+
+// ─── コンポーネント ────────────────────────────────────────────
 export function OrdersPageClient({
   cartItems,
   orders: initialOrders,
   suppliers,
-  issuerProfile,
 }: {
   cartItems:     CartItem[]
   orders:        Order[]
   suppliers:     Supplier[]
   issuerProfile: IssuerProfile
 }) {
-  const [tab, setTab] = useState<Tab>('order')
+  const [tab,    setTab]    = useState<Tab>('order')
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [, startTransition] = useTransition()
 
+  // モーダル
+  const [partialModal, setPartialModal] = useState<PartialModal | null>(null)
+  const [priceModal,   setPriceModal]   = useState<PriceModal | null>(null)
+  const [inputQty,     setInputQty]     = useState('')
+  const [inputPrice,   setInputPrice]   = useState('')
+
+  // ─── オーダー操作 ─────────────────────────────────────────
   function handleStatusUpdate(orderId: string, status: OrderStatus) {
     startTransition(async () => {
       await updateOrderStatus(orderId, status)
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o))
-    })
-  }
-
-  function handleReceive(orderId: string) {
-    startTransition(async () => {
-      await receiveOrder(orderId)
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'received' } : o))
     })
   }
 
@@ -119,22 +137,121 @@ export function OrdersPageClient({
     })
   }
 
-  function handleInspection(orderId: string, itemId: string, status: InspectionStatus & string) {
+  // ─── 品目の楽観的更新ヘルパー ─────────────────────────────
+  function patchItem(orderId: string, itemId: string, patch: Partial<OrderItem>) {
+    setOrders(prev => prev.map(o =>
+      o.id !== orderId ? o : {
+        ...o,
+        items: o.items.map(i => i.id !== itemId ? i : { ...i, ...patch }),
+      }
+    ))
+  }
+
+  function markOrderReceived(orderId: string) {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'received' } : o))
+  }
+
+  // ─── 到着（全量） ─────────────────────────────────────────
+  function handleArrived(order: Order, item: OrderItem) {
+    const remaining = item.quantity - item.received_quantity
+    if (remaining <= 0) return
+    patchItem(order.id, item.id, { inspection_status: 'arrived', received_quantity: item.quantity })
     startTransition(async () => {
-      // 同じボタンを押したらリセット
-      const currentOrder = orders.find(o => o.id === orderId)
-      const currentItem  = currentOrder?.items.find(i => i.id === itemId)
-      const next = currentItem?.inspection_status === status ? null : status
-      setOrders(prev => prev.map(o =>
-        o.id !== orderId ? o : {
-          ...o,
-          items: o.items.map(i => i.id !== itemId ? i : { ...i, inspection_status: next }),
-        }
-      ))
-      await updateItemInspectionStatus(itemId, next)
+      const { fullyReceived } = await receiveOrderItem(item.id, remaining, null, false)
+      if (fullyReceived && order.items.every(i => i.id === item.id || i.inspection_status === 'arrived')) {
+        markOrderReceived(order.id)
+      }
     })
   }
 
+  // ─── 欠品 ────────────────────────────────────────────────
+  function handleMissing(orderId: string, itemId: string) {
+    patchItem(orderId, itemId, { inspection_status: 'missing' })
+    startTransition(async () => {
+      await updateItemInspectionStatus(itemId, 'missing')
+    })
+  }
+
+  // ─── 一部到着ポップアップを開く ───────────────────────────
+  function openPartial(order: Order, item: OrderItem, isPriceChange = false, newPrice: number | null = null) {
+    setInputQty('')
+    setPartialModal({
+      orderId: order.id,
+      itemId:  item.id,
+      productName: item.product_name,
+      unit:    item.product_unit,
+      remaining: item.quantity - item.received_quantity,
+      isPriceChange,
+      newPrice,
+    })
+  }
+
+  // ─── 一部到着確定 ─────────────────────────────────────────
+  function confirmPartial() {
+    if (!partialModal) return
+    const qty = Number(inputQty)
+    if (!qty || qty <= 0 || qty > partialModal.remaining) return
+    const newReceived = /* will compute */ partialModal.remaining - qty  // remaining after
+    const _ = newReceived  // unused
+    patchItem(partialModal.orderId, partialModal.itemId, {
+      inspection_status: 'partial',
+      received_quantity: /* prev + qty; use server truth */ 0,  // server will revalidate
+    })
+    const snap = { ...partialModal }
+    setPartialModal(null)
+    startTransition(async () => {
+      await receiveOrderItem(snap.itemId, qty, snap.newPrice, snap.isPriceChange)
+    })
+  }
+
+  // ─── 価格改定ポップアップを開く ───────────────────────────
+  function openPriceChange(order: Order, item: OrderItem) {
+    setInputPrice(item.unit_price != null ? String(item.unit_price) : '')
+    setInputQty('')
+    setPriceModal({
+      orderId:       order.id,
+      itemId:        item.id,
+      productName:   item.product_name,
+      unit:          item.product_unit,
+      remaining:     item.quantity - item.received_quantity,
+      originalPrice: item.unit_price,
+    })
+  }
+
+  // 価格改定 → 到着（全量）
+  function confirmPriceFull() {
+    if (!priceModal) return
+    const price = Number(inputPrice)
+    if (!price || price <= 0) return
+    const snap = { ...priceModal }
+    setPriceModal(null)
+    patchItem(snap.orderId, snap.itemId, { inspection_status: 'arrived', unit_price: price })
+    startTransition(async () => {
+      await receiveOrderItem(snap.itemId, snap.remaining, price, true)
+    })
+  }
+
+  // 価格改定 → 一部到着（部分モーダルへ）
+  function confirmPriceToPartial() {
+    if (!priceModal) return
+    const price = Number(inputPrice)
+    if (!price || price <= 0) return
+    const snap = { ...priceModal }
+    setPriceModal(null)
+    // 一部到着モーダルを価格改定フラグ付きで開く
+    setInputQty('')
+    setPartialModal({
+      orderId:      snap.orderId,
+      itemId:       snap.itemId,
+      productName:  snap.productName,
+      unit:         snap.unit,
+      remaining:    snap.remaining,
+      isPriceChange: true,
+      newPrice:     price,
+    })
+  }
+
+  // ─── タブ ─────────────────────────────────────────────────
   const TABS: { key: Tab; label: string }[] = [
     { key: 'order',     label: '発注書作成' },
     { key: 'history',   label: '検品' },
@@ -143,7 +260,8 @@ export function OrdersPageClient({
 
   return (
     <div className="max-w-5xl space-y-6">
-      {/* ヘッダー + タブ */}
+
+      {/* ─── ヘッダー + タブ（PC） ─── */}
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注/検品</h1>
@@ -153,8 +271,6 @@ export function OrdersPageClient({
             {tab === 'suppliers' && `発注先 ${suppliers.length} 件`}
           </p>
         </div>
-
-        {/* デスクトップのみヘッダー横に表示 */}
         <div
           className="hidden sm:flex rounded-xl overflow-hidden flex-shrink-0"
           style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}
@@ -175,7 +291,7 @@ export function OrdersPageClient({
         </div>
       </div>
 
-      {/* スマホのみ全幅タブ */}
+      {/* タブ（スマホ全幅） */}
       <div
         className="flex sm:hidden w-full rounded-xl overflow-hidden"
         style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}
@@ -195,10 +311,10 @@ export function OrdersPageClient({
         ))}
       </div>
 
-      {/* 発注管理 */}
+      {/* ─── 発注書作成 ─── */}
       {tab === 'order' && <OrderCart items={cartItems} />}
 
-      {/* 発注履歴 */}
+      {/* ─── 検品 ─── */}
       {tab === 'history' && (
         orders.length === 0 ? (
           <div
@@ -216,7 +332,7 @@ export function OrdersPageClient({
                 className="rounded-2xl overflow-hidden"
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
               >
-                {/* ヘッダー行 */}
+                {/* オーダーヘッダー */}
                 <div
                   className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
                   style={{ borderBottom: '1px solid var(--border)' }}
@@ -249,7 +365,6 @@ export function OrdersPageClient({
                         → {order.expected_date}
                       </span>
                     )}
-
                     <div className="flex items-center gap-2 ml-2">
                       <a
                         href={`/admin/orders/${order.id}/print`}
@@ -260,16 +375,6 @@ export function OrdersPageClient({
                         <RiPrinterFill size={13} />
                         発注書をみる
                       </a>
-                      {order.status === 'sent' && (
-                        <button
-                          onClick={() => handleReceive(order.id)}
-                          className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
-                          style={{ color: 'var(--text-secondary)' }}
-                          title="受領済みにする"
-                        >
-                          <RiCheckboxCircleFill size={14} />
-                        </button>
-                      )}
                       {order.status === 'draft' && (
                         <button
                           onClick={() => handleDelete(order.id)}
@@ -286,53 +391,81 @@ export function OrdersPageClient({
 
                 {/* 品目リスト */}
                 <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                  {order.items.map(item => (
-                    <div key={item.id} className="flex items-center gap-4 px-5 py-4">
-                      {/* 左: 本数 */}
-                      <div className="flex-shrink-0 w-14 text-center">
-                        <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>
-                          {item.quantity}
-                        </p>
-                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                          {item.product_unit}
-                        </p>
-                      </div>
+                  {order.items.map(item => {
+                    const remaining  = item.quantity - item.received_quantity
+                    const isArrived  = item.inspection_status === 'arrived'
+                    const hasPartial = item.inspection_status === 'partial' || item.inspection_status === 'missing'
 
-                      {/* 右: 3段 */}
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        {/* 1段目: 商品名 */}
-                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                          {item.product_name}
-                        </p>
-                        {/* 2段目: 単価 */}
-                        <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                          {item.unit_price != null
-                            ? `¥${item.unit_price.toLocaleString()} / ${item.product_unit}`
-                            : '単価未設定'}
-                        </p>
-                        {/* 3段目: 検品ボタン */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {INSPECTION_BUTTONS.map(btn => {
-                            const isActive = item.inspection_status === btn.status
-                            return (
-                              <button
-                                key={btn.status}
-                                onClick={() => handleInspection(order.id, item.id, btn.status)}
-                                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-                                style={
-                                  isActive
-                                    ? btn.activeStyle
-                                    : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                                }
-                              >
-                                {btn.label}
-                              </button>
-                            )
-                          })}
+                    return (
+                      <div key={item.id} className="flex items-center gap-4 px-5 py-4">
+
+                        {/* 左: 本数 / 残本数 */}
+                        <div className="flex-shrink-0 w-14 text-center">
+                          {isArrived ? (
+                            <>
+                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: '#22c55e' }}>
+                                {item.quantity}
+                              </p>
+                              <p className="text-[10px] mt-0.5 font-medium" style={{ color: '#22c55e' }}>完了</p>
+                            </>
+                          ) : hasPartial ? (
+                            <>
+                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: '#f59e0b' }}>
+                                {remaining}
+                              </p>
+                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>残 {item.product_unit}</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>
+                                {item.quantity}
+                              </p>
+                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{item.product_unit}</p>
+                            </>
+                          )}
+                        </div>
+
+                        {/* 右: 3段 */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          {/* 1段目: 商品名 */}
+                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                            {item.product_name}
+                          </p>
+
+                          {/* 2段目: 単価 */}
+                          <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                            {item.unit_price != null
+                              ? `¥${item.unit_price.toLocaleString()} / ${item.product_unit}`
+                              : '単価未設定'}
+                          </p>
+
+                          {/* 3段目: 検品ボタン（到着完了時は非表示） */}
+                          {!isArrived && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {INSP_BTNS.map(btn => {
+                                const isActive = item.inspection_status === btn.key
+                                return (
+                                  <button
+                                    key={btn.key}
+                                    onClick={() => {
+                                      if (btn.key === 'arrived')       handleArrived(order, item)
+                                      else if (btn.key === 'partial')  openPartial(order, item)
+                                      else if (btn.key === 'missing')  handleMissing(order.id, item.id)
+                                      else if (btn.key === 'price_changed') openPriceChange(order, item)
+                                    }}
+                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+                                    style={isActive ? btn.active : idle}
+                                  >
+                                    {btn.label}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 {/* 備考 */}
@@ -350,8 +483,147 @@ export function OrdersPageClient({
         )
       )}
 
-      {/* 発注先管理 */}
+      {/* ─── 発注先管理 ─── */}
       {tab === 'suppliers' && <SupplierManager suppliers={suppliers} />}
+
+      {/* ══════════════════════════════════
+          一部到着モーダル
+      ══════════════════════════════════ */}
+      {partialModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div
+            className="w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-2xl"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                一部到着{partialModal.isPriceChange ? '（価格改定）' : ''}
+              </p>
+              <button onClick={() => setPartialModal(null)} className="p-1.5 rounded-lg hover:bg-[var(--bg-base)]" style={{ color: 'var(--text-muted)' }}>
+                <RiCloseFill size={16} />
+              </button>
+            </div>
+
+            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+              {partialModal.productName}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              残 {partialModal.remaining} {partialModal.unit} 中、今回到着した数量を入力
+            </p>
+
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={partialModal.remaining}
+              value={inputQty}
+              onChange={e => setInputQty(e.target.value)}
+              placeholder={`最大 ${partialModal.remaining}`}
+              className="w-full px-3 py-3 rounded-xl text-base outline-none"
+              style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              autoFocus
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={confirmPartial}
+                disabled={!inputQty || Number(inputQty) <= 0 || Number(inputQty) > partialModal.remaining}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              >
+                入庫する
+              </button>
+              <button
+                onClick={() => setPartialModal(null)}
+                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════
+          価格改定モーダル
+      ══════════════════════════════════ */}
+      {priceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div
+            className="w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-2xl"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>価格改定</p>
+              <button onClick={() => setPriceModal(null)} className="p-1.5 rounded-lg hover:bg-[var(--bg-base)]" style={{ color: 'var(--text-muted)' }}>
+                <RiCloseFill size={16} />
+              </button>
+            </div>
+
+            <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+              {priceModal.productName}
+            </p>
+
+            {/* 現在の単価 */}
+            {priceModal.originalPrice != null && (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                現在の単価：¥{priceModal.originalPrice.toLocaleString()}
+              </p>
+            )}
+
+            {/* 新しい単価入力 */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                新しい単価（円）
+              </label>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={inputPrice}
+                onChange={e => setInputPrice(e.target.value)}
+                placeholder="例: 2800"
+                className="w-full px-3 py-3 rounded-xl text-base outline-none"
+                style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                autoFocus
+              />
+            </div>
+
+            {/* 到着 / 一部到着 選択 */}
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+              入庫方法を選択
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmPriceFull}
+                disabled={!inputPrice || Number(inputPrice) <= 0}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: '#22c55e', color: '#fff' }}
+              >
+                到着（{priceModal.remaining}{priceModal.unit}）
+              </button>
+              <button
+                onClick={confirmPriceToPartial}
+                disabled={!inputPrice || Number(inputPrice) <= 0}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: '#f59e0b', color: '#fff' }}
+              >
+                一部到着
+              </button>
+            </div>
+
+            <button
+              onClick={() => setPriceModal(null)}
+              className="w-full py-2.5 rounded-xl text-sm font-medium"
+              style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
