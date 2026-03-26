@@ -6,6 +6,8 @@ import {
   RiDeleteBinFill,
   RiFileListLine,
   RiCloseFill,
+  RiFileCopyLine,
+  RiCheckLine,
 } from 'react-icons/ri'
 import { OrderCart } from './OrderCart'
 import { SupplierManager } from '@/components/admin/suppliers/SupplierManager'
@@ -114,9 +116,41 @@ export function OrdersPageClient({
   suppliers:     Supplier[]
   issuerProfile: IssuerProfile
 }) {
-  const [tab,    setTab]    = useState<Tab>('order')
-  const [orders, setOrders] = useState<Order[]>(initialOrders)
+  const [tab,      setTab]      = useState<Tab>('order')
+  const [orders,   setOrders]   = useState<Order[]>(initialOrders)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+
+  function generateOrderText(order: Order): string {
+    const itemLines = order.items
+      .map(i => `・${i.product_name}：${i.quantity}${i.product_unit}`)
+      .join('\n')
+
+    let deliveryLine = '【納品希望日】\n'
+    if (order.expected_date) {
+      const d    = new Date(order.expected_date)
+      const days = ['日', '月', '火', '水', '木', '金', '土']
+      deliveryLine += ` ${d.getMonth() + 1}月${d.getDate()}日（${days[d.getDay()]}）15:00〜18:00`
+    } else {
+      deliveryLine += ' ご調整ください'
+    }
+
+    return [
+      'お世話になっております。',
+      '下記の通り発注をお願いいたします。',
+      '',
+      '【注文内容】',
+      itemLines,
+      '',
+      deliveryLine,
+    ].join('\n')
+  }
+
+  function handleCopyText(order: Order) {
+    navigator.clipboard.writeText(generateOrderText(order))
+    setCopiedId(order.id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   // モーダル
   const [partialModal, setPartialModal] = useState<PartialModal | null>(null)
@@ -333,12 +367,24 @@ export function OrdersPageClient({
             {orders.map(order => (
               <div
                 key={order.id}
-                className="rounded-2xl overflow-hidden"
+                className="rounded-2xl overflow-hidden relative"
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
               >
+                {/* 削除ボタン（下書きのみ・右上絶対配置） */}
+                {order.status === 'draft' && (
+                  <button
+                    onClick={() => handleDelete(order.id)}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
+                    style={{ color: 'var(--text-muted)' }}
+                    title="削除"
+                  >
+                    <RiDeleteBinFill size={14} />
+                  </button>
+                )}
+
                 {/* オーダーヘッダー */}
                 <div
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 pr-10"
                   style={{ borderBottom: '1px solid var(--border)' }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -370,6 +416,18 @@ export function OrdersPageClient({
                       </span>
                     )}
                     <div className="flex items-center gap-2 ml-2">
+                      {/* テキスト生成 */}
+                      <button
+                        onClick={() => handleCopyText(order)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:opacity-80"
+                        style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                      >
+                        {copiedId === order.id
+                          ? <><RiCheckLine size={13} />コピー済み</>
+                          : <><RiFileCopyLine size={13} />テキスト生成</>
+                        }
+                      </button>
+                      {/* 発注書 */}
                       <a
                         href={`/admin/orders/${order.id}/print`}
                         target="_blank"
@@ -377,18 +435,8 @@ export function OrdersPageClient({
                         style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)', textDecoration: 'none' }}
                       >
                         <RiPrinterFill size={13} />
-                        発注書をみる
+                        発注書
                       </a>
-                      {order.status === 'draft' && (
-                        <button
-                          onClick={() => handleDelete(order.id)}
-                          className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
-                          style={{ color: 'var(--text-muted)' }}
-                          title="削除"
-                        >
-                          <RiDeleteBinFill size={14} />
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
