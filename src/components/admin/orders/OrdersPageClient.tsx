@@ -57,22 +57,24 @@ type Order = {
 
 // ─── モーダル型 ──────────────────────────────────────────────
 type PartialModal = {
-  orderId:      string
-  itemId:       string
-  productName:  string
-  unit:         string
-  remaining:    number
-  isPriceChange: boolean
-  newPrice:     number | null
+  orderId:         string
+  itemId:          string
+  productName:     string
+  unit:            string
+  remaining:       number
+  currentReceived: number
+  isPriceChange:   boolean
+  newPrice:        number | null
 }
 
 type PriceModal = {
-  orderId:       string
-  itemId:        string
-  productName:   string
-  unit:          string
-  remaining:     number
-  originalPrice: number | null
+  orderId:         string
+  itemId:          string
+  productName:     string
+  unit:            string
+  remaining:       number
+  currentReceived: number
+  originalPrice:   number | null
 }
 
 // ─── ステータス表示 ───────────────────────────────────────────
@@ -92,8 +94,8 @@ const STATUS_STYLE: Record<OrderStatus, React.CSSProperties> = {
 // ─── 検品ボタン定義 ───────────────────────────────────────────
 const INSP_BTNS = [
   { key: 'arrived',       label: '到着',     active: { background: '#22c55e', color: '#fff', border: '1px solid #16a34a' } },
-  { key: 'partial',       label: '一部到着', active: { background: '#f59e0b', color: '#fff', border: '1px solid #d97706' } },
-  { key: 'missing',       label: '欠品',     active: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' } },
+  { key: 'partial',       label: '一部到着', active: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' } },
+  { key: 'missing',       label: '終売',     active: { background: '#6b7280', color: '#fff', border: '1px solid #4b5563' } },
   { key: 'price_changed', label: '価格改定', active: { background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed' } },
 ] as const
 
@@ -176,11 +178,12 @@ export function OrdersPageClient({
   function openPartial(order: Order, item: OrderItem, isPriceChange = false, newPrice: number | null = null) {
     setInputQty('')
     setPartialModal({
-      orderId: order.id,
-      itemId:  item.id,
-      productName: item.product_name,
-      unit:    item.product_unit,
-      remaining: item.quantity - item.received_quantity,
+      orderId:         order.id,
+      itemId:          item.id,
+      productName:     item.product_name,
+      unit:            item.product_unit,
+      remaining:       item.quantity - item.received_quantity,
+      currentReceived: item.received_quantity,
       isPriceChange,
       newPrice,
     })
@@ -191,11 +194,10 @@ export function OrdersPageClient({
     if (!partialModal) return
     const qty = Number(inputQty)
     if (!qty || qty <= 0 || qty > partialModal.remaining) return
-    const newReceived = /* will compute */ partialModal.remaining - qty  // remaining after
-    const _ = newReceived  // unused
+    const newReceived = partialModal.currentReceived + qty
     patchItem(partialModal.orderId, partialModal.itemId, {
       inspection_status: 'partial',
-      received_quantity: /* prev + qty; use server truth */ 0,  // server will revalidate
+      received_quantity: newReceived,
     })
     const snap = { ...partialModal }
     setPartialModal(null)
@@ -209,12 +211,13 @@ export function OrdersPageClient({
     setInputPrice(item.unit_price != null ? String(item.unit_price) : '')
     setInputQty('')
     setPriceModal({
-      orderId:       order.id,
-      itemId:        item.id,
-      productName:   item.product_name,
-      unit:          item.product_unit,
-      remaining:     item.quantity - item.received_quantity,
-      originalPrice: item.unit_price,
+      orderId:         order.id,
+      itemId:          item.id,
+      productName:     item.product_name,
+      unit:            item.product_unit,
+      remaining:       item.quantity - item.received_quantity,
+      currentReceived: item.received_quantity,
+      originalPrice:   item.unit_price,
     })
   }
 
@@ -241,13 +244,14 @@ export function OrdersPageClient({
     // 一部到着モーダルを価格改定フラグ付きで開く
     setInputQty('')
     setPartialModal({
-      orderId:      snap.orderId,
-      itemId:       snap.itemId,
-      productName:  snap.productName,
-      unit:         snap.unit,
-      remaining:    snap.remaining,
-      isPriceChange: true,
-      newPrice:     price,
+      orderId:         snap.orderId,
+      itemId:          snap.itemId,
+      productName:     snap.productName,
+      unit:            snap.unit,
+      remaining:       snap.remaining,
+      currentReceived: snap.currentReceived,
+      isPriceChange:   true,
+      newPrice:        price,
     })
   }
 
@@ -408,12 +412,16 @@ export function OrdersPageClient({
                               </p>
                               <p className="text-[10px] mt-0.5 font-medium" style={{ color: '#22c55e' }}>完了</p>
                             </>
-                          ) : hasPartial ? (
+                          ) : item.inspection_status === 'missing' ? (
                             <>
-                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: '#f59e0b' }}>
+                              <p className="text-lg font-bold leading-none" style={{ color: '#6b7280' }}>終売</p>
+                            </>
+                          ) : item.inspection_status === 'partial' ? (
+                            <>
+                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: '#ef4444' }}>
                                 {remaining}
                               </p>
-                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>残 {item.product_unit}</p>
+                              <p className="text-[10px] mt-0.5" style={{ color: '#ef4444' }}>残 {item.product_unit}</p>
                             </>
                           ) : (
                             <>
