@@ -9,7 +9,6 @@ import {
   RiFileListLine,
 } from 'react-icons/ri'
 import { OrderCart } from './OrderCart'
-import { IssuerEditModal } from './IssuerEditModal'
 import { SupplierManager } from '@/components/admin/suppliers/SupplierManager'
 import { updateOrderStatus, receiveOrder, deleteOrder } from '@/app/admin/(protected)/orders/actions'
 import type { CartItem } from './OrderCart'
@@ -114,9 +113,6 @@ export function OrdersPageClient({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* 発注者情報ボタン（発注タブのみ） */}
-          {tab === 'order' && <IssuerEditModal profile={issuerProfile} />}
-
           {/* タブ */}
           <div
             className="flex rounded-xl overflow-hidden"
