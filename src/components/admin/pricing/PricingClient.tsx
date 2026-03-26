@@ -93,10 +93,10 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
     <>
     <div className="space-y-4 pb-24">
       {/* ツールバー */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col gap-2">
         {/* 検索 */}
         <div
-          className="flex items-center gap-2 px-3 h-11 rounded-xl flex-1 min-w-48"
+          className="flex items-center gap-2 px-3 h-11 rounded-xl"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
           <RiSearchLine size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
@@ -113,7 +113,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setCat(null)}
-            className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
+            className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
             style={{
               background: catFilter === null ? 'var(--bg-dark)' : 'var(--bg-surface)',
               color:      catFilter === null ? 'var(--text-invert)' : 'var(--text-secondary)',
@@ -126,7 +126,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
             <button
               key={c}
               onClick={() => setCat(c === catFilter ? null : c)}
-              className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
+              className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
               style={{
                 background: catFilter === c ? 'var(--bg-dark)' : 'var(--bg-surface)',
                 color:      catFilter === c ? 'var(--text-invert)' : 'var(--text-secondary)',
@@ -137,7 +137,6 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
             </button>
           ))}
         </div>
-
       </div>
 
       {/* フローティング更新ボタン（左下固定） */}
