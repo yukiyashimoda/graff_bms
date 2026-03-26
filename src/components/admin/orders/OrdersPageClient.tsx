@@ -116,9 +116,10 @@ export function OrdersPageClient({
   suppliers:     Supplier[]
   issuerProfile: IssuerProfile
 }) {
-  const [tab,      setTab]      = useState<Tab>('order')
-  const [orders,   setOrders]   = useState<Order[]>(initialOrders)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [tab,       setTab]      = useState<Tab>('order')
+  const [orders,    setOrders]   = useState<Order[]>(initialOrders)
+  const [copiedId,  setCopiedId] = useState<string | null>(null)
+  const [textModal, setTextModal] = useState<{ text: string } | null>(null)
   const [, startTransition] = useTransition()
 
   function generateOrderText(order: Order): string {
@@ -146,9 +147,14 @@ export function OrdersPageClient({
     ].join('\n')
   }
 
-  function handleCopyText(order: Order) {
-    navigator.clipboard.writeText(generateOrderText(order))
-    setCopiedId(order.id)
+  function handleOpenTextModal(order: Order) {
+    setTextModal({ text: generateOrderText(order) })
+  }
+
+  function handleCopyFromModal() {
+    if (!textModal) return
+    navigator.clipboard.writeText(textModal.text)
+    setCopiedId('modal')
     setTimeout(() => setCopiedId(null), 2000)
   }
 
@@ -418,14 +424,12 @@ export function OrdersPageClient({
                     <div className="flex items-center gap-2 ml-2">
                       {/* テキスト生成 */}
                       <button
-                        onClick={() => handleCopyText(order)}
+                        onClick={() => handleOpenTextModal(order)}
                         className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:opacity-80"
                         style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                       >
-                        {copiedId === order.id
-                          ? <><RiCheckLine size={13} />コピー済み</>
-                          : <><RiFileCopyLine size={13} />テキスト生成</>
-                        }
+                        <RiFileCopyLine size={13} />
+                        テキスト生成
                       </button>
                       {/* 発注書 */}
                       <a
@@ -541,6 +545,62 @@ export function OrdersPageClient({
 
       {/* ─── 発注先管理 ─── */}
       {tab === 'suppliers' && <SupplierManager suppliers={suppliers} />}
+
+      {/* ══════════════════════════════════
+          テキスト生成モーダル
+      ══════════════════════════════════ */}
+      {textModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div
+            className="w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>テキスト生成</p>
+              <button
+                onClick={() => { setTextModal(null); setCopiedId(null) }}
+                className="p-1.5 rounded-lg hover:bg-[var(--bg-base)]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <RiCloseFill size={16} />
+              </button>
+            </div>
+
+            <textarea
+              value={textModal.text}
+              onChange={e => setTextModal({ text: e.target.value })}
+              rows={12}
+              className="w-full px-3 py-3 rounded-xl text-sm outline-none resize-none"
+              style={{
+                background: 'var(--bg-base)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+                lineHeight: '1.7',
+              }}
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCopyFromModal}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              >
+                {copiedId === 'modal'
+                  ? <><RiCheckLine size={14} />コピー済み</>
+                  : <><RiFileCopyLine size={14} />コピーする</>
+                }
+              </button>
+              <button
+                onClick={() => { setTextModal(null); setCopiedId(null) }}
+                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════
           一部到着モーダル
