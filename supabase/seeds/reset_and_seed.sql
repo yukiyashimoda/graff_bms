@@ -1,5 +1,5 @@
 -- =============================================================================
--- graff.bms リセット＆モックデータ投入
+-- graff.bms 新モックデータ
 -- Supabase SQL Editor にそのまま貼り付けて実行
 -- =============================================================================
 
@@ -7,8 +7,11 @@
 -- 既存データを全削除
 -- ---------------------------------------------------------------------------
 TRUNCATE TABLE
+  glasses,
   purchase_order_items,
   purchase_orders,
+  inventory_sessions,
+  inventory_session_items,
   inventory_batches,
   stock_transactions,
   price_alerts,
@@ -16,175 +19,614 @@ TRUNCATE TABLE
   cocktail_ingredients,
   cocktails,
   stock,
+  spirits_details,
+  wine_details,
+  soft_drink_details,
   products,
   suppliers
 RESTART IDENTITY CASCADE;
 
 -- ---------------------------------------------------------------------------
--- 業者 5 社（固定 UUID）
+-- 業者
 -- ---------------------------------------------------------------------------
-INSERT INTO suppliers (id, name, name_en, contact_name, phone, address) VALUES
-  ('aaaaaaaa-0001-0000-0000-000000000000', '山田酒販株式会社',      'Yamada Liquor',      '山田 太郎', '011-111-1111', '北海道札幌市中央区北1条西2丁目'),
-  ('aaaaaaaa-0002-0000-0000-000000000000', '北海道ビバレッジ',       'Hokkaido Beverage',  '佐藤 花子', '011-222-2222', '北海道札幌市北区北24条西5丁目'),
-  ('aaaaaaaa-0003-0000-0000-000000000000', 'プレミアムスピリッツ',   'Premium Spirits',    '鈴木 一郎', '03-3333-3333', '東京都港区六本木3丁目'),
-  ('aaaaaaaa-0004-0000-0000-000000000000', 'グローバルワインズ',     'Global Wines',       '田中 美咲', '06-4444-4444', '大阪府大阪市北区梅田1丁目'),
-  ('aaaaaaaa-0005-0000-0000-000000000000', 'フードサプライ株式会社', 'Food Supply Co.',    '高橋 健二', '011-555-5555', '北海道札幌市豊平区平岸2条');
+INSERT INTO suppliers (id, name, name_en, contact_name, phone) VALUES
+  ('aa000001-0000-0000-0000-000000000000', '山田酒販株式会社',    'Yamada Liquor',      '山田 太郎', '011-111-1111'),
+  ('aa000002-0000-0000-0000-000000000000', 'グローバルワインズ',   'Global Wines',       '田中 美咲', '06-2222-2222'),
+  ('aa000003-0000-0000-0000-000000000000', 'プレミアムスピリッツ', 'Premium Spirits',    '鈴木 一郎', '03-3333-3333'),
+  ('aa000004-0000-0000-0000-000000000000', '北海道ビバレッジ',     'Hokkaido Beverage',  '佐藤 花子', '011-444-4444');
 
--- ---------------------------------------------------------------------------
--- 商品（カテゴリ ID はサブクエリで取得）
--- ---------------------------------------------------------------------------
+-- ===========================================================================
+-- 商品 ── シャンパン 5種
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('cc000001-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='シャンパン'), 'aa000002-0000-0000-0000-000000000000',
+   'モエ・エ・シャンドン ブリュット アンペリアル', 'Moët & Chandon Brut Impérial', '本', 5500, 18000, '{"シャンパン","フランス","ブリュット"}', true),
+  ('cc000002-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='シャンパン'), 'aa000002-0000-0000-0000-000000000000',
+   'ヴーヴ・クリコ イエローラベル', 'Veuve Clicquot Yellow Label', '本', 7000, 22000, '{"シャンパン","フランス","ブリュット"}', true),
+  ('cc000003-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='シャンパン'), 'aa000002-0000-0000-0000-000000000000',
+   'ニコラ・フィアット リザーヴ エクスクルーシブ', 'Nicolas Feuillatte Réserve Exclusive', '本', 3200, 9800, '{"シャンパン","フランス","ブリュット"}', true),
+  ('cc000004-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='シャンパン'), 'aa000002-0000-0000-0000-000000000000',
+   'ポル・ロジェ ブリュット レゼルヴ', 'Pol Roger Brut Réserve', '本', 6500, 20000, '{"シャンパン","フランス","ブリュット"}', true),
+  ('cc000005-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='シャンパン'), 'aa000002-0000-0000-0000-000000000000',
+   'テタンジェ ブリュット レゼルヴ', 'Taittinger Brut Réserve', '本', 5000, 16000, '{"シャンパン","フランス","ブリュット"}', true);
 
--- スピリッツ 30 品
-INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, is_available) VALUES
-  ('bbbbbbbb-0001-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'グレンリベット 12年',       'The Glenlivet 12',          '本', 4200, 900,  true),
-  ('bbbbbbbb-0002-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'グレンフィディック 12年',   'Glenfiddich 12',            '本', 4500, 950,  true),
-  ('bbbbbbbb-0003-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'マッカラン 12年',           'Macallan 12',               '本', 6800, 1200, true),
-  ('bbbbbbbb-0004-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'ラガヴーリン 16年',         'Lagavulin 16',              '本', 8500, 1500, true),
-  ('bbbbbbbb-0005-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'ボウモア 12年',             'Bowmore 12',                '本', 4800, 1000, true),
-  ('bbbbbbbb-0006-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'サントリー山崎',            'Yamazaki',                  '本', 9800, 1800, true),
-  ('bbbbbbbb-0007-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'サントリー白州',            'Hakushu',                   '本', 8500, 1600, true),
-  ('bbbbbbbb-0008-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ニッカ フロム ザ バレル',   'Nikka From The Barrel',     '本', 3200, 800,  true),
-  ('bbbbbbbb-0009-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ジャックダニエル',          'Jack Daniel''s',            '本', 2800, 700,  true),
-  ('bbbbbbbb-0010-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ジムビーム',               'Jim Beam',                  '本', 2200, 650,  true),
-  ('bbbbbbbb-0011-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'タンカレー',               'Tanqueray',                 '本', 2600, 700,  true),
-  ('bbbbbbbb-0012-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'ヘンドリックス',           'Hendrick''s',               '本', 3800, 900,  true),
-  ('bbbbbbbb-0013-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'ボンベイサファイア',        'Bombay Sapphire',           '本', 2800, 750,  true),
-  ('bbbbbbbb-0014-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0002-0000-0000-000000000000', '北の誉ジン',               'Kita Gin',                  '本', 3200, 800,  true),
-  ('bbbbbbbb-0015-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ストリチナヤ',             'Stolichnaya',               '本', 2200, 650,  true),
-  ('bbbbbbbb-0016-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'グレイグース',             'Grey Goose',                '本', 4200, 950,  true),
-  ('bbbbbbbb-0017-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'アブソルート',             'Absolut',                   '本', 2000, 600,  true),
-  ('bbbbbbbb-0018-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ベルヴェデール',           'Belvedere',                 '本', 3800, 900,  true),
-  ('bbbbbbbb-0019-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'バカルディ スペリオール',   'Bacardi Superior',          '本', 2000, 600,  true),
-  ('bbbbbbbb-0020-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ハバナクラブ 7年',          'Havana Club 7',             '本', 3200, 800,  true),
-  ('bbbbbbbb-0021-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0003-0000-0000-000000000000', 'マイヤーズラム',           'Myers''s Rum',              '本', 2400, 650,  true),
-  ('bbbbbbbb-0022-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ホセクエルボ シルバー',     'Jose Cuervo Silver',        '本', 2400, 700,  true),
-  ('bbbbbbbb-0023-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0004-0000-0000-000000000000', 'パトロン シルバー',         'Patron Silver',             '本', 5500, 1100, true),
-  ('bbbbbbbb-0024-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0004-0000-0000-000000000000', '1800 レポサド',            '1800 Reposado',             '本', 3600, 850,  true),
-  ('bbbbbbbb-0025-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ヘネシー V.S',             'Hennessy V.S',              '本', 4500, 1000, true),
-  ('bbbbbbbb-0026-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0004-0000-0000-000000000000', 'レミーマルタン VSOP',      'Remy Martin VSOP',          '本', 5800, 1200, true),
-  ('bbbbbbbb-0027-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'カンパリ',                 'Campari',                   '本', 2200, 650,  true),
-  ('bbbbbbbb-0028-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'コアントロー',             'Cointreau',                 '本', 2800, 750,  true),
-  ('bbbbbbbb-0029-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ベイリーズ',               'Baileys',                   '本', 2600, 700,  true),
-  ('bbbbbbbb-0030-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Spirits'), 'aaaaaaaa-0001-0000-0000-000000000000', 'カルーア',                 'Kahlua',                    '本', 2200, 650,  true);
+INSERT INTO wine_details (product_id, wine_type, country, region, region_en, grape_varieties, vintage, body, description) VALUES
+  ('cc000001-0000-0000-0000-000000000000', 'champagne', 'フランス', 'シャンパーニュ', 'Champagne', '{"ピノ・ノワール","ピノ・ムニエ","シャルドネ"}', NULL, 'light', '世界で最も有名なシャンパーニュハウスのひとつ。爽やかな果実香と優雅な泡立ちが特徴。'),
+  ('cc000002-0000-0000-0000-000000000000', 'champagne', 'フランス', 'シャンパーニュ', 'Champagne', '{"ピノ・ノワール","ピノ・ムニエ","シャルドネ"}', NULL, 'medium', '鮮やかなイエローラベルで知られる。リッチでフルボディなスタイル。'),
+  ('cc000003-0000-0000-0000-000000000000', 'champagne', 'フランス', 'シャンパーニュ', 'Champagne', '{"シャルドネ","ピノ・ノワール","ピノ・ムニエ"}', NULL, 'light', '繊細な泡と爽やかなフルーツフレーバーのバランスが良いエントリーシャンパーニュ。'),
+  ('cc000004-0000-0000-0000-000000000000', 'champagne', 'フランス', 'シャンパーニュ', 'Champagne', '{"ピノ・ノワール","シャルドネ","ピノ・ムニエ"}', NULL, 'medium', 'チャーチルやナポレオンに愛された老舗。エレガントで骨格のある味わい。'),
+  ('cc000005-0000-0000-0000-000000000000', 'champagne', 'フランス', 'シャンパーニュ', 'Champagne', '{"シャルドネ","ピノ・ノワール","ピノ・ムニエ"}', NULL, 'light', 'シャルドネ比率が高く、上品で繊細なスタイル。フローラルなアロマが特徴。');
 
--- ワイン 20 品
-INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, is_available) VALUES
-  ('bbbbbbbb-0031-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'カッシェロ デル ディアブロ カベルネ', 'Casillero Cabernet',  '本', 1800, 5500,  true),
-  ('bbbbbbbb-0032-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'モンテス アルファ メルロ',  'Montes Alpha Merlot',       '本', 2400, 7000,  true),
-  ('bbbbbbbb-0033-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'バロン フィリップ',         'Baron Philippe',            '本', 3200, 9500,  true),
-  ('bbbbbbbb-0034-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'コノスル ピノノワール',     'Cono Sur Pinot Noir',       '本', 1500, 4800,  true),
-  ('bbbbbbbb-0035-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ダリオ プリンチッチ',       'Dario Princic Rosso',       '本', 4200, 12000, true),
-  ('bbbbbbbb-0036-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0001-0000-0000-000000000000', 'サントネージュ 紫波',       'Sainte Neige Shiwa',        '本', 2800, 8000,  true),
-  ('bbbbbbbb-0037-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0001-0000-0000-000000000000', 'マンズワイン 甲州',         'Manns Wine Koshu',          '本', 1800, 5500,  true),
-  ('bbbbbbbb-0038-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'クラウディベイ ソーヴィニヨン', 'Cloudy Bay SB',          '本', 2800, 8500,  true),
-  ('bbbbbbbb-0039-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'サンタリタ シャルドネ',     'Santa Rita Chardonnay',     '本', 1400, 4500,  true),
-  ('bbbbbbbb-0040-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ドメーヌ ラファージュ',     'Domaine Lafage Blanc',      '本', 2200, 6500,  true),
-  ('bbbbbbbb-0041-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ウルフブラス リースリング', 'Wolf Blass Riesling',       '本', 1600, 5000,  true),
-  ('bbbbbbbb-0042-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0001-0000-0000-000000000000', 'グレイス ケルナー',         'Grace Kerner',              '本', 2400, 7000,  true),
-  ('bbbbbbbb-0043-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ミラヴァル ロゼ',           'Miraval Rose',              '本', 3200, 9800,  true),
-  ('bbbbbbbb-0044-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ドメーヌ オット ロゼ',      'Domaine Ott Rose',          '本', 4800, 14000, true),
-  ('bbbbbbbb-0045-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0002-0000-0000-000000000000', '岩の原ワイン ロゼ',         'Iwanohara Rose',            '本', 2000, 6000,  true),
-  ('bbbbbbbb-0046-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ハウスワイン 赤',           'House Red',                 'デキャンタ', 900, 2800, true),
-  ('bbbbbbbb-0047-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ハウスワイン 白',           'House White',               'デキャンタ', 900, 2800, true),
-  ('bbbbbbbb-0048-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0001-0000-0000-000000000000', 'ハウスワイン ロゼ',         'House Rose',                'デキャンタ', 900, 2800, true),
-  ('bbbbbbbb-0049-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'オーガニック 赤',           'Organic Red',               '本', 2200, 6800,  true),
-  ('bbbbbbbb-0050-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Wine'), 'aaaaaaaa-0004-0000-0000-000000000000', 'オーガニック 白',           'Organic White',             '本', 2000, 6200,  true);
+-- ===========================================================================
+-- 商品 ── スパークリングワイン 5種
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('cc000006-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'フレシネ コルドン ネグロ カヴァ', 'Freixenet Cordon Negro Cava', '本', 1200, 4500, '{"スパークリング","スペイン","カヴァ"}', true),
+  ('cc000007-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'サンテロ プロセッコ ファッション ヴィクティム', 'Santero Prosecco Fashion Victim', '本', 1500, 5500, '{"スパークリング","イタリア","プロセッコ"}', true),
+  ('cc000008-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'ロエデラー エステート ブリュット', 'Roederer Estate Brut', '本', 2800, 9000, '{"スパークリング","アメリカ","カリフォルニア"}', true),
+  ('cc000009-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'グラハム ベック ブリュット', 'Graham Beck Brut', '本', 2200, 7500, '{"スパークリング","南アフリカ","ブリュット"}', true),
+  ('cc000010-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'ルイ・ブジェ クレマン・ド・ブルゴーニュ', 'Louis Bouillot Crémant de Bourgogne', '本', 2500, 8000, '{"スパークリング","フランス","クレマン"}', true);
 
--- シャンパン 8 品
-INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, is_available) VALUES
-  ('bbbbbbbb-0051-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0004-0000-0000-000000000000', 'モエ アンペリアル',         'Moet Imperial',             '本', 6800, 18000, true),
-  ('bbbbbbbb-0052-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ヴーヴ クリコ イエロー',    'Veuve Clicquot Yellow',     '本', 7500, 20000, true),
-  ('bbbbbbbb-0053-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ニコラ フィアット',         'Nicolas Feuillatte',        '本', 5200, 14000, true),
-  ('bbbbbbbb-0054-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0004-0000-0000-000000000000', 'ポメリー ブリュット',       'Pommery Brut',              '本', 5800, 16000, true),
-  ('bbbbbbbb-0055-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0004-0000-0000-000000000000', 'プロセッコ サンタ マルゲリータ', 'Santa Margherita Prosecco','本', 2800, 8000, true),
-  ('bbbbbbbb-0056-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0001-0000-0000-000000000000', 'スパークリング ハーフ',     'Sparkling Half',            'ハーフ', 1800, 5500, true),
-  ('bbbbbbbb-0057-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0002-0000-0000-000000000000', 'カバ フレシネット',         'Freixenet Cava',            '本', 1600, 5000, true),
-  ('bbbbbbbb-0058-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Champagne'), 'aaaaaaaa-0002-0000-0000-000000000000', 'アスティ スプマンテ',       'Asti Spumante',             '本', 1800, 5500, true);
+INSERT INTO wine_details (product_id, wine_type, country, region, region_en, grape_varieties, vintage, body, description) VALUES
+  ('cc000006-0000-0000-0000-000000000000', 'sparkling', 'スペイン', 'カタルーニャ', 'Catalonia', '{"マカベオ","パレリャーダ","チャレッロ"}', NULL, 'light', 'スペインを代表するカヴァ。ドライでクリスピー、コスパに優れた一本。'),
+  ('cc000007-0000-0000-0000-000000000000', 'sparkling', 'イタリア', 'ヴェネト', 'Veneto', '{"グレラ"}', NULL, 'light', 'カラフルなボトルが目を引くプロセッコ。フレッシュな洋梨とリンゴのアロマ。'),
+  ('cc000008-0000-0000-0000-000000000000', 'sparkling', 'アメリカ', 'アンダーソン・ヴァレー', 'Anderson Valley', '{"ピノ・ノワール","シャルドネ","ピノ・ムニエ"}', NULL, 'medium', 'ルイ・ロデレールのカリフォルニア部門。シャンパーニュ製法のクラシカルな味わい。'),
+  ('cc000009-0000-0000-0000-000000000000', 'sparkling', '南アフリカ', 'ケープタウン近郊', 'Robertson', '{"シャルドネ","ピノ・ノワール"}', NULL, 'light', '南アフリカ産のハイコスパMCCスパークリング。フレッシュでエレガントな泡。'),
+  ('cc000010-0000-0000-0000-000000000000', 'sparkling', 'フランス', 'ブルゴーニュ', 'Burgundy', '{"ピノ・ノワール","シャルドネ","アリゴテ"}', NULL, 'medium', 'シャンパーニュ製法のクレマン。ブルゴーニュのテロワールを感じるエレガントな一本。');
 
--- ビール 12 品
-INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, is_available) VALUES
-  ('bbbbbbbb-0059-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'サッポロ クラシック',       'Sapporo Classic',           '缶', 220, 600, true),
-  ('bbbbbbbb-0060-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'サッポロ 黒ラベル',         'Sapporo Black Label',       '缶', 200, 550, true),
-  ('bbbbbbbb-0061-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'エビス プレミアム',         'Yebisu Premium',            '缶', 240, 650, true),
-  ('bbbbbbbb-0062-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'キリン一番搾り',            'Kirin Ichiban',             '缶', 200, 550, true),
-  ('bbbbbbbb-0063-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'アサヒスーパードライ',      'Asahi Super Dry',           '缶', 200, 550, true),
-  ('bbbbbbbb-0064-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ハイネケン',               'Heineken',                  '缶', 280, 700, true),
-  ('bbbbbbbb-0065-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'コロナ エキストラ',         'Corona Extra',              '本', 300, 750, true),
-  ('bbbbbbbb-0066-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ギネス ドラフト',           'Guinness Draught',          '缶', 380, 900, true),
-  ('bbbbbbbb-0067-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'よなよなエール',            'Yona Yona Ale',             '缶', 350, 850, true),
-  ('bbbbbbbb-0068-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'インドの青鬼 IPA',          'Oni IPA',                   '缶', 380, 900, true),
-  ('bbbbbbbb-0069-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'コエドビール 瑠璃',         'Coedo Ruri',                '本', 320, 800, true),
-  ('bbbbbbbb-0070-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Beer'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ノンアルコールビール',      'Non-Alcoholic Beer',        '缶', 160, 450, true);
+-- ===========================================================================
+-- 商品 ── 白ワイン 5種
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('cc000011-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'アンリ・ブルジョワ サンセール ブラン', 'Henri Bourgeois Sancerre Blanc', '本', 3800, 12000, '{"白ワイン","フランス","ロワール","ソーヴィニヨン・ブラン"}', true),
+  ('cc000012-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'ドメーヌ・ラロッシュ シャブリ サン・マルタン', 'Domaine Laroche Chablis Saint Martin', '本', 2800, 9000, '{"白ワイン","フランス","ブルゴーニュ","シャルドネ"}', true),
+  ('cc000013-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'マルケス・デ・リスカル ルエダ ヴェルデホ', 'Marqués de Riscal Rueda Verdejo', '本', 1400, 4800, '{"白ワイン","スペイン","ヴェルデホ"}', true),
+  ('cc000014-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'クロ・デュ・ヴァル シャルドネ ナパ', 'Clos du Val Chardonnay Napa', '本', 3200, 10000, '{"白ワイン","アメリカ","カリフォルニア","シャルドネ"}', true),
+  ('cc000015-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'クナップスタイン リースリング クレア・ヴァレー', 'Knappstein Riesling Clare Valley', '本', 1800, 6000, '{"白ワイン","オーストラリア","リースリング"}', true);
 
--- ソフトドリンク 15 品
-INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, is_available) VALUES
-  ('bbbbbbbb-0071-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'コーラ',                'Cola',             '本', 80,  350, true),
-  ('bbbbbbbb-0072-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ジンジャーエール',      'Ginger Ale',       '本', 80,  350, true),
-  ('bbbbbbbb-0073-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'トニックウォーター',    'Tonic Water',      '本', 90,  350, true),
-  ('bbbbbbbb-0074-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ソーダ水',              'Soda Water',       '本', 60,  300, true),
-  ('bbbbbbbb-0075-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'オレンジジュース',      'Orange Juice',     '本', 120, 400, true),
-  ('bbbbbbbb-0076-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'グレープフルーツジュース','Grapefruit Juice','本', 120, 400, true),
-  ('bbbbbbbb-0077-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'クランベリージュース',  'Cranberry Juice',  '本', 130, 400, true),
-  ('bbbbbbbb-0078-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'パイナップルジュース',  'Pineapple Juice',  '本', 120, 400, true),
-  ('bbbbbbbb-0079-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ライムジュース',        'Lime Juice',       '本', 150, 400, true),
-  ('bbbbbbbb-0080-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'レモンサワーの素',      'Lemon Sour Base',  '本', 480, 700, true),
-  ('bbbbbbbb-0081-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'グレナデンシロップ',    'Grenadine Syrup',  '本', 350, 0,   true),
-  ('bbbbbbbb-0082-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'シュガーシロップ',      'Sugar Syrup',      '本', 200, 0,   true),
-  ('bbbbbbbb-0083-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ミネラルウォーター',    'Mineral Water',    '本', 60,  300, true),
-  ('bbbbbbbb-0084-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'ウーロン茶',            'Oolong Tea',       '本', 80,  350, true),
-  ('bbbbbbbb-0085-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Soft Drink'), 'aaaaaaaa-0002-0000-0000-000000000000', 'コーヒー豆',            'Coffee Beans',     'kg', 2800, 0,  true);
+INSERT INTO wine_details (product_id, wine_type, country, region, region_en, grape_varieties, vintage, body, description) VALUES
+  ('cc000011-0000-0000-0000-000000000000', 'white', 'フランス', 'ロワール/サンセール', 'Loire / Sancerre', '{"ソーヴィニヨン・ブラン"}', 2022, 'light', 'ロワールを代表する白。ミネラル感とグレープフルーツの爽やかなアロマが心地よい。'),
+  ('cc000012-0000-0000-0000-000000000000', 'white', 'フランス', 'ブルゴーニュ/シャブリ', 'Burgundy / Chablis', '{"シャルドネ"}', 2022, 'light', '貝殻のような石灰質ミネラルと引き締まった酸が特徴のシャブリ。魚料理と抜群の相性。'),
+  ('cc000013-0000-0000-0000-000000000000', 'white', 'スペイン', 'カスティーリャ/ルエダ', 'Castilla / Rueda', '{"ヴェルデホ"}', 2023, 'light', 'スペインの爽やかな白。ハーブのニュアンスとライムのフレッシュさが特徴のコスパ高い一本。'),
+  ('cc000014-0000-0000-0000-000000000000', 'white', 'アメリカ', 'ナパ・ヴァレー', 'Napa Valley', '{"シャルドネ"}', 2021, 'medium', 'ナパ産シャルドネ。程よいオーク樽のバニラ香とトロピカルフルーツのリッチな味わい。'),
+  ('cc000015-0000-0000-0000-000000000000', 'white', 'オーストラリア', 'クレア・ヴァレー', 'Clare Valley', '{"リースリング"}', 2022, 'light', '南オーストラリアのリースリング。柑橘と石油のニュアンス、長い余韻が魅力。');
 
--- フード 10 品
-INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, is_available) VALUES
-  ('bbbbbbbb-0086-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'ミックスナッツ',        'Mixed Nuts',       '袋', 280, 600,  true),
-  ('bbbbbbbb-0087-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'オリーブ',              'Olives',           '瓶', 450, 800,  true),
-  ('bbbbbbbb-0088-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'チーズ盛り合わせ',      'Cheese Plate',     '皿', 650, 1400, true),
-  ('bbbbbbbb-0089-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'サーモンマリネ',        'Salmon Marine',    '皿', 700, 1600, true),
-  ('bbbbbbbb-0090-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'ブルスケッタ',          'Bruschetta',       '皿', 480, 1100, true),
-  ('bbbbbbbb-0091-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'ポテトフライ',          'French Fries',     '皿', 280, 700,  true),
-  ('bbbbbbbb-0092-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'ガーリックトースト',    'Garlic Toast',     '皿', 200, 500,  true),
-  ('bbbbbbbb-0093-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'クラッカー',            'Crackers',         '袋', 180, 400,  true),
-  ('bbbbbbbb-0094-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'チョコレート',          'Chocolate',        '箱', 350, 700,  true),
-  ('bbbbbbbb-0095-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Food'), 'aaaaaaaa-0005-0000-0000-000000000000', 'ドライフルーツ',        'Dried Fruits',     '袋', 280, 600,  true);
+-- ===========================================================================
+-- 商品 ── 赤ワイン 5種
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('cc000016-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'カッシェロ・デル・ディアブロ カベルネ・ソーヴィニヨン', 'Casillero del Diablo Cabernet Sauvignon', '本', 1100, 4000, '{"赤ワイン","チリ","カベルネ・ソーヴィニヨン"}', true),
+  ('cc000017-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'コノスル ピノ・ノワール レゼルヴァ', 'Cono Sur Pinot Noir Reserva', '本', 1300, 4800, '{"赤ワイン","チリ","ピノ・ノワール"}', true),
+  ('cc000018-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'マルケス・デ・カセレス リオハ ティント', 'Marqués de Cáceres Rioja Tinto', '本', 1500, 5500, '{"赤ワイン","スペイン","テンプラニーリョ"}', true),
+  ('cc000019-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'ムートン・カデ ルージュ ボルドー', 'Mouton Cadet Rouge Bordeaux', '本', 1600, 6000, '{"赤ワイン","フランス","ボルドー"}', true),
+  ('cc000020-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'ヤルンバ サミュエルズ コレクション シラーズ', 'Yalumba Samuel''s Collection Shiraz', '本', 1400, 5200, '{"赤ワイン","オーストラリア","シラーズ"}', true);
 
--- その他 5 品
-INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, is_available) VALUES
-  ('bbbbbbbb-0096-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Others'), 'aaaaaaaa-0005-0000-0000-000000000000', 'ガーニッシュ用レモン',  'Lemon',            '個', 30,  0, true),
-  ('bbbbbbbb-0097-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Others'), 'aaaaaaaa-0005-0000-0000-000000000000', 'ガーニッシュ用ライム',  'Lime',             '個', 35,  0, true),
-  ('bbbbbbbb-0098-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Others'), 'aaaaaaaa-0005-0000-0000-000000000000', 'カクテル用チェリー',    'Cocktail Cherry',  '瓶', 600, 0, true),
-  ('bbbbbbbb-0099-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Others'), 'aaaaaaaa-0002-0000-0000-000000000000', 'マドラー',              'Stirrer',          '本', 5,   0, true),
-  ('bbbbbbbb-0100-0000-0000-000000000000', (SELECT id FROM categories WHERE name_en='Others'), 'aaaaaaaa-0002-0000-0000-000000000000', 'コースター',            'Coaster',          '枚', 8,   0, true);
+INSERT INTO wine_details (product_id, wine_type, country, region, region_en, grape_varieties, vintage, body, description) VALUES
+  ('cc000016-0000-0000-0000-000000000000', 'red', 'チリ', 'マイポ・ヴァレー', 'Maipo Valley', '{"カベルネ・ソーヴィニヨン"}', 2022, 'full', '悪魔の蔵を意味するチリの銘酒。ダークベリーと心地よいスパイスのフルボディ。'),
+  ('cc000017-0000-0000-0000-000000000000', 'red', 'チリ', 'カサブランカ・ヴァレー', 'Casablanca Valley', '{"ピノ・ノワール"}', 2022, 'light', '自転車のラベルで有名。チェリーとイチゴの赤いフルーツが弾けるエレガントな赤。'),
+  ('cc000018-0000-0000-0000-000000000000', 'red', 'スペイン', 'リオハ', 'La Rioja', '{"テンプラニーリョ"}', 2021, 'medium', 'スペインのリオハを代表する生産者。プラムと樽のバランスが良いクラシカルなスタイル。'),
+  ('cc000019-0000-0000-0000-000000000000', 'red', 'フランス', 'ボルドー', 'Bordeaux', '{"メルロ","カベルネ・ソーヴィニヨン","カベルネ・フラン"}', 2021, 'medium', 'ロスチャイルド家が手がけるボルドーのエントリーキュヴェ。芳醇でバランス良く飲みやすい。'),
+  ('cc000020-0000-0000-0000-000000000000', 'red', 'オーストラリア', 'バロッサ・ヴァレー', 'Barossa Valley', '{"シラーズ"}', 2022, 'full', 'オーストラリアを代表するシラーズ。ブルーベリーとブラックペッパーのリッチな味わい。');
 
--- ---------------------------------------------------------------------------
--- 在庫（全商品分）
--- ---------------------------------------------------------------------------
+-- ===========================================================================
+-- 商品 ── ロゼワイン 5種
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('cc000021-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'ミラヴァル プロヴァンス ロゼ', 'Miraval Provence Rosé', '本', 2800, 9500, '{"ロゼ","フランス","プロヴァンス"}', true),
+  ('cc000022-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'シャトー・ダキエリア タヴェル ロゼ', 'Château d''Aqueria Tavel Rosé', '本', 2200, 7800, '{"ロゼ","フランス","ローヌ"}', true),
+  ('cc000023-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'アンティノリ サンタ・クリスティーナ ロザート', 'Antinori Santa Cristina Rosato', '本', 1400, 5000, '{"ロゼ","イタリア","トスカーナ"}', true),
+  ('cc000024-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'コノスル ロゼ オルガニコ', 'Cono Sur Rosé Orgánico', '本', 1100, 3800, '{"ロゼ","チリ","オーガニック"}', true),
+  ('cc000025-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ワイン'), 'aa000002-0000-0000-0000-000000000000',
+   'ベタニー エステート ロゼ', 'Bethany Estate Rosé', '本', 1600, 5500, '{"ロゼ","オーストラリア","バロッサ"}', true);
+
+INSERT INTO wine_details (product_id, wine_type, country, region, region_en, grape_varieties, vintage, body, description) VALUES
+  ('cc000021-0000-0000-0000-000000000000', 'rosé', 'フランス', 'プロヴァンス', 'Provence', '{"グルナッシュ","サンソー","シラー"}', 2023, 'light', 'ブラッド・ピット＆アンジェリーナ・ジョリーが所有するドメーヌ。淡い桃色と繊細なフルーツ。'),
+  ('cc000022-0000-0000-0000-000000000000', 'rosé', 'フランス', 'ローヌ/タヴェル', 'Rhône / Tavel', '{"グルナッシュ","サンソー","クレレット"}', 2022, 'medium', 'ロゼの銘醸地タヴェルを代表する生産者。ピーチとスパイスの複雑なフルボディロゼ。'),
+  ('cc000023-0000-0000-0000-000000000000', 'rosé', 'イタリア', 'トスカーナ', 'Tuscany', '{"サンジョヴェーゼ"}', 2023, 'light', 'アンティノリの定番ロザート。イチゴとサクランボの爽やかなアロマ。イタリアンに合う。'),
+  ('cc000024-0000-0000-0000-000000000000', 'rosé', 'チリ', 'セントラル・ヴァレー', 'Central Valley', '{"シラーズ","ピノ・ノワール"}', 2023, 'light', '有機栽培ブドウを使用したエコなロゼ。フレッシュなストロベリーとウォーターメロン。'),
+  ('cc000025-0000-0000-0000-000000000000', 'rosé', 'オーストラリア', 'バロッサ・ヴァレー', 'Barossa Valley', '{"グルナッシュ"}', 2023, 'light', 'バロッサのグルナッシュから造るプロヴァンス風ロゼ。サーモンピンクで繊細な果実味。');
+
+-- ===========================================================================
+-- 商品 ── ショットスピリッツ 20種
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('5b000001-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ジャック ダニエル ブラック', 'Jack Daniel''s Old No.7', '本', 2800, 1200, '{"ウイスキー","アメリカ","テネシー"}', true),
+  ('5b000002-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'グレンリベット 12年', 'The Glenlivet 12 Year Old', '本', 4200, 1800, '{"ウイスキー","スコットランド","シングルモルト"}', true),
+  ('5b000003-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'マッカラン 12年 ダブルカスク', 'The Macallan 12 Double Cask', '本', 7000, 2800, '{"ウイスキー","スコットランド","シングルモルト","シェリー"}', true),
+  ('5b000004-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'バランタイン ファイネスト', 'Ballantine''s Finest', '本', 1800, 900, '{"ウイスキー","スコットランド","ブレンデッド"}', true),
+  ('5b000005-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ジムビーム ホワイト', 'Jim Beam White Label', '本', 1600, 800, '{"ウイスキー","アメリカ","バーボン"}', true),
+  ('5b000006-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ジェームソン アイリッシュ ウイスキー', 'Jameson Irish Whiskey', '本', 2200, 1000, '{"ウイスキー","アイルランド","ブレンデッド"}', true),
+  ('5b000007-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ニッカ フロム ザ バレル', 'Nikka From the Barrel', '本', 3500, 1500, '{"ウイスキー","日本","ブレンデッド"}', true),
+  ('5b000008-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   '響 ジャパニーズ ハーモニー', 'Hibiki Japanese Harmony', '本', 10000, 4000, '{"ウイスキー","日本","ブレンデッド","プレミアム"}', true),
+  ('5b000009-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'デュワーズ ホワイトラベル', 'Dewar''s White Label', '本', 1900, 900, '{"ウイスキー","スコットランド","ブレンデッド"}', true),
+  ('5b000010-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'タンカレー No.10', 'Tanqueray No.10', '本', 3800, 1600, '{"ジン","イギリス","ロンドンドライ"}', true),
+  ('5b000011-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ボンベイ サファイア', 'Bombay Sapphire', '本', 2400, 1200, '{"ジン","イギリス","ロンドンドライ"}', true),
+  ('5b000012-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ヘンドリックス ジン', 'Hendrick''s Gin', '本', 4500, 1800, '{"ジン","スコットランド","フレーバード","キュウリ"}', true),
+  ('5b000013-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'アブソルート ブルー ウォッカ', 'Absolut Blue Vodka', '本', 2000, 900, '{"ウォッカ","スウェーデン"}', true),
+  ('5b000014-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'グレイグース ウォッカ', 'Grey Goose Vodka', '本', 4000, 1800, '{"ウォッカ","フランス","プレミアム"}', true),
+  ('5b000015-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'バカルディ スペリオール ホワイトラム', 'Bacardí Superior White Rum', '本', 1800, 900, '{"ラム","キューバ","ホワイト"}', true),
+  ('5b000016-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ハバナクラブ 3年', 'Havana Club 3 Year Old', '本', 1900, 950, '{"ラム","キューバ","ゴールド"}', true),
+  ('5b000017-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'パトロン シルバー テキーラ', 'Patrón Silver Tequila', '本', 5000, 2200, '{"テキーラ","メキシコ","シルバー","プレミアム"}', true),
+  ('5b000018-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'クエルボ エスペシャル シルバー', 'José Cuervo Especial Silver', '本', 2200, 1000, '{"テキーラ","メキシコ","シルバー"}', true),
+  ('5b000019-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ヘネシー V.S コニャック', 'Hennessy V.S Cognac', '本', 4000, 1800, '{"ブランデー","フランス","コニャック"}', true),
+  ('5b000020-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'レミー マルタン VSOP', 'Rémy Martin VSOP', '本', 5500, 2400, '{"ブランデー","フランス","コニャック","VSOP"}', true);
+
+INSERT INTO spirits_details (product_id, type, volume_ml, shot_price, age_statement) VALUES
+  ('5b000001-0000-0000-0000-000000000000', 'whisky',   700, 1200, 'NAS'),
+  ('5b000002-0000-0000-0000-000000000000', 'whisky',   700, 1800, '12 Years'),
+  ('5b000003-0000-0000-0000-000000000000', 'whisky',   700, 2800, '12 Years'),
+  ('5b000004-0000-0000-0000-000000000000', 'whisky',   700,  900, 'NAS'),
+  ('5b000005-0000-0000-0000-000000000000', 'whisky',   700,  800, '4 Years'),
+  ('5b000006-0000-0000-0000-000000000000', 'whisky',   700, 1000, 'NAS'),
+  ('5b000007-0000-0000-0000-000000000000', 'whisky',   500, 1500, 'NAS'),
+  ('5b000008-0000-0000-0000-000000000000', 'whisky',   700, 4000, 'NAS'),
+  ('5b000009-0000-0000-0000-000000000000', 'whisky',   700,  900, 'NAS'),
+  ('5b000010-0000-0000-0000-000000000000', 'gin',      700, 1600, NULL),
+  ('5b000011-0000-0000-0000-000000000000', 'gin',      700, 1200, NULL),
+  ('5b000012-0000-0000-0000-000000000000', 'gin',      700, 1800, NULL),
+  ('5b000013-0000-0000-0000-000000000000', 'vodka',    700,  900, NULL),
+  ('5b000014-0000-0000-0000-000000000000', 'vodka',    700, 1800, NULL),
+  ('5b000015-0000-0000-0000-000000000000', 'rum',      700,  900, NULL),
+  ('5b000016-0000-0000-0000-000000000000', 'rum',      700,  950, '3 Years'),
+  ('5b000017-0000-0000-0000-000000000000', 'tequila',  700, 2200, NULL),
+  ('5b000018-0000-0000-0000-000000000000', 'tequila',  700, 1000, NULL),
+  ('5b000019-0000-0000-0000-000000000000', 'brandy',   700, 1800, 'V.S'),
+  ('5b000020-0000-0000-0000-000000000000', 'brandy',   700, 2400, 'V.S.O.P');
+
+-- ===========================================================================
+-- 商品 ── カクテル材料（リキュール 20種）
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('1c000001-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'コアントロー トリプル セック', 'Cointreau Triple Sec', '本', 2800, NULL, '{"リキュール","オレンジ","カクテル材料"}', true),
+  ('1c000002-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'カルーア コーヒーリキュール', 'Kahlúa Coffee Liqueur', '本', 2200, NULL, '{"リキュール","コーヒー","カクテル材料"}', true),
+  ('1c000003-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ベイリーズ オリジナル アイリッシュクリーム', 'Bailey''s Original Irish Cream', '本', 2500, NULL, '{"リキュール","クリーム","カクテル材料"}', true),
+  ('1c000004-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ミドリ メロンリキュール', 'Midori Melon Liqueur', '本', 2000, NULL, '{"リキュール","メロン","カクテル材料"}', true),
+  ('1c000005-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ディサローノ アマレット オリジナーレ', 'Disaronno Amaretto Originale', '本', 2800, NULL, '{"リキュール","アーモンド","カクテル材料"}', true),
+  ('1c000006-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ルジェ クレーム・ド・カシス', 'Lejay Crème de Cassis', '本', 2200, NULL, '{"リキュール","カシス","カクテル材料"}', true),
+  ('1c000007-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'アペロール アペリティフ', 'Aperol Aperitif', '本', 2200, NULL, '{"リキュール","オレンジ","ビター","カクテル材料"}', true),
+  ('1c000008-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'カンパリ ビター リキュール', 'Campari Bitter Liqueur', '本', 2400, NULL, '{"リキュール","ビター","カクテル材料"}', true),
+  ('1c000009-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ブルーキュラソー', 'Blue Curaçao', '本', 1800, NULL, '{"リキュール","オレンジ","ブルー","カクテル材料"}', true),
+  ('1c000010-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'パッソア パッションフルーツ リキュール', 'Passoã Passion Fruit Liqueur', '本', 2200, NULL, '{"リキュール","パッションフルーツ","カクテル材料"}', true),
+  ('1c000011-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'マリブ ホワイトラム ココナッツ', 'Malibu Coconut Rum', '本', 1800, NULL, '{"リキュール","ラム","ココナッツ","カクテル材料"}', true),
+  ('1c000012-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'グランマルニエ コルドン ルージュ', 'Grand Marnier Cordon Rouge', '本', 3500, NULL, '{"リキュール","オレンジ","コニャック","カクテル材料"}', true),
+  ('1c000013-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'シャルトリューズ ジョーヌ（イエロー）', 'Chartreuse Jaune Yellow', '本', 4500, NULL, '{"リキュール","ハーブ","フランス","カクテル材料"}', true),
+  ('1c000014-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ドランブイ スコッチハニーリキュール', 'Drambuie Scotch Honey Liqueur', '本', 3200, NULL, '{"リキュール","ハチミツ","スコッチ","カクテル材料"}', true),
+  ('1c000015-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'サンブーカ アニス リキュール', 'Sambuca Anise Liqueur', '本', 2500, NULL, '{"リキュール","アニス","イタリア","カクテル材料"}', true),
+  ('1c000016-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ピーチシュナップス', 'Peach Schnapps', '本', 1800, NULL, '{"リキュール","ピーチ","カクテル材料"}', true),
+  ('1c000017-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'スイートベルモット', 'Sweet Vermouth', '本', 1800, NULL, '{"ベルモット","スイート","カクテル材料"}', true),
+  ('1c000018-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'ドライベルモット', 'Dry Vermouth', '本', 1600, NULL, '{"ベルモット","ドライ","カクテル材料"}', true),
+  ('1c000019-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'クレーム・ド・ペシェ（ピーチブランデー）', 'Crème de Pêche', '本', 2200, NULL, '{"リキュール","ピーチ","ブランデー","カクテル材料"}', true),
+  ('1c000020-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='スピリッツ'), 'aa000003-0000-0000-0000-000000000000',
+   'アンゴスチュラ アロマティック ビターズ', 'Angostura Aromatic Bitters', '本', 1500, NULL, '{"ビターズ","カクテル材料"}', true);
+
+INSERT INTO spirits_details (product_id, type, volume_ml, shot_price) VALUES
+  ('1c000001-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000002-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000003-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000004-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000005-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000006-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000007-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000008-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000009-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000010-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000011-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000012-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000013-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000014-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000015-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000016-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000017-0000-0000-0000-000000000000', 'liqueur', 750, NULL),
+  ('1c000018-0000-0000-0000-000000000000', 'liqueur', 750, NULL),
+  ('1c000019-0000-0000-0000-000000000000', 'liqueur', 700, NULL),
+  ('1c000020-0000-0000-0000-000000000000', 'liqueur', 200, NULL);
+
+-- ===========================================================================
+-- 商品 ── カクテル材料（ジュース・ミキサー・シロップ・その他 30種）
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  -- ジュース類
+  ('da000001-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'オレンジジュース（100%）', 'Orange Juice 100%', '本', 400, NULL, '{"ジュース","カクテル材料"}', true),
+  ('da000002-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'クランベリージュース', 'Cranberry Juice', '本', 380, NULL, '{"ジュース","カクテル材料"}', true),
+  ('da000003-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'グレープフルーツジュース（100%）', 'Grapefruit Juice 100%', '本', 400, NULL, '{"ジュース","カクテル材料"}', true),
+  ('da000004-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'パイナップルジュース', 'Pineapple Juice', '本', 350, NULL, '{"ジュース","カクテル材料"}', true),
+  ('da000005-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'レモン果汁（業務用）', 'Lemon Juice', '本', 500, NULL, '{"ジュース","カクテル材料"}', true),
+  ('da000006-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'ライム果汁（業務用）', 'Lime Juice', '本', 500, NULL, '{"ジュース","カクテル材料"}', true),
+  ('da000007-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'マンゴージュース', 'Mango Juice', '本', 380, NULL, '{"ジュース","カクテル材料"}', true),
+  ('da000008-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'ピーチネクター', 'Peach Nectar', '本', 320, NULL, '{"ジュース","カクテル材料"}', true),
+  -- ソーダ・ミキサー
+  ('da000009-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'ソーダウォーター（ウィルキンソン）', 'Soda Water', '本', 80, NULL, '{"ミキサー","カクテル材料"}', true),
+  ('da000010-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'トニックウォーター（フィーバーツリー）', 'Tonic Water Fever-Tree', '本', 180, NULL, '{"ミキサー","カクテル材料"}', true),
+  ('da000011-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'ジンジャーエール（カナダドライ）', 'Ginger Ale Canada Dry', '本', 100, NULL, '{"ミキサー","カクテル材料"}', true),
+  ('da000012-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'コーラ（コカ・コーラ）', 'Coca-Cola', '本', 100, NULL, '{"ミキサー","カクテル材料"}', true),
+  ('da000013-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'ジンジャービア（フィーバーツリー）', 'Ginger Beer Fever-Tree', '本', 200, NULL, '{"ミキサー","カクテル材料"}', true),
+  ('da000014-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'ココナッツミルク', 'Coconut Milk', '本', 250, NULL, '{"ミキサー","カクテル材料"}', true),
+  ('da000015-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'トマトジュース', 'Tomato Juice', '本', 280, NULL, '{"ジュース","カクテル材料"}', true),
+  -- シロップ類
+  ('da000016-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'グレナデンシロップ', 'Grenadine Syrup', '本', 600, NULL, '{"シロップ","カクテル材料"}', true),
+  ('da000017-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'シュガーシロップ（ガムシロップ）', 'Simple Syrup', '本', 400, NULL, '{"シロップ","カクテル材料"}', true),
+  ('da000018-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'アガベシロップ', 'Agave Syrup', '本', 800, NULL, '{"シロップ","カクテル材料"}', true),
+  ('da000019-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'ハニーシロップ', 'Honey Syrup', '本', 600, NULL, '{"シロップ","カクテル材料"}', true),
+  ('da000020-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ソフトドリンク'), 'aa000004-0000-0000-0000-000000000000',
+   'オルジェ アーモンドシロップ（モナン）', 'Orgeat Almond Syrup Monin', '本', 900, NULL, '{"シロップ","カクテル材料"}', true);
+
+-- ソフトドリンク詳細
+INSERT INTO soft_drink_details (product_id, volume_ml, is_mixer) VALUES
+  ('da000001-0000-0000-0000-000000000000', 1000, false),
+  ('da000002-0000-0000-0000-000000000000', 1000, false),
+  ('da000003-0000-0000-0000-000000000000', 1000, false),
+  ('da000004-0000-0000-0000-000000000000', 1000, false),
+  ('da000005-0000-0000-0000-000000000000',  500, false),
+  ('da000006-0000-0000-0000-000000000000',  500, false),
+  ('da000007-0000-0000-0000-000000000000', 1000, false),
+  ('da000008-0000-0000-0000-000000000000',  500, false),
+  ('da000009-0000-0000-0000-000000000000',  500, true),
+  ('da000010-0000-0000-0000-000000000000',  200, true),
+  ('da000011-0000-0000-0000-000000000000',  500, true),
+  ('da000012-0000-0000-0000-000000000000',  500, true),
+  ('da000013-0000-0000-0000-000000000000',  200, true),
+  ('da000014-0000-0000-0000-000000000000',  400, false),
+  ('da000015-0000-0000-0000-000000000000',  750, false),
+  ('da000016-0000-0000-0000-000000000000',  700, true),
+  ('da000017-0000-0000-0000-000000000000',  700, true),
+  ('da000018-0000-0000-0000-000000000000',  500, true),
+  ('da000019-0000-0000-0000-000000000000',  500, true),
+  ('da000020-0000-0000-0000-000000000000',  700, true);
+
+-- ===========================================================================
+-- 商品 ── カクテル材料（フルーツ・その他 10種）
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('0e000001-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'ライム', 'Lime', '個', 50, NULL, '{"フルーツ","カクテル材料"}', true),
+  ('0e000002-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'レモン', 'Lemon', '個', 60, NULL, '{"フルーツ","カクテル材料"}', true),
+  ('0e000003-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'オレンジ', 'Orange', '個', 80, NULL, '{"フルーツ","カクテル材料"}', true),
+  ('0e000004-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'マラスキーノチェリー', 'Maraschino Cherry', '個', 30, NULL, '{"フルーツ","カクテル材料"}', true),
+  ('0e000005-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'フレッシュミント', 'Fresh Mint', 'g', 5, NULL, '{"ハーブ","カクテル材料"}', true),
+  ('0e000006-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'グリーンオリーブ', 'Green Olive', '個', 20, NULL, '{"カクテル材料"}', true),
+  ('0e000007-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   '卵白', 'Egg White', '個', 30, NULL, '{"カクテル材料"}', true),
+  ('0e000008-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'コーシャーソルト（縁塩用）', 'Kosher Salt', 'g', 2, NULL, '{"カクテル材料"}', true),
+  ('0e000009-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'エスプレッソ（1ショット分）', 'Espresso Shot', '個', 80, NULL, '{"コーヒー","カクテル材料"}', true),
+  ('0e000010-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='その他'), 'aa000004-0000-0000-0000-000000000000',
+   'ライトクリーム（生クリーム）', 'Light Cream', '本', 400, NULL, '{"乳製品","カクテル材料"}', true);
+
+INSERT INTO soft_drink_details (product_id, volume_ml, is_mixer) VALUES
+  ('0e000010-0000-0000-0000-000000000000', 200, false);
+
+-- ===========================================================================
+-- 商品 ── ビール 10種
+-- ===========================================================================
+INSERT INTO products (id, category_id, supplier_id, name, name_en, unit, cost_price, selling_price, tags, is_available) VALUES
+  ('be000001-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'サッポロ 黒ラベル', 'Sapporo Black Label', '本', 220, 700, '{"ビール","国産","ラガー"}', true),
+  ('be000002-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'エビス プレミアム', 'Yebisu Premium', '本', 260, 800, '{"ビール","国産","プレミアム"}', true),
+  ('be000003-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'キリン 一番搾り', 'Kirin Ichiban', '本', 220, 700, '{"ビール","国産","ラガー"}', true),
+  ('be000004-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'アサヒ スーパードライ', 'Asahi Super Dry', '本', 220, 700, '{"ビール","国産","ドライ"}', true),
+  ('be000005-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'ハイネケン', 'Heineken', '本', 280, 900, '{"ビール","オランダ","輸入"}', true),
+  ('be000006-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'ヒューガルデン ホワイト', 'Hoegaarden White', '本', 350, 1000, '{"ビール","ベルギー","白ビール","輸入"}', true),
+  ('be000007-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'コロナ エキストラ', 'Corona Extra', '本', 260, 900, '{"ビール","メキシコ","輸入"}', true),
+  ('be000008-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'ギネス ドラフト缶', 'Guinness Draught', '本', 380, 1100, '{"ビール","アイルランド","スタウト","輸入"}', true),
+  ('be000009-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'よなよなエール', 'Yona Yona Ale', '本', 320, 950, '{"ビール","国産","クラフト","エール"}', true),
+  ('be000010-0000-0000-0000-000000000000', (SELECT id FROM categories WHERE name='ビール'), 'aa000001-0000-0000-0000-000000000000',
+   'インドの青鬼 IPA', 'Yoho India Blue Ogre IPA', '本', 380, 1100, '{"ビール","国産","クラフト","IPA"}', true);
+
+-- ===========================================================================
+-- 在庫 ── 全商品 stock = 0
+-- ===========================================================================
 INSERT INTO stock (product_id, quantity, min_quantity)
-SELECT
-  p.id,
-  CASE c.name_en
-    WHEN 'Spirits'    THEN floor(random() * 8  + 2)
-    WHEN 'Wine'       THEN floor(random() * 12 + 3)
-    WHEN 'Champagne'  THEN floor(random() * 6  + 1)
-    WHEN 'Beer'       THEN floor(random() * 24 + 6)
-    WHEN 'Soft Drink' THEN floor(random() * 20 + 5)
-    WHEN 'Food'       THEN floor(random() * 10 + 2)
-    ELSE              floor(random() * 15 + 2)
-  END,
-  CASE c.name_en
-    WHEN 'Spirits'    THEN 3
-    WHEN 'Wine'       THEN 4
-    WHEN 'Champagne'  THEN 2
-    WHEN 'Beer'       THEN 12
-    WHEN 'Soft Drink' THEN 6
-    WHEN 'Food'       THEN 3
-    ELSE 2
-  END
-FROM products p
-JOIN categories c ON c.id = p.category_id;
+SELECT id, 0, 0 FROM products;
 
--- ---------------------------------------------------------------------------
--- 確認
--- ---------------------------------------------------------------------------
-SELECT c.name AS カテゴリ, COUNT(p.id) AS 商品数
-FROM products p JOIN categories c ON c.id = p.category_id
-GROUP BY c.name, c.sort_order ORDER BY c.sort_order;
+-- ===========================================================================
+-- カクテル 20種
+-- ===========================================================================
+INSERT INTO cocktails (id, name, name_en, description, selling_price, tags, is_available, sort_order, recipe_steps) VALUES
+  -- 1
+  ('c0000001-0000-0000-0000-000000000000', 'カシスオレンジ', 'Cassis Orange',
+   '甘酸っぱいカシスとオレンジジュースの定番カクテル。フルーティで飲みやすい。',
+   900, '{"甘口","フルーティ","女性向け"}', true, 1,
+   ARRAY['グラスに氷を入れる', 'カシスを注ぐ（30ml）', 'オレンジジュースで満たす', 'ステアして完成']),
+  -- 2
+  ('c0000002-0000-0000-0000-000000000000', 'カルーアミルク', 'Kahlúa Milk',
+   'コーヒーリキュールとミルクのまろやかな甘さ。デザート感覚で楽しめる一杯。',
+   900, '{"甘口","コーヒー","クリーミー"}', true, 2,
+   ARRAY['グラスに氷を入れる', 'カルーアを注ぐ（45ml）', 'ミルクで満たす', '軽くステアして完成']),
+  -- 3
+  ('c0000003-0000-0000-0000-000000000000', 'モスコミュール', 'Moscow Mule',
+   'ウォッカとジンジャービアのシャープな辛さ。ライムの酸味がキリッと引き締める。',
+   1100, '{"辛口","スパイシー","スッキリ"}', true, 3,
+   ARRAY['カッパーマグまたはグラスに氷を入れる', 'ウォッカを注ぐ（45ml）', 'ライム果汁を加える（15ml）', 'ジンジャービアで満たす', 'ライムを飾って完成']),
+  -- 4
+  ('c0000004-0000-0000-0000-000000000000', 'コスモポリタン', 'Cosmopolitan',
+   'セックス・アンド・ザ・シティで有名に。クランベリーとライムの美しいピンク色のカクテル。',
+   1200, '{"甘酸っぱ","フルーティ","ピンク"}', true, 4,
+   ARRAY['シェイカーに氷を入れる', 'ウォッカ（45ml）、コアントロー（15ml）、クランベリージュース（30ml）、ライム果汁（15ml）を加える', 'シェイクする', '冷やしたカクテルグラスに注ぐ', 'レモンの皮を飾って完成']),
+  -- 5
+  ('c0000005-0000-0000-0000-000000000000', 'マルガリータ', 'Margarita',
+   'テキーラをベースにした世界で最も有名なカクテルのひとつ。スノースタイルで提供。',
+   1200, '{"定番","スパイシー","スノー"}', true, 5,
+   ARRAY['グラスの縁をライムで濡らし塩でスノースタイルにする', 'シェイカーに氷を入れる', 'テキーラ（45ml）、コアントロー（15ml）、ライム果汁（20ml）を加える', 'シェイクして氷入りのグラスに注ぐ', 'ライムを飾って完成']),
+  -- 6
+  ('c0000006-0000-0000-0000-000000000000', 'ブルーラグーン', 'Blue Lagoon',
+   '鮮やかなブルーが目を引くトロピカルカクテル。甘くフルーティで飲みやすい。',
+   1000, '{"甘口","ブルー","トロピカル"}', true, 6,
+   ARRAY['グラスに氷を入れる', 'ウォッカ（30ml）を注ぐ', 'ブルーキュラソー（15ml）を注ぐ', 'レモン果汁（10ml）を加える', 'ソーダウォーターで満たしてステアする']),
+  -- 7
+  ('c0000007-0000-0000-0000-000000000000', 'セックス・オン・ザ・ビーチ', 'Sex on the Beach',
+   'ウォッカにピーチシュナップスとフルーツジュースを合わせたポップなカクテル。',
+   1100, '{"甘口","トロピカル","フルーティ"}', true, 7,
+   ARRAY['グラスに氷を入れる', 'ウォッカ（45ml）を注ぐ', 'ピーチシュナップス（20ml）を加える', 'オレンジジュース（60ml）、クランベリージュース（30ml）を加える', 'ステアしてオレンジを飾る']),
+  -- 8
+  ('c0000008-0000-0000-0000-000000000000', 'ダイキリ', 'Daiquiri',
+   'キューバ発祥のラムベースの古典的なカクテル。シンプルで洗練された味わい。',
+   1100, '{"定番","スッキリ","シンプル"}', true, 8,
+   ARRAY['シェイカーに氷を入れる', 'ラム（45ml）、ライム果汁（20ml）、シュガーシロップ（10ml）を加える', 'よくシェイクする', '冷やしたカクテルグラスに注ぐ', 'ライムを飾って完成']),
+  -- 9
+  ('c0000009-0000-0000-0000-000000000000', 'モヒート', 'Mojito',
+   'キューバの国民的カクテル。ミントの清涼感とライムの爽やかさが夏にぴったり。',
+   1100, '{"爽やか","ミント","スッキリ"}', true, 9,
+   ARRAY['グラスにミント（8〜10枚）とライム果汁（20ml）、シュガーシロップ（10ml）を入れる', 'マドラーで軽く押してミントの香りを出す', '氷を入れる', 'ラム（45ml）を注ぐ', 'ソーダウォーターで満たして軽くステアする', 'ミントを飾って完成']),
+  -- 10
+  ('c0000010-0000-0000-0000-000000000000', 'ピニャコラーダ', 'Piña Colada',
+   'ラムとパイナップル、ココナッツのトロピカルなカクテル。南国を感じる甘さ。',
+   1200, '{"甘口","トロピカル","ラム"}', true, 10,
+   ARRAY['ブレンダーに氷（1カップ）を入れる', 'ラム（45ml）、マリブ（30ml）、パイナップルジュース（90ml）、ココナッツミルク（30ml）を加える', 'なめらかになるまでブレンドする', 'グラスに注ぐ', 'パイナップルとチェリーを飾って完成']),
+  -- 11
+  ('c0000011-0000-0000-0000-000000000000', 'ネグローニ', 'Negroni',
+   'ジン・カンパリ・ベルモットのイタリア生まれのクラシック。程よい苦みと複雑な香り。',
+   1300, '{"苦口","クラシック","食前酒"}', true, 11,
+   ARRAY['ミキシンググラスに氷を入れる', 'ジン（30ml）、カンパリ（30ml）、スイートベルモット（30ml）を注ぐ', 'よくステアして冷やす', '氷入りのオールドファッションドグラスに注ぐ', 'オレンジの皮を搾ってチャームとして飾る']),
+  -- 12
+  ('c0000012-0000-0000-0000-000000000000', 'マンハッタン', 'Manhattan',
+   'ウイスキーとスイートベルモットの格調高いカクテル。苦みとまろやかさの絶妙なバランス。',
+   1400, '{"苦口","クラシック","ウイスキー"}', true, 12,
+   ARRAY['ミキシンググラスに氷を入れる', 'バーボン（60ml）、スイートベルモット（30ml）、アンゴスチュラビターズ（2dash）を加える', 'ステアして冷やす', '冷やしたカクテルグラスに注ぐ', 'マラスキーノチェリーを飾って完成']),
+  -- 13
+  ('c0000013-0000-0000-0000-000000000000', 'オールドファッションド', 'Old Fashioned',
+   '最古のカクテルのひとつ。ウイスキーの風味を最大限に引き出すシンプルな構成。',
+   1400, '{"辛口","クラシック","ウイスキー","シンプル"}', true, 13,
+   ARRAY['グラスにシュガーシロップ（10ml）とアンゴスチュラビターズ（2dash）を入れる', '氷を一つ加える', 'バーボン（60ml）を注ぐ', 'ゆっくりステアして氷を溶かしながら冷やす', 'オレンジスライスとチェリーを飾る']),
+  -- 14
+  ('c0000014-0000-0000-0000-000000000000', 'ウイスキーサワー', 'Whiskey Sour',
+   'ウイスキーにレモンの酸味とシロップの甘さ。卵白でシルキーな泡立ちを加えた一杯。',
+   1300, '{"甘酸っぱ","ウイスキー","クラシック"}', true, 14,
+   ARRAY['シェイカーに卵白（1個分）を入れてドライシェイクする（15秒）', '氷を加える', 'バーボン（45ml）、レモン果汁（20ml）、シュガーシロップ（15ml）を加える', 'よくシェイクする', '氷入りのグラスに注ぐ', 'オレンジとチェリーを飾って完成']),
+  -- 15
+  ('c0000015-0000-0000-0000-000000000000', 'アペロールスプリッツ', 'Aperol Spritz',
+   'イタリアで愛される食前酒。アペロールのほろ苦さとソーダの爽快感が心地よい。',
+   1000, '{"食前酒","スパークリング","イタリア"}', true, 15,
+   ARRAY['ワイングラスに氷をたっぷり入れる', 'アペロール（60ml）を注ぐ', 'ソーダウォーター（60ml）を加える', '軽くステアする', 'オレンジスライスを飾って完成']),
+  -- 16
+  ('c0000016-0000-0000-0000-000000000000', 'ミドリサワー', 'Midori Sour',
+   '鮮やかな緑色のメロンリキュールを使ったフルーティな一杯。甘酸っぱく飲みやすい。',
+   1000, '{"甘口","フルーティ","メロン","緑"}', true, 16,
+   ARRAY['シェイカーに氷を入れる', 'ミドリ（45ml）、レモン果汁（20ml）、シュガーシロップ（10ml）を加える', 'シェイクして氷入りのグラスに注ぐ', 'ソーダウォーター（30ml）を加えて軽くステア', 'チェリーを飾って完成']),
+  -- 17
+  ('c0000017-0000-0000-0000-000000000000', 'B-52', 'B-52',
+   'カルーア・ベイリーズ・グランマルニエの3層のシューター。目で楽しむ大人の一杯。',
+   1200, '{"シューター","コーヒー","クリーミー","フロート"}', true, 17,
+   ARRAY['ショットグラスにカルーア（20ml）を注ぐ', 'スプーンの背を使ってベイリーズ（20ml）を静かに重ねる', '同様にグランマルニエ（20ml）を一番上に重ねる', '3層になったら完成。飲む前に火をつけることも（オプション）']),
+  -- 18
+  ('c0000018-0000-0000-0000-000000000000', 'アマレットサワー', 'Amaretto Sour',
+   'アーモンドの甘い香りのアマレットにレモンの酸味。卵白でふわふわの泡を作る。',
+   1100, '{"甘酸っぱ","アーモンド","クリーミー"}', true, 18,
+   ARRAY['シェイカーに卵白（1個分）を入れてドライシェイク', '氷を加える', 'アマレット（45ml）、レモン果汁（20ml）、シュガーシロップ（10ml）を加える', 'よくシェイクする', '氷入りのグラスに注ぐ', 'チェリーとオレンジスライスを飾る']),
+  -- 19
+  ('c0000019-0000-0000-0000-000000000000', 'テキーラサンライズ', 'Tequila Sunrise',
+   'グラデーションが美しいカクテル。オレンジからレッドへのグラデーションが朝日のよう。',
+   1100, '{"甘口","フルーティ","カラフル"}', true, 19,
+   ARRAY['グラスに氷を入れる', 'テキーラ（45ml）を注ぐ', 'オレンジジュースで8分目まで満たす', 'グレナデンシロップ（15ml）をゆっくり沈める（沈めるとグラデーションが出る）', 'オレンジとチェリーを飾って完成']),
+  -- 20
+  ('c0000020-0000-0000-0000-000000000000', 'アイリッシュコーヒー', 'Irish Coffee',
+   'アイリッシュウイスキーとエスプレッソをシロップで甘くし、生クリームを浮かべた温かい一杯。',
+   1200, '{"温かい","コーヒー","ウイスキー","デザート"}', true, 20,
+   ARRAY['グラスを温めておく', 'アイリッシュウイスキー（40ml）とシュガーシロップ（15ml）をグラスに入れる', 'ホットエスプレッソ（60ml）を注いで軽くステアする', 'スプーンの背を使って生クリーム（30ml）をゆっくり浮かべる', 'ミックスせずそのまま提供する']),
+
+  -- ボーナス
+  ('c0000021-0000-0000-0000-000000000000', 'ジントニック', 'Gin & Tonic',
+   'ジンのボタニカルな香りとトニックウォーターの苦味。永遠の定番ロングドリンク。',
+   1000, '{"定番","スッキリ","辛口"}', true, 21,
+   ARRAY['グラスに氷をたっぷり入れる', 'ジン（45ml）を注ぐ', 'よく冷えたトニックウォーターで満たす', '軽くステアする', 'ライムまたはレモンを飾って完成']),
+  ('c0000022-0000-0000-0000-000000000000', 'ウォッカトニック', 'Vodka Tonic',
+   'すっきりとした飲み口のロングドリンク。食事とも相性が良い万能カクテル。',
+   1000, '{"定番","スッキリ","シンプル"}', true, 22,
+   ARRAY['グラスに氷をたっぷり入れる', 'ウォッカ（45ml）を注ぐ', 'よく冷えたトニックウォーターで満たす', '軽くステアする', 'ライムを飾って完成']);
+
+-- ===========================================================================
+-- カクテル材料
+-- ===========================================================================
+INSERT INTO cocktail_ingredients (cocktail_id, product_id, quantity, unit) VALUES
+  -- カシスオレンジ
+  ('c0000001-0000-0000-0000-000000000000', '1c000006-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000001-0000-0000-0000-000000000000', 'da000001-0000-0000-0000-000000000000', 120, 'ml'),
+  -- カルーアミルク
+  ('c0000002-0000-0000-0000-000000000000', '1c000002-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000002-0000-0000-0000-000000000000', '0e000010-0000-0000-0000-000000000000', 90, 'ml'),
+  -- モスコミュール
+  ('c0000003-0000-0000-0000-000000000000', '5b000013-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000003-0000-0000-0000-000000000000', 'da000006-0000-0000-0000-000000000000', 15, 'ml'),
+  ('c0000003-0000-0000-0000-000000000000', 'da000013-0000-0000-0000-000000000000', 100, 'ml'),
+  ('c0000003-0000-0000-0000-000000000000', '0e000001-0000-0000-0000-000000000000', 1, '個'),
+  -- コスモポリタン
+  ('c0000004-0000-0000-0000-000000000000', '5b000013-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000004-0000-0000-0000-000000000000', '1c000001-0000-0000-0000-000000000000', 15, 'ml'),
+  ('c0000004-0000-0000-0000-000000000000', 'da000002-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000004-0000-0000-0000-000000000000', 'da000006-0000-0000-0000-000000000000', 15, 'ml'),
+  -- マルガリータ
+  ('c0000005-0000-0000-0000-000000000000', '5b000017-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000005-0000-0000-0000-000000000000', '1c000001-0000-0000-0000-000000000000', 15, 'ml'),
+  ('c0000005-0000-0000-0000-000000000000', 'da000006-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000005-0000-0000-0000-000000000000', '0e000008-0000-0000-0000-000000000000', 5, 'g'),
+  -- ブルーラグーン
+  ('c0000006-0000-0000-0000-000000000000', '5b000013-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000006-0000-0000-0000-000000000000', '1c000009-0000-0000-0000-000000000000', 15, 'ml'),
+  ('c0000006-0000-0000-0000-000000000000', 'da000005-0000-0000-0000-000000000000', 10, 'ml'),
+  ('c0000006-0000-0000-0000-000000000000', 'da000009-0000-0000-0000-000000000000', 90, 'ml'),
+  -- セックス・オン・ザ・ビーチ
+  ('c0000007-0000-0000-0000-000000000000', '5b000013-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000007-0000-0000-0000-000000000000', '1c000016-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000007-0000-0000-0000-000000000000', 'da000001-0000-0000-0000-000000000000', 60, 'ml'),
+  ('c0000007-0000-0000-0000-000000000000', 'da000002-0000-0000-0000-000000000000', 30, 'ml'),
+  -- ダイキリ
+  ('c0000008-0000-0000-0000-000000000000', '5b000015-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000008-0000-0000-0000-000000000000', 'da000006-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000008-0000-0000-0000-000000000000', 'da000017-0000-0000-0000-000000000000', 10, 'ml'),
+  -- モヒート
+  ('c0000009-0000-0000-0000-000000000000', '5b000015-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000009-0000-0000-0000-000000000000', 'da000006-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000009-0000-0000-0000-000000000000', 'da000017-0000-0000-0000-000000000000', 10, 'ml'),
+  ('c0000009-0000-0000-0000-000000000000', '0e000005-0000-0000-0000-000000000000', 8, 'g'),
+  ('c0000009-0000-0000-0000-000000000000', 'da000009-0000-0000-0000-000000000000', 60, 'ml'),
+  -- ピニャコラーダ
+  ('c0000010-0000-0000-0000-000000000000', '5b000015-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000010-0000-0000-0000-000000000000', '1c000011-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000010-0000-0000-0000-000000000000', 'da000004-0000-0000-0000-000000000000', 90, 'ml'),
+  ('c0000010-0000-0000-0000-000000000000', 'da000014-0000-0000-0000-000000000000', 30, 'ml'),
+  -- ネグローニ
+  ('c0000011-0000-0000-0000-000000000000', '5b000010-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000011-0000-0000-0000-000000000000', '1c000008-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000011-0000-0000-0000-000000000000', '1c000017-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000011-0000-0000-0000-000000000000', '0e000003-0000-0000-0000-000000000000', 1, '個'),
+  -- マンハッタン
+  ('c0000012-0000-0000-0000-000000000000', '5b000001-0000-0000-0000-000000000000', 60, 'ml'),
+  ('c0000012-0000-0000-0000-000000000000', '1c000017-0000-0000-0000-000000000000', 30, 'ml'),
+  ('c0000012-0000-0000-0000-000000000000', '1c000020-0000-0000-0000-000000000000', 2, 'dash'),
+  ('c0000012-0000-0000-0000-000000000000', '0e000004-0000-0000-0000-000000000000', 1, '個'),
+  -- オールドファッションド
+  ('c0000013-0000-0000-0000-000000000000', '5b000005-0000-0000-0000-000000000000', 60, 'ml'),
+  ('c0000013-0000-0000-0000-000000000000', 'da000017-0000-0000-0000-000000000000', 10, 'ml'),
+  ('c0000013-0000-0000-0000-000000000000', '1c000020-0000-0000-0000-000000000000', 2, 'dash'),
+  ('c0000013-0000-0000-0000-000000000000', '0e000003-0000-0000-0000-000000000000', 1, '個'),
+  -- ウイスキーサワー
+  ('c0000014-0000-0000-0000-000000000000', '5b000001-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000014-0000-0000-0000-000000000000', 'da000005-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000014-0000-0000-0000-000000000000', 'da000017-0000-0000-0000-000000000000', 15, 'ml'),
+  ('c0000014-0000-0000-0000-000000000000', '0e000007-0000-0000-0000-000000000000', 1, '個'),
+  -- アペロールスプリッツ
+  ('c0000015-0000-0000-0000-000000000000', '1c000007-0000-0000-0000-000000000000', 60, 'ml'),
+  ('c0000015-0000-0000-0000-000000000000', 'da000009-0000-0000-0000-000000000000', 60, 'ml'),
+  ('c0000015-0000-0000-0000-000000000000', '0e000003-0000-0000-0000-000000000000', 1, '個'),
+  -- ミドリサワー
+  ('c0000016-0000-0000-0000-000000000000', '1c000004-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000016-0000-0000-0000-000000000000', 'da000005-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000016-0000-0000-0000-000000000000', 'da000017-0000-0000-0000-000000000000', 10, 'ml'),
+  ('c0000016-0000-0000-0000-000000000000', 'da000009-0000-0000-0000-000000000000', 30, 'ml'),
+  -- B-52
+  ('c0000017-0000-0000-0000-000000000000', '1c000002-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000017-0000-0000-0000-000000000000', '1c000003-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000017-0000-0000-0000-000000000000', '1c000012-0000-0000-0000-000000000000', 20, 'ml'),
+  -- アマレットサワー
+  ('c0000018-0000-0000-0000-000000000000', '1c000005-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000018-0000-0000-0000-000000000000', 'da000005-0000-0000-0000-000000000000', 20, 'ml'),
+  ('c0000018-0000-0000-0000-000000000000', 'da000017-0000-0000-0000-000000000000', 10, 'ml'),
+  ('c0000018-0000-0000-0000-000000000000', '0e000007-0000-0000-0000-000000000000', 1, '個'),
+  -- テキーラサンライズ
+  ('c0000019-0000-0000-0000-000000000000', '5b000017-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000019-0000-0000-0000-000000000000', 'da000001-0000-0000-0000-000000000000', 90, 'ml'),
+  ('c0000019-0000-0000-0000-000000000000', 'da000016-0000-0000-0000-000000000000', 15, 'ml'),
+  ('c0000019-0000-0000-0000-000000000000', '0e000004-0000-0000-0000-000000000000', 1, '個'),
+  -- アイリッシュコーヒー
+  ('c0000020-0000-0000-0000-000000000000', '5b000006-0000-0000-0000-000000000000', 40, 'ml'),
+  ('c0000020-0000-0000-0000-000000000000', '0e000009-0000-0000-0000-000000000000', 1, '個'),
+  ('c0000020-0000-0000-0000-000000000000', 'da000017-0000-0000-0000-000000000000', 15, 'ml'),
+  ('c0000020-0000-0000-0000-000000000000', '0e000010-0000-0000-0000-000000000000', 30, 'ml'),
+  -- ジントニック
+  ('c0000021-0000-0000-0000-000000000000', '5b000010-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000021-0000-0000-0000-000000000000', 'da000010-0000-0000-0000-000000000000', 150, 'ml'),
+  ('c0000021-0000-0000-0000-000000000000', '0e000001-0000-0000-0000-000000000000', 1, '個'),
+  -- ウォッカトニック
+  ('c0000022-0000-0000-0000-000000000000', '5b000013-0000-0000-0000-000000000000', 45, 'ml'),
+  ('c0000022-0000-0000-0000-000000000000', 'da000010-0000-0000-0000-000000000000', 150, 'ml'),
+  ('c0000022-0000-0000-0000-000000000000', '0e000002-0000-0000-0000-000000000000', 1, '個');
