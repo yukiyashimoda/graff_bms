@@ -167,12 +167,14 @@ export function OrdersPageClient({
                         #{order.id.slice(-8).toUpperCase()}
                       </p>
                     </div>
-                    <span
-                      className="flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium"
-                      style={STATUS_STYLE[order.status]}
-                    >
-                      {STATUS_LABEL[order.status]}
-                    </span>
+                    {order.status !== 'draft' && (
+                      <span
+                        className="flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium"
+                        style={STATUS_STYLE[order.status]}
+                      >
+                        {STATUS_LABEL[order.status]}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -185,15 +187,15 @@ export function OrdersPageClient({
                       </span>
                     )}
 
-                    <div className="flex items-center gap-1 ml-2">
+                    <div className="flex items-center gap-2 ml-2">
                       <a
                         href={`/admin/orders/${order.id}/print`}
                         target="_blank"
-                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
-                        style={{ color: 'var(--text-secondary)' }}
-                        title="発注書を印刷"
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:opacity-80"
+                        style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)', textDecoration: 'none' }}
                       >
-                        <RiPrinterFill size={14} />
+                        <RiPrinterFill size={13} />
+                        発注書をみる
                       </a>
                       {order.status === 'sent' && (
                         <button
