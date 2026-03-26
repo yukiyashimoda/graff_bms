@@ -78,6 +78,7 @@ export default async function OrdersPage() {
       items: (items ?? []).map(i => ({
         id:                i.id,
         quantity:          i.quantity,
+        unit_price:        i.unit_price ?? null,
         product_name:      i.products.name,
         product_unit:      i.products.unit,
         inspection_status: (i.inspection_status ?? null) as 'arrived' | 'partial' | 'missing' | 'price_changed' | null,

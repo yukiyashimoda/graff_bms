@@ -63,6 +63,7 @@ type Order = {
   items: {
     id:                string
     quantity:          number
+    unit_price:        number | null
     product_name:      string
     product_unit:      string
     inspection_status: InspectionStatus
@@ -286,42 +287,49 @@ export function OrdersPageClient({
                 {/* 品目リスト */}
                 <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
                   {order.items.map(item => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-2 px-5 py-4">
-                      {/* 商品名 + 数量 */}
-                      <div className="flex items-baseline gap-3 min-w-0 flex-1">
-                        <p className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                          {item.product_name}
-                        </p>
-                        <p
-                          className="text-2xl font-bold tabular-nums flex-shrink-0"
-                          style={{ color: 'var(--text-primary)', lineHeight: 1 }}
-                        >
+                    <div key={item.id} className="flex items-center gap-4 px-5 py-4">
+                      {/* 左: 本数 */}
+                      <div className="flex-shrink-0 w-14 text-center">
+                        <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>
                           {item.quantity}
-                          <span className="text-sm font-medium ml-1" style={{ color: 'var(--text-muted)' }}>
-                            {item.product_unit}
-                          </span>
+                        </p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          {item.product_unit}
                         </p>
                       </div>
 
-                      {/* 検品ボタン */}
-                      <div className="flex flex-wrap gap-1.5 sm:flex-shrink-0">
-                        {INSPECTION_BUTTONS.map(btn => {
-                          const isActive = item.inspection_status === btn.status
-                          return (
-                            <button
-                              key={btn.status}
-                              onClick={() => handleInspection(order.id, item.id, btn.status)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                              style={
-                                isActive
-                                  ? btn.activeStyle
-                                  : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                              }
-                            >
-                              {btn.label}
-                            </button>
-                          )
-                        })}
+                      {/* 右: 3段 */}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        {/* 1段目: 商品名 */}
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                          {item.product_name}
+                        </p>
+                        {/* 2段目: 単価 */}
+                        <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          {item.unit_price != null
+                            ? `¥${item.unit_price.toLocaleString()} / ${item.product_unit}`
+                            : '単価未設定'}
+                        </p>
+                        {/* 3段目: 検品ボタン */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {INSPECTION_BUTTONS.map(btn => {
+                            const isActive = item.inspection_status === btn.status
+                            return (
+                              <button
+                                key={btn.status}
+                                onClick={() => handleInspection(order.id, item.id, btn.status)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+                                style={
+                                  isActive
+                                    ? btn.activeStyle
+                                    : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                                }
+                              >
+                                {btn.label}
+                              </button>
+                            )
+                          })}
+                        </div>
                       </div>
                     </div>
                   ))}
