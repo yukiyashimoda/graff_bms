@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { StockGrid } from '@/components/admin/stock/StockGrid'
+import { StockPageClient } from '@/components/admin/stock/StockPageClient'
 
 export default async function StockPage() {
   const supabase = await createServiceClient()
@@ -7,9 +7,13 @@ export default async function StockPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = supabase as any
 
+  const since = new Date()
+  since.setMonth(since.getMonth() - 6)
+
   const [
     { data: products, error },
     { data: batchRows },
+    { data: transactions },
   ] = await Promise.all([
     supabase
       .from('products')
@@ -24,11 +28,19 @@ export default async function StockPage() {
       .select('product_id, cost_price, quantity_rem, received_at')
       .gt('quantity_rem', 0)
       .order('received_at', { ascending: true }),
+    supabase
+      .from('stock_transactions')
+      .select(`
+        id, type, quantity, cost_price, notes, created_at,
+        products(name, name_en, unit, categories(name))
+      `)
+      .gte('created_at', since.toISOString())
+      .order('created_at', { ascending: false }),
   ])
 
   if (error) console.error('[StockPage] Supabase error:', error.message)
 
-  // product_id ごとにロットをグループ化
+  // ── 在庫グリッド用
   const batchMap = new Map<string, { cost_price: number; quantity_rem: number; received_at: string }[]>()
   for (const b of (batchRows ?? [])) {
     const list = batchMap.get(b.product_id) ?? []
@@ -61,21 +73,31 @@ export default async function StockPage() {
 
   const lowCount = items.filter(i => i.quantity < i.min_quantity).length
 
-  return (
-    <div className="max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>入出庫管理</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {items.length} 件
-          {lowCount > 0 && (
-            <span className="ml-2 font-semibold" style={{ color: 'var(--text-primary)' }}>
-              — 在庫不足 {lowCount} 件
-            </span>
-          )}
-        </p>
-      </div>
+  // ── 履歴用
+  const txRows = (transactions ?? []).map(t => {
+    const p = t.products as unknown as {
+      name: string; name_en: string; unit: string
+      categories: { name: string } | null
+    } | null
+    return {
+      id:               t.id,
+      type:             t.type as 'in' | 'out' | 'adjustment',
+      quantity:         Number(t.quantity),
+      cost_price:       t.cost_price != null ? Number(t.cost_price) : null,
+      notes:            t.notes,
+      created_at:       t.created_at,
+      product_name:     p?.name    ?? '—',
+      product_name_en:  p?.name_en ?? '',
+      unit:             p?.unit    ?? '',
+      product_category: p?.categories?.name ?? null,
+    }
+  })
 
-      <StockGrid items={items} />
-    </div>
+  return (
+    <StockPageClient
+      items={items}
+      transactions={txRows}
+      lowCount={lowCount}
+    />
   )
 }
