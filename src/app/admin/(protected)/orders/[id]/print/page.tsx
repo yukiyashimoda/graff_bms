@@ -79,10 +79,8 @@ export default async function OrderPrintPage({
         /* スマホ: 794px固定のままスケールダウン */
         @media screen and (max-width: 793px) {
           .a4-outer {
-            width: 100vw;
+            width: 100%;
             overflow: hidden;
-            /* 高さ = 1123px × scale = 1123 × (100vw / 794) ≈ 141.4vw */
-            height: calc(100vw * 1123 / 794);
           }
           .a4-doc {
             margin: 0;
@@ -109,11 +107,16 @@ export default async function OrderPrintPage({
       <script dangerouslySetInnerHTML={{ __html: `
         (function(){
           function setScale(){
-            var vw = window.innerWidth;
-            if(vw < 794){
-              document.documentElement.style.setProperty('--a4-scale', (vw/794).toFixed(4));
+            var outer = document.querySelector('.a4-outer');
+            if(!outer) return;
+            var w = outer.clientWidth;
+            if(w < 794){
+              var scale = w / 794;
+              document.documentElement.style.setProperty('--a4-scale', scale.toFixed(4));
+              outer.style.height = Math.round(1123 * scale) + 'px';
             } else {
               document.documentElement.style.removeProperty('--a4-scale');
+              outer.style.height = '';
             }
           }
           setScale();
