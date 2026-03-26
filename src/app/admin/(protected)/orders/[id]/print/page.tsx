@@ -52,12 +52,12 @@ export default async function OrderPrintPage({
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
       >
         <Link
-          href="/admin/orders/history"
+          href="/admin/orders"
           className="flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-70"
           style={{ color: 'var(--text-secondary)' }}
         >
           <RiArrowLeftLine size={15} />
-          発注履歴に戻る
+          検品画面に戻る
         </Link>
         <PrintButton />
       </div>
