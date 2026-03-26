@@ -160,7 +160,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>該当する商品がありません</p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           {filtered.map(p => {
             const isDirty = prices[p.id] !== (p.selling_price != null ? String(p.selling_price) : '')
             const rate    = calcRate(p.cost_price, prices[p.id])
@@ -168,7 +168,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
             return (
               <div
                 key={p.id}
-                className="rounded-2xl p-4 flex flex-col gap-3"
+                className="rounded-2xl p-4 flex flex-col gap-3 overflow-hidden"
                 style={{
                   background: isDirty ? 'var(--bg-surface)' : 'var(--bg-surface)',
                   border: `1px solid ${isDirty ? 'var(--bg-dark)' : 'var(--border)'}`,
@@ -206,12 +206,12 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
 
                 {/* 販売価格入力 */}
                 <div
-                  className="flex items-center gap-2 px-3 py-3 rounded-xl"
+                  className="flex items-center gap-2 px-3 py-3 rounded-xl min-w-0"
                   style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
                 >
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>販売価格</span>
-                  <div className="flex items-center gap-1 ml-auto">
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>¥</span>
+                  <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>販売価格</span>
+                  <div className="flex items-center gap-1 ml-auto min-w-0">
+                    <span className="text-xs flex-shrink-0" style={{ color: 'var(--text-muted)' }}>¥</span>
                     <input
                       type="number"
                       min="0"
@@ -219,7 +219,7 @@ export function PricingClient({ products }: { products: ProductRow[] }) {
                       value={prices[p.id]}
                       onChange={e => setPrices(prev => ({ ...prev, [p.id]: e.target.value }))}
                       placeholder="0"
-                      className="w-24 text-base tabular-nums outline-none text-right bg-transparent"
+                      className="w-0 flex-1 text-base tabular-nums outline-none text-right bg-transparent"
                       style={{ color: 'var(--text-primary)' }}
                     />
                   </div>
