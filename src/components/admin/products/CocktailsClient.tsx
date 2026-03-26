@@ -117,11 +117,12 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
   const [sellingPrice,     setSellingPrice]     = useState('')
 
   /* ── 編集 ── */
-  const [editName,    setEditName]    = useState('')
-  const [editNameEn,  setEditNameEn]  = useState('')
-  const [editPrice,   setEditPrice]   = useState('')
-  const [editTags,    setEditTags]    = useState('')
-  const [editAvail,   setEditAvail]   = useState(true)
+  const [editName,        setEditName]        = useState('')
+  const [editNameEn,      setEditNameEn]      = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editPrice,       setEditPrice]       = useState('')
+  const [editTags,        setEditTags]        = useState('')
+  const [editAvail,       setEditAvail]       = useState(true)
   const [editIngs,    setEditIngs]    = useState<EditIng[]>([])
   const [editSteps,   setEditSteps]   = useState<string[]>([''])
   const [addIngQuery, setAddIngQuery] = useState('')
@@ -220,6 +221,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
     if (editingId === c.id) { setEditingId(null); return }
     setEditingId(c.id); setExpandedId(null)
     setEditName(c.name); setEditNameEn(c.name_en)
+    setEditDescription(c.description ?? '')
     setEditPrice(c.selling_price?.toString() ?? '')
     setEditTags(c.tags.join(', '))
     setEditAvail(c.is_available)
@@ -239,10 +241,9 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
 
   function handleSaveEdit(id: string) {
     const cleanSteps = editSteps.map(s => s.trim()).filter(Boolean)
-    const descr = cocktails.find(c => c.id === id)?.description ?? ''
     startTransition(async () => {
       const [bRes, iRes] = await Promise.all([
-        updateCocktailBasicInfo(id, { name: editName, name_en: editNameEn, description: descr, selling_price: editPrice ? parseFloat(editPrice) : null, tags: editTags ? editTags.split(',').map(t => t.trim()).filter(Boolean) : [], is_available: editAvail, recipe_steps: cleanSteps }),
+        updateCocktailBasicInfo(id, { name: editName, name_en: editNameEn, description: editDescription, selling_price: editPrice ? parseFloat(editPrice) : null, tags: editTags ? editTags.split(',').map(t => t.trim()).filter(Boolean) : [], is_available: editAvail, recipe_steps: cleanSteps }),
         replaceIngredients(id, editIngs.map(e => ({ product_id: e.product_id, quantity: parseFloat(e.quantity) || 0, unit: e.unit }))),
       ])
       if (bRes.error || iRes.error) return
@@ -252,7 +253,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
       const nt = totalCost(newIngs.map(i => ({ qty: i.quantity, unit: i.unit, cost_price: i.cost_price, volume_ml: i.volume_ml })))
       const nr = nt && np ? (nt / np) * 100 : null
 
-      setCocktails(prev => prev.map(c => c.id === id ? { ...c, name: editName, name_en: editNameEn, selling_price: np, tags: editTags ? editTags.split(',').map(t => t.trim()).filter(Boolean) : [], is_available: editAvail, recipe_steps: cleanSteps, ingredients: newIngs, total_cost: nt, cost_rate_pct: nr } : c))
+      setCocktails(prev => prev.map(c => c.id === id ? { ...c, name: editName, name_en: editNameEn, description: editDescription, selling_price: np, tags: editTags ? editTags.split(',').map(t => t.trim()).filter(Boolean) : [], is_available: editAvail, recipe_steps: cleanSteps, ingredients: newIngs, total_cost: nt, cost_rate_pct: nr } : c))
       setEditingId(null)
     })
   }
@@ -636,6 +637,17 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
                       <div className="space-y-1 col-span-2 sm:col-span-1">
                         <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>英語名</label>
                         <input value={editNameEn} onChange={e => setEditNameEn(e.target.value)} className="w-full px-3 h-9 text-sm rounded-xl outline-none" style={fieldBase} />
+                      </div>
+                      <div className="space-y-1 col-span-2">
+                        <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>コメント</label>
+                        <textarea
+                          value={editDescription}
+                          onChange={e => setEditDescription(e.target.value)}
+                          placeholder="カクテルの説明・コメントを入力..."
+                          rows={3}
+                          className="w-full px-3 py-2 text-sm rounded-xl outline-none resize-none"
+                          style={fieldBase}
+                        />
                       </div>
                       <div className="space-y-1">
                         <label className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>販売価格</label>
