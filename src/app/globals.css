@@ -73,6 +73,23 @@ body {
   to   { width: 100%; }
 }
 
+/* ── モバイル文字サイズ最低保証 (lg = 1024px 未満) ── */
+@media (max-width: 1023px) {
+  /* 極小テキストを最低 12px に */
+  .text-\[9px\]  { font-size: 12px !important; line-height: 1.4 !important; }
+  .text-\[10px\] { font-size: 12px !important; line-height: 1.4 !important; }
+  /* 小テキストを 13px に */
+  .text-\[11px\] { font-size: 13px !important; line-height: 1.5 !important; }
+  .text-\[12px\] { font-size: 13px !important; line-height: 1.5 !important; }
+  /* やや小テキストを 15px に */
+  .text-\[13px\] { font-size: 15px !important; line-height: 1.5 !important; }
+  .text-\[14px\] { font-size: 15px !important; line-height: 1.5 !important; }
+  /* Tailwind 標準サイズ */
+  .text-xs  { font-size: 13px !important; line-height: 1.5 !important; }
+  .text-sm  { font-size: 15px !important; line-height: 1.6 !important; }
+  .text-base{ font-size: 16px !important; line-height: 1.6 !important; }
+}
+
 @media print {
   body { background: white !important; }
   header, aside, nav { display: none !important; }

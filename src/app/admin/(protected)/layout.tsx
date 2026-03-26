@@ -51,10 +51,11 @@ function PublicPageSection() {
     <div>
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-150"
+        className="w-full flex items-center gap-3 px-3 py-3 lg:py-2 rounded-xl text-base lg:text-[13px] font-medium transition-all duration-150"
         style={{ color: 'var(--text-secondary)' }}
       >
-        <RiStoreFill size={15} />
+        <RiStoreFill size={18} className="lg:hidden flex-shrink-0" />
+        <RiStoreFill size={15} className="hidden lg:block flex-shrink-0" />
         <span className="flex-1 text-left">公開ページ</span>
         <RiArrowDownSLine
           size={14}
@@ -132,13 +133,14 @@ function NavItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-150"
+      className="flex items-center gap-3 px-3 py-3 lg:py-2 rounded-xl text-base lg:text-[13px] font-medium transition-all duration-150"
       style={{
         background: active ? 'var(--bg-dark)' : 'transparent',
         color:      active ? 'var(--text-invert)' : 'var(--text-secondary)',
       }}
     >
-      <Icon size={15} />
+      <Icon size={18} className="flex-shrink-0 lg:hidden" />
+      <Icon size={15} className="flex-shrink-0 hidden lg:block" />
       {label}
     </Link>
   )
@@ -163,7 +165,7 @@ function SidebarContent({ pathname, onNav }: { pathname: string; onNav: () => vo
         </div>
 
         {/* メインナビ */}
-        <p className="text-[10px] font-semibold tracking-widest uppercase px-3 mb-1"
+        <p className="text-xs lg:text-[10px] font-semibold tracking-widest uppercase px-3 mb-1"
            style={{ color: 'var(--text-muted)' }}>
           メニュー
         </p>
@@ -173,7 +175,7 @@ function SidebarContent({ pathname, onNav }: { pathname: string; onNav: () => vo
 
         {/* 公開ページ */}
         <div className="mt-4">
-          <p className="text-[10px] font-semibold tracking-widest uppercase px-3 mb-1"
+          <p className="text-xs lg:text-[10px] font-semibold tracking-widest uppercase px-3 mb-1"
              style={{ color: 'var(--text-muted)' }}>
             公開
           </p>
