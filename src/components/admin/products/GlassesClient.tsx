@@ -614,7 +614,7 @@ export function GlassesClient({
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>グラス提供がまだありません</p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           {glasses.map(g => {
             const cPerGlass = g.cost_price && g.bottle_ml
               ? (g.cost_price / g.bottle_ml) * g.serving_ml
@@ -629,7 +629,7 @@ export function GlassesClient({
             return (
               <div
                 key={g.id}
-                className="rounded-2xl p-4 flex flex-col gap-3"
+                className="rounded-2xl p-4 flex flex-col gap-3 overflow-hidden min-w-0"
                 style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
               >
                 {/* 上段: アイコン + 商品名 + 操作ボタン */}
