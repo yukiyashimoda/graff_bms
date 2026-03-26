@@ -120,3 +120,77 @@ export async function saveOrderTextTemplate(template: string): Promise<{ error?:
     return { error: e instanceof Error ? e.message : '保存に失敗しました' }
   }
 }
+
+// ─── 棚卸し周期設定 ─────────────────────────────────────────────────────────
+
+export type ScheduleType = 'interval' | 'monthly_end' | 'monthly_times'
+
+export type InventorySchedule = {
+  schedule_type:  ScheduleType
+  schedule_value: number | null
+  interval_days:  number
+}
+
+export function scheduleLabel(s: InventorySchedule): string {
+  if (s.schedule_type === 'monthly_end')   return '月末'
+  if (s.schedule_type === 'monthly_times') return `月${s.schedule_value ?? 1}回`
+  return `${s.interval_days}日ごと`
+}
+
+export async function getInventorySchedule(): Promise<InventorySchedule> {
+  const supabase = await createServiceClient()
+  const { data } = await supabase
+    .from('inventory_settings')
+    .select('schedule_type, schedule_value, interval_days')
+    .limit(1)
+    .maybeSingle()
+  return {
+    schedule_type:  (data?.schedule_type  as ScheduleType | null) ?? 'interval',
+    schedule_value: data?.schedule_value ?? null,
+    interval_days:  data?.interval_days  ?? 30,
+  }
+}
+
+export async function saveInventorySchedule(
+  type: ScheduleType,
+  value: number | null,
+): Promise<{ error?: string }> {
+  try {
+    let interval_days: number
+    if (type === 'monthly_end') {
+      interval_days = 31
+    } else if (type === 'monthly_times') {
+      if (!value || value < 1) return { error: '回数を入力してください' }
+      interval_days = Math.round(30 / value)
+    } else {
+      if (!value || value < 1) return { error: '日数を入力してください' }
+      interval_days = value
+    }
+
+    const supabase = await createServiceClient()
+    const { data: existing } = await supabase
+      .from('inventory_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      const { error } = await supabase
+        .from('inventory_settings')
+        .update({ schedule_type: type, schedule_value: value, interval_days })
+        .eq('id', existing.id)
+      if (error) return { error: error.message }
+    } else {
+      const { error } = await supabase
+        .from('inventory_settings')
+        .insert({ schedule_type: type, schedule_value: value, interval_days })
+      if (error) return { error: error.message }
+    }
+
+    revalidatePath('/admin/settings')
+    revalidatePath('/admin/inventory')
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : '保存に失敗しました' }
+  }
+}

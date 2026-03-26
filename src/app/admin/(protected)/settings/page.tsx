@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { RiStoreFill, RiAlertFill, RiFileTextFill, RiArrowRightSLine } from 'react-icons/ri'
+import { RiStoreFill, RiAlertFill, RiFileTextFill, RiCalendar2Fill, RiArrowRightSLine } from 'react-icons/ri'
 
 const SETTINGS = [
   {
@@ -19,6 +19,12 @@ const SETTINGS = [
     icon:        RiFileTextFill,
     title:       '発注テキスト雛形',
     description: '発注時のテキスト生成に使用する雛形を編集',
+  },
+  {
+    href:        '/admin/settings/inventory-schedule',
+    icon:        RiCalendar2Fill,
+    title:       '棚卸し周期',
+    description: '月末・月X回・X日ごとなど棚卸しの頻度を設定',
   },
 ]
 

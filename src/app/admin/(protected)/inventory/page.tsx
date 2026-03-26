@@ -1,20 +1,16 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { InventoryMain } from '@/components/admin/inventory/InventoryMain'
+import { getInventorySchedule, scheduleLabel } from '@/app/admin/(protected)/settings/actions'
 
 export default async function InventoryPage() {
   const supabase = await createServiceClient()
 
   const [
-    { data: settings },
     { data: lastApproved },
     { data: activeSession },
     { data: history },
+    schedule,
   ] = await Promise.all([
-    supabase
-      .from('inventory_settings')
-      .select('interval_days')
-      .limit(1)
-      .maybeSingle(),
     supabase
       .from('inventory_sessions')
       .select('id, approved_at')
@@ -35,15 +31,14 @@ export default async function InventoryPage() {
       .eq('status', 'approved')
       .order('approved_at', { ascending: false })
       .limit(10),
+    getInventorySchedule(),
   ])
-
-  const intervalDays = settings?.interval_days ?? 30
 
   const isOverdue = (() => {
     if (!lastApproved?.approved_at) return true
     const last = new Date(lastApproved.approved_at)
     const diff = (Date.now() - last.getTime()) / (1000 * 60 * 60 * 24)
-    return diff > intervalDays
+    return diff > schedule.interval_days
   })()
 
   return (
@@ -54,7 +49,7 @@ export default async function InventoryPage() {
       </div>
 
       <InventoryMain
-        intervalDays={intervalDays}
+        scheduleLabel={scheduleLabel(schedule)}
         isOverdue={isOverdue}
         lastApprovedAt={lastApproved?.approved_at ?? null}
         activeSession={activeSession ?? null}

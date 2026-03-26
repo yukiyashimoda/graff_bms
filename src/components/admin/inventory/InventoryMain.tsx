@@ -6,11 +6,10 @@ import {
   RiAlertFill,
   RiCheckboxCircleFill,
   RiTimeLine,
-  RiSettings3Line,
   RiClipboardLine,
   RiArrowRightLine,
 } from 'react-icons/ri'
-import { updateInventorySettings, createInventorySession } from '@/app/admin/(protected)/inventory/actions'
+import { createInventorySession } from '@/app/admin/(protected)/inventory/actions'
 
 type Session = {
   id: string
@@ -39,37 +38,21 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export function InventoryMain({
-  intervalDays,
+  scheduleLabel,
   isOverdue,
   lastApprovedAt,
   activeSession,
   history,
 }: {
-  intervalDays: number
+  scheduleLabel: string
   isOverdue: boolean
   lastApprovedAt: string | null
   activeSession: Session | null
   history: Session[]
 }) {
   const router = useRouter()
-  const [interval, setIntervalVal] = useState(String(intervalDays))
-  const [savingSettings, setSavingSettings] = useState(false)
   const [startingSession, setStartingSession] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
-
-  async function handleSaveSettings() {
-    const days = parseInt(interval)
-    if (!days || days < 1) return
-    setSavingSettings(true)
-    try {
-      await updateInventorySettings(days)
-      router.refresh()
-    } catch {
-      // ignore
-    } finally {
-      setSavingSettings(false)
-    }
-  }
 
   async function handleStart() {
     setStartingSession(true)
@@ -102,7 +85,7 @@ export function InventoryMain({
           <div>
             <p className="text-sm font-semibold" style={{ color: '#991b1b' }}>棚卸しが期限を超過しています</p>
             <p className="text-xs mt-0.5" style={{ color: '#b91c1c' }}>
-              設定された周期 ({intervalDays} 日) 以内に棚卸しが完了していません。
+              設定された周期（{scheduleLabel}）以内に棚卸しが完了していません。
               {lastApprovedAt
                 ? `前回の完了: ${formatDate(lastApprovedAt)}`
                 : '棚卸しの記録がありません。'}
@@ -111,51 +94,19 @@ export function InventoryMain({
         </div>
       )}
 
-      {/* 設定カード */}
-      <div
-        className="rounded-2xl p-5 space-y-4"
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-      >
-        <div className="flex items-center gap-2">
-          <RiSettings3Line size={15} style={{ color: 'var(--text-muted)' }} />
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>棚卸し周期設定</p>
+      {/* 周期表示 */}
+      {!isOverdue && lastApprovedAt && (
+        <div
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+        >
+          <RiCheckboxCircleFill size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
+          <p className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
+            周期: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{scheduleLabel}</span>
+            　前回完了: {formatDate(lastApprovedAt)}
+          </p>
         </div>
-
-        <div className="flex items-center gap-3">
-          <div
-            className="flex items-center gap-2 px-3 h-11 rounded-xl"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
-          >
-            <input
-              type="number"
-              min="1"
-              max="365"
-              value={interval}
-              onChange={e => setIntervalVal(e.target.value)}
-              className="w-16 text-base bg-transparent outline-none tabular-nums text-right"
-              style={{ color: 'var(--text-primary)' }}
-            />
-            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>日ごと</span>
-          </div>
-          <button
-            onClick={handleSaveSettings}
-            disabled={savingSettings || interval === String(intervalDays)}
-            className="h-11 px-4 rounded-xl text-sm font-medium transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
-          >
-            {savingSettings ? '保存中...' : '保存'}
-          </button>
-
-          {lastApprovedAt && (
-            <div className="flex items-center gap-1.5 ml-auto">
-              <RiCheckboxCircleFill size={14} style={{ color: '#22c55e' }} />
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                前回完了: {formatDate(lastApprovedAt)}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* アクティブセッション / 開始ボタン */}
       <div
