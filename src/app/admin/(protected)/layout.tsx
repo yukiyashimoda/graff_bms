@@ -34,7 +34,7 @@ const mainNav = [
   { href: '/admin',                  label: 'ダッシュボード', icon: RiDashboardFill },
   { href: '/admin/products',         label: 'メニュー管理',   icon: RiArchiveFill },
   { href: '/admin/stock',            label: '入出庫管理',     icon: RiBarChartBoxFill },
-  { href: '/admin/orders',           label: '発注管理',       icon: RiFileListFill },
+  { href: '/admin/orders',           label: '発注/検品',      icon: RiFileListFill },
   { href: '/admin/pricing',          label: '原価計算',       icon: RiPriceTag3Fill },
   { href: '/admin/inventory',        label: '棚卸し管理',     icon: RiClipboardLine },
   { href: '/admin/alerts',           label: '価格アラート',   icon: RiAlertFill },

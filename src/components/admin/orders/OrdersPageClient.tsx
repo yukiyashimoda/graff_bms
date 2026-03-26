@@ -93,19 +93,19 @@ export function OrdersPageClient({
   }
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: 'order',     label: '発注管理' },
-    { key: 'history',   label: '発注履歴' },
-    { key: 'suppliers', label: '発注先管理' },
+    { key: 'order',     label: '発注書作成' },
+    { key: 'history',   label: '検品' },
+    { key: 'suppliers', label: '発注先一覧' },
   ]
 
   return (
     <div className="max-w-5xl space-y-6">
       {/* ヘッダー */}
       <div>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注管理</h1>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注/検品</h1>
         <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {tab === 'order'     && '発注する商品を選んで発注書を作成'}
-          {tab === 'history'   && `過去の発注書 ${orders.length} 件`}
+          {tab === 'history'   && `発注書 ${orders.length} 件`}
           {tab === 'suppliers' && `発注先 ${suppliers.length} 件`}
         </p>
       </div>
