@@ -66,46 +66,64 @@ export default async function OrderPrintPage({
         .a4-doc {
           font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
           color: #333;
+          width: 794px;
+          min-height: 1123px;
+          padding: 20mm;
+          margin: 0 auto;
+          background: #fff;
+          font-size: 10pt;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+          box-sizing: border-box;
+          transform-origin: top left;
         }
-        @media screen and (max-width: 860px) {
-          .a4-doc {
-            width: 100% !important;
-            min-height: unset !important;
-            padding: 6vw 5vw !important;
-            font-size: 9pt !important;
+        /* スマホ: 794px固定のままスケールダウン */
+        @media screen and (max-width: 793px) {
+          .a4-outer {
+            width: 100vw;
+            overflow: hidden;
+            /* 高さ = 1123px × scale = 1123 × (100vw / 794) ≈ 141.4vw */
+            height: calc(100vw * 1123 / 794);
           }
-          .a4-title-banner {
-            font-size: 20px !important;
-            padding: 8px 0 !important;
+          .a4-doc {
+            margin: 0;
+            box-shadow: none;
+            transform: scale(var(--a4-scale, 1));
           }
         }
         @media print {
+          .a4-outer { height: auto !important; overflow: visible !important; }
           body { background: none !important; }
           .a4-doc {
             width: 210mm !important;
             min-height: 297mm !important;
             padding: 20mm !important;
             box-shadow: none !important;
+            transform: none !important;
           }
           .a4-title-banner { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .a4-th           { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
 
+      {/* スマホ用: viewport幅に合わせてscaleを動的に設定 */}
+      <script dangerouslySetInnerHTML={{ __html: `
+        (function(){
+          function setScale(){
+            var vw = window.innerWidth;
+            if(vw < 794){
+              document.documentElement.style.setProperty('--a4-scale', (vw/794).toFixed(4));
+            } else {
+              document.documentElement.style.removeProperty('--a4-scale');
+            }
+          }
+          setScale();
+          window.addEventListener('resize', setScale);
+        })();
+      `}} />
+
       {/* A4 発注書 */}
-      <div
-        className="a4-doc"
-        style={{
-          width: '210mm',
-          minHeight: '297mm',
-          padding: '20mm',
-          margin: '0 auto',
-          background: '#fff',
-          fontSize: '10pt',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-          boxSizing: 'border-box',
-        }}
-      >
+      <div className="a4-outer">
+      <div className="a4-doc">
         {/* 伝票番号・日付（右上） */}
         <div style={{ textAlign: 'right', fontSize: '12px', lineHeight: '1.8', marginBottom: '16px', color: '#555' }}>
           <div>発行日：{formatDate(order.order_date)}</div>
@@ -237,6 +255,7 @@ export default async function OrderPrintPage({
             <div style={{ fontSize: '12px', color: '#444', lineHeight: '1.6' }}>{order.notes}</div>
           </div>
         )}
+      </div>
       </div>
     </>
   )
