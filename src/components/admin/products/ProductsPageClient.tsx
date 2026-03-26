@@ -28,7 +28,7 @@ export function ProductsPageClient({ products, glasses, productOptions, cocktail
     <div>
       {/* タブバー */}
       <div
-        className="flex w-full sm:w-fit mb-6 p-1 gap-1 rounded-2xl"
+        className="filter-tabs flex w-full sm:w-fit mb-6 p-1 gap-1 rounded-2xl"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
       >
         {TABS.map(tab => (
