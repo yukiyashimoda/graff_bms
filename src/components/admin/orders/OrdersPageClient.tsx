@@ -9,9 +9,34 @@ import {
 } from 'react-icons/ri'
 import { OrderCart } from './OrderCart'
 import { SupplierManager } from '@/components/admin/suppliers/SupplierManager'
-import { updateOrderStatus, receiveOrder, deleteOrder } from '@/app/admin/(protected)/orders/actions'
+import { updateOrderStatus, receiveOrder, deleteOrder, updateItemInspectionStatus } from '@/app/admin/(protected)/orders/actions'
 import type { CartItem } from './OrderCart'
 import type { IssuerProfile } from '@/app/admin/(protected)/orders/issuer-actions'
+
+type InspectionStatus = 'arrived' | 'partial' | 'missing' | 'price_changed' | null
+
+const INSPECTION_BUTTONS: { status: InspectionStatus & string; label: string; activeStyle: React.CSSProperties }[] = [
+  {
+    status: 'arrived',
+    label: '到着',
+    activeStyle: { background: '#22c55e', color: '#fff', border: '1px solid #16a34a' },
+  },
+  {
+    status: 'partial',
+    label: '一部到着',
+    activeStyle: { background: '#f59e0b', color: '#fff', border: '1px solid #d97706' },
+  },
+  {
+    status: 'missing',
+    label: '欠品',
+    activeStyle: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' },
+  },
+  {
+    status: 'price_changed',
+    label: '価格変更',
+    activeStyle: { background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed' },
+  },
+]
 
 type Tab = 'order' | 'history' | 'suppliers'
 
@@ -36,10 +61,11 @@ type Order = {
   notes:         string | null
   supplier_name: string | null
   items: {
-    id:       string
-    quantity: number
-    product_name: string
-    product_unit: string
+    id:                string
+    quantity:          number
+    product_name:      string
+    product_unit:      string
+    inspection_status: InspectionStatus
   }[]
 }
 
@@ -89,6 +115,22 @@ export function OrdersPageClient({
     startTransition(async () => {
       await deleteOrder(orderId)
       setOrders(prev => prev.filter(o => o.id !== orderId))
+    })
+  }
+
+  function handleInspection(orderId: string, itemId: string, status: InspectionStatus & string) {
+    startTransition(async () => {
+      // 同じボタンを押したらリセット
+      const currentOrder = orders.find(o => o.id === orderId)
+      const currentItem  = currentOrder?.items.find(i => i.id === itemId)
+      const next = currentItem?.inspection_status === status ? null : status
+      setOrders(prev => prev.map(o =>
+        o.id !== orderId ? o : {
+          ...o,
+          items: o.items.map(i => i.id !== itemId ? i : { ...i, inspection_status: next }),
+        }
+      ))
+      await updateItemInspectionStatus(itemId, next)
     })
   }
 
@@ -244,13 +286,46 @@ export function OrdersPageClient({
                 {/* 品目リスト */}
                 <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
                   {order.items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between px-5 py-2.5 gap-4">
-                      <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                        {item.product_name}
-                      </p>
-                      <p className="text-sm tabular-nums flex-shrink-0" style={{ color: 'var(--text-secondary)' }}>
-                        {item.quantity} {item.product_unit}
-                      </p>
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 px-5 py-4"
+                    >
+                      {/* 商品名 + 数量 */}
+                      <div className="flex items-baseline gap-3 min-w-0">
+                        <p className="text-lg font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                          {item.product_name}
+                        </p>
+                        <p
+                          className="text-2xl font-bold tabular-nums flex-shrink-0"
+                          style={{ color: 'var(--text-primary)', lineHeight: 1 }}
+                        >
+                          {item.quantity}
+                          <span className="text-sm font-medium ml-1" style={{ color: 'var(--text-muted)' }}>
+                            {item.product_unit}
+                          </span>
+                        </p>
+                      </div>
+
+                      {/* 検品ボタン */}
+                      <div className="flex flex-wrap gap-1.5 flex-shrink-0 justify-end">
+                        {INSPECTION_BUTTONS.map(btn => {
+                          const isActive = item.inspection_status === btn.status
+                          return (
+                            <button
+                              key={btn.status}
+                              onClick={() => handleInspection(order.id, item.id, btn.status)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                              style={
+                                isActive
+                                  ? btn.activeStyle
+                                  : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                              }
+                            >
+                              {btn.label}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
                   ))}
                 </div>

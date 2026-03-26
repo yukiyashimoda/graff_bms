@@ -85,6 +85,19 @@ export async function deleteOrder(orderId: string) {
   revalidatePath('/admin/orders')
 }
 
+export async function updateItemInspectionStatus(
+  itemId: string,
+  status: 'arrived' | 'partial' | 'missing' | 'price_changed' | null,
+) {
+  const supabase = await createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any)
+    .from('purchase_order_items')
+    .update({ inspection_status: status })
+    .eq('id', itemId)
+  revalidatePath('/admin/orders')
+}
+
 // カートから業者ごとに発注書を一括作成（業者数 × 2往復 → 1往復）
 export async function createOrdersFromCart(
   cartItems: {
