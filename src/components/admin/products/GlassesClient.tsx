@@ -603,209 +603,183 @@ export function GlassesClient({
       )}
 
       {/* ━━━ グラス一覧 ━━━ */}
-      <div
-        className="rounded-2xl overflow-hidden"
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-      >
-        {glasses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <RiGlassesFill size={32} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>グラス提供がまだありません</p>
-          </div>
-        ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {glasses.map(g => {
-              const cPerGlass = g.cost_price && g.bottle_ml
-                ? (g.cost_price / g.bottle_ml) * g.serving_ml
-                : null
-              const rate = cPerGlass && g.selling_price
-                ? (cPerGlass / g.selling_price) * 100
-                : null
-              const days   = daysSince(g.opened_at)
-              const wine   = isWine(g.category_name)
-              const alert  = wine && days > 3
+      {glasses.length === 0 ? (
+        <div
+          className="rounded-2xl flex flex-col items-center justify-center py-20 gap-3"
+          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+        >
+          <RiGlassesFill size={32} style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>グラス提供がまだありません</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {glasses.map(g => {
+            const cPerGlass = g.cost_price && g.bottle_ml
+              ? (g.cost_price / g.bottle_ml) * g.serving_ml
+              : null
+            const rate = cPerGlass && g.selling_price
+              ? (cPerGlass / g.selling_price) * 100
+              : null
+            const days  = daysSince(g.opened_at)
+            const wine  = isWine(g.category_name)
+            const alert = wine && days > 3
 
-              return (
-                <div key={g.id} className="px-4 py-3 sm:px-5 sm:py-4">
-                  <div className="flex items-start gap-3">
-                    {/* アイコン */}
-                    <div
-                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ background: alert ? '#fef2f2' : 'var(--bg-base)' }}
+            return (
+              <div
+                key={g.id}
+                className="rounded-2xl p-4 flex flex-col gap-3"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+              >
+                {/* 上段: アイコン + 商品名 + 操作ボタン */}
+                <div className="flex items-start gap-2.5">
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: alert ? '#fef2f2' : 'var(--bg-base)' }}
+                  >
+                    <RiGlassesFill size={15} style={{ color: alert ? '#ef4444' : 'var(--text-muted)' }} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="text-sm font-semibold truncate"
+                      style={{ color: g.is_available ? 'var(--text-primary)' : 'var(--text-muted)' }}
                     >
-                      <RiGlassesFill size={16} style={{ color: alert ? '#ef4444' : 'var(--text-muted)' }} />
+                      {g.product_name}
+                    </p>
+                    {g.category_name && (
+                      <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{g.category_name}</p>
+                    )}
+                  </div>
+
+                  {/* 編集・削除 */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button
+                      onClick={() => startEdit(g)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
+                      style={{ color: editingId === g.id ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                    >
+                      {editingId === g.id ? <RiCloseLine size={15} /> : <RiEditLine size={14} />}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(g.id)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
+                      style={{ color: '#ef4444' }}
+                    >
+                      <RiDeleteBinLine size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* アラートバッジ */}
+                {alert && (
+                  <span
+                    className="self-start flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca' }}
+                  >
+                    <RiAlertFill size={10} />
+                    開栓から{Math.floor(days)}日経過
+                  </span>
+                )}
+
+                {/* 中段: スペック情報 */}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                  <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                    {g.serving_ml}ml / 杯{g.bottle_ml ? ` · 1本 ${g.bottle_ml}ml` : ''}
+                  </p>
+                  <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                    開栓: {new Date(g.opened_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+
+                {/* 価格・原価率 */}
+                <div className="flex items-baseline gap-3">
+                  {g.selling_price != null && (
+                    <p className="text-base font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                      ¥{g.selling_price.toLocaleString()}
+                    </p>
+                  )}
+                  {rate != null && (
+                    <p
+                      className="text-[11px] tabular-nums"
+                      style={{ color: rate > 50 ? '#ef4444' : rate > 30 ? '#f59e0b' : '#22c55e' }}
+                    >
+                      原価率 {rate.toFixed(1)}%
+                    </p>
+                  )}
+                </div>
+
+                {/* 下段: 提供トグル + 追加出庫 */}
+                <div className="flex items-center gap-2 mt-auto pt-1" style={{ borderTop: '1px solid var(--border)' }}>
+                  <button
+                    onClick={() => handleToggle(g.id, !g.is_available)}
+                    className="px-3 h-8 text-xs font-semibold rounded-xl transition-opacity hover:opacity-80 whitespace-nowrap"
+                    style={g.is_available
+                      ? { background: '#22c55e22', color: '#16a34a' }
+                      : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
+                    }
+                  >
+                    {g.is_available ? '提供中' : '停止中'}
+                  </button>
+
+                  {(stockMap[g.product_id] ?? 0) > 0 && (
+                    <button
+                      onClick={() => handleStockOut(g.product_id)}
+                      disabled={isPending}
+                      className="ml-auto px-4 h-10 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40 whitespace-nowrap"
+                      style={{ background: '#102937', color: '#ededed' }}
+                    >
+                      追加出庫 ({stockMap[g.product_id]}本)
+                    </button>
+                  )}
+                </div>
+
+                {/* 編集パネル */}
+                {editingId === g.id && (
+                  <div className="glass-stepper pt-3 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>提供量 (ml)</label>
+                        <input type="number" min="1" value={editServing} onChange={e => setEditServing(e.target.value)}
+                          className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>ボトル容量 (ml)</label>
+                        <input type="number" min="1" value={editBottle} onChange={e => setEditBottle(e.target.value)}
+                          placeholder="例: 700" className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>販売価格</label>
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm" style={{ color: 'var(--text-muted)' }}>¥</span>
+                          <input type="number" min="0" value={editPrice} onChange={e => setEditPrice(e.target.value)}
+                            className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>開栓日</label>
+                        <input type="date" value={editOpenedAt} onChange={e => setEditOpenedAt(e.target.value)}
+                          className="w-full px-3 h-9 text-sm rounded-xl outline-none" style={fieldBase} />
+                      </div>
                     </div>
-
-                    {/* 商品情報 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p
-                          className="text-sm font-semibold truncate"
-                          style={{ color: g.is_available ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                        >
-                          {g.product_name}
-                        </p>
-
-                        {/* ワインアラートバッジ */}
-                        {alert && (
-                          <span
-                            className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold flex-shrink-0"
-                            style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca' }}
-                          >
-                            <RiAlertFill size={10} />
-                            開栓から{Math.floor(days)}日経過
-                          </span>
-                        )}
-                      </div>
-
-                      {/* サブ情報行 */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                        {g.category_name && (
-                          <p className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>{g.category_name}</p>
-                        )}
-                        <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                          {g.serving_ml}ml / 杯
-                          {g.bottle_ml ? ` · 1本 ${g.bottle_ml}ml` : ''}
-                        </p>
-                        <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                          開栓: {new Date(g.opened_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* 右側: 価格・原価率・操作 */}
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-                      {/* 価格・原価率（sm以上） */}
-                      <div className="text-right hidden sm:block">
-                        {g.selling_price != null && (
-                          <p className="text-sm font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                            ¥{g.selling_price.toLocaleString()}
-                          </p>
-                        )}
-                        {rate != null && (
-                          <p
-                            className="text-[11px] tabular-nums"
-                            style={{ color: rate > 50 ? '#ef4444' : rate > 30 ? '#f59e0b' : '#22c55e' }}
-                          >
-                            原価率 {rate.toFixed(1)}%
-                          </p>
-                        )}
-                      </div>
-
-                      {/* 追加出庫 */}
-                      {(stockMap[g.product_id] ?? 0) > 0 && (
-                        <button
-                          onClick={() => handleStockOut(g.product_id)}
-                          disabled={isPending}
-                          className="px-2.5 h-6 text-[10px] font-semibold rounded-full transition-opacity hover:opacity-80 disabled:opacity-40 whitespace-nowrap flex-shrink-0"
-                          style={{ background: '#102937', color: '#ededed' }}
-                          title={`在庫 ${stockMap[g.product_id]}本`}
-                        >
-                          追加出庫
-                        </button>
-                      )}
-
-                      {/* 提供トグル */}
-                      <button
-                        onClick={() => handleToggle(g.id, !g.is_available)}
-                        className="px-2.5 h-6 text-[10px] font-semibold rounded-full transition-opacity hover:opacity-80 whitespace-nowrap"
-                        style={g.is_available
-                          ? { background: '#22c55e22', color: '#16a34a' }
-                          : { background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }
-                        }
-                      >
-                        {g.is_available ? '提供中' : '停止中'}
+                    <div className="flex items-center gap-2 justify-end">
+                      <button onClick={() => setEditingId(null)}
+                        className="px-4 h-8 text-sm rounded-xl transition-opacity hover:opacity-70"
+                        style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                        キャンセル
                       </button>
-
-                      {/* 編集 */}
-                      <button
-                        onClick={() => startEdit(g)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
-                        style={{ color: editingId === g.id ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                        title="編集"
-                      >
-                        {editingId === g.id ? <RiCloseLine size={15} /> : <RiEditLine size={14} />}
-                      </button>
-
-                      {/* 削除 */}
-                      <button
-                        onClick={() => handleDelete(g.id)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
-                        style={{ color: '#ef4444' }}
-                        title="削除"
-                      >
-                        <RiDeleteBinLine size={14} />
+                      <button onClick={() => handleSaveEdit(g.id)} disabled={isPending}
+                        className="px-5 h-8 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
+                        style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>
+                        {isPending ? '保存中...' : '保存'}
                       </button>
                     </div>
                   </div>
-
-                  {/* 価格・原価率（モバイル） */}
-                  {(g.selling_price != null || rate != null) && (
-                    <div className="flex items-center gap-3 mt-2 ml-12 sm:hidden">
-                      {g.selling_price != null && (
-                        <p className="text-sm font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                          ¥{g.selling_price.toLocaleString()}
-                        </p>
-                      )}
-                      {rate != null && (
-                        <p
-                          className="text-[11px] tabular-nums"
-                          style={{ color: rate > 50 ? '#ef4444' : rate > 30 ? '#f59e0b' : '#22c55e' }}
-                        >
-                          原価率 {rate.toFixed(1)}%
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 編集パネル */}
-                  {editingId === g.id && (
-                    <div className="glass-stepper mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>提供量 (ml)</label>
-                          <input type="number" min="1" value={editServing} onChange={e => setEditServing(e.target.value)}
-                            className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>ボトル容量 (ml)</label>
-                          <input type="number" min="1" value={editBottle} onChange={e => setEditBottle(e.target.value)}
-                            placeholder="例: 700" className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>販売価格</label>
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>¥</span>
-                            <input type="number" min="0" value={editPrice} onChange={e => setEditPrice(e.target.value)}
-                              className="w-full px-3 h-9 text-sm rounded-xl outline-none tabular-nums" style={fieldBase} />
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-semibold" style={{ color: 'var(--text-muted)' }}>開栓日</label>
-                          <input type="date" value={editOpenedAt} onChange={e => setEditOpenedAt(e.target.value)}
-                            className="w-full px-3 h-9 text-sm rounded-xl outline-none" style={fieldBase} />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 justify-end">
-                        <button onClick={() => setEditingId(null)}
-                          className="px-4 h-8 text-sm rounded-xl transition-opacity hover:opacity-70"
-                          style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
-                          キャンセル
-                        </button>
-                        <button onClick={() => handleSaveEdit(g.id)} disabled={isPending}
-                          className="px-5 h-8 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
-                          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>
-                          {isPending ? '保存中...' : '保存'}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
