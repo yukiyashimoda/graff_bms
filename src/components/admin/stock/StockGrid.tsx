@@ -32,14 +32,22 @@ export type StockItem = {
   batches:       BatchInfo[]
 }
 
+type PriceModal = {
+  id:         string
+  name:       string
+  unit:       string
+  cost_price: number | null
+}
+
 export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
   const router  = useRouter()
-  const [items,     setItems]   = useState<StockItem[]>(initialItems)
-  const [deltas,    setDeltas]  = useState<Record<string, number>>({})
-  const [query,     setQuery]   = useState('')
-  const [lowOnly,   setLowOnly] = useState(false)
-  const [catFilter, setCat]     = useState<string | null>(null)
-  const [showList,  setShowList] = useState(false)
+  const [items,      setItems]      = useState<StockItem[]>(initialItems)
+  const [deltas,     setDeltas]     = useState<Record<string, number>>({})
+  const [query,      setQuery]      = useState('')
+  const [lowOnly,    setLowOnly]    = useState(false)
+  const [catFilter,  setCat]        = useState<string | null>(null)
+  const [showList,   setShowList]   = useState(false)
+  const [priceModal, setPriceModal] = useState<PriceModal | null>(null)
 
   const [isPending, startTransition] = useTransition()
   const [optimisticItems, applyOptimistic] = useOptimistic(
@@ -87,6 +95,10 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
     ))
     router.refresh()
   }, [router])
+
+  const handleOpenPriceModal = useCallback((item: PriceModal) => {
+    setPriceModal(item)
+  }, [])
 
   const handleCatClick = useCallback((cat: string | null) => {
     if (cat === null) {
@@ -217,7 +229,7 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
               delta={deltas[item.id] ?? 0}
               onAdjust={handleAdjust}
               onReset={handleReset}
-              onPriceIn={handlePriceIn}
+              onOpenPriceModal={handleOpenPriceModal}
             />
           ))}
         </div>
@@ -258,6 +270,18 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
       )}
 
       {/* 変更内容モーダル */}
+      {/* 価格改定モーダル */}
+      {priceModal && (
+        <PriceModalDialog
+          item={priceModal}
+          onClose={() => setPriceModal(null)}
+          onPriceIn={async (id, qty, price, notes) => {
+            await handlePriceIn(id, qty, price, notes)
+            setPriceModal(null)
+          }}
+        />
+      )}
+
       {showList && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
@@ -350,13 +374,13 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
 // memo: onAdjust/onReset/onPriceIn が useCallback で固定されているため、
 // delta や item が変化しない限り再レンダリングをスキップする
 const StockCard = memo(function StockCard({
-  item, delta, onAdjust, onReset, onPriceIn,
+  item, delta, onAdjust, onReset, onOpenPriceModal,
 }: {
-  item:       StockItem
-  delta:      number
-  onAdjust:   (id: string, amount: number) => void
-  onReset:    (id: string) => void
-  onPriceIn:  (id: string, qty: number, price: number, notes?: string) => Promise<void>
+  item:               StockItem
+  delta:              number
+  onAdjust:           (id: string, amount: number) => void
+  onReset:            (id: string) => void
+  onOpenPriceModal:   (item: PriceModal) => void
 }) {
   const newQty   = item.quantity + delta
   const isLow    = newQty < item.min_quantity && item.min_quantity > 0
@@ -364,38 +388,6 @@ const StockCard = memo(function StockCard({
   const pct      = item.min_quantity > 0
     ? Math.min(100, Math.round((newQty / item.min_quantity) * 100))
     : 100
-
-  const [priceOpen,   setPriceOpen]   = useState(false)
-  const [priceInput,  setPriceInput]  = useState('')
-  const [qtyInput,    setQtyInput]    = useState('')
-  const [notesInput,  setNotesInput]  = useState('')
-  const [priceSaving, setPriceSaving] = useState(false)
-  const [priceError,  setPriceError]  = useState<string | null>(null)
-
-  function openPriceForm() {
-    setPriceInput(String(item.cost_price ?? ''))
-    setQtyInput('')
-    setNotesInput('')
-    setPriceError(null)
-    setPriceOpen(true)
-  }
-
-  async function handlePriceIn() {
-    const price = parseFloat(priceInput)
-    const qty   = parseFloat(qtyInput)
-    if (isNaN(price) || price <= 0) { setPriceError('価格を入力してください'); return }
-    if (isNaN(qty)   || qty   <= 0) { setPriceError('入庫数を入力してください'); return }
-    setPriceSaving(true)
-    setPriceError(null)
-    try {
-      await onPriceIn(item.id, qty, price, notesInput || undefined)
-      setPriceOpen(false)
-    } catch (e) {
-      setPriceError(e instanceof Error ? e.message : '保存に失敗しました')
-    } finally {
-      setPriceSaving(false)
-    }
-  }
 
   return (
     <div
@@ -412,88 +404,20 @@ const StockCard = memo(function StockCard({
     >
       <div className="px-4 pt-4 pb-3 flex flex-col gap-2.5 flex-1">
 
-        {/* カテゴリ + バッジ群 */}
+        {/* カテゴリ + 価格改定ボタン */}
         <div className="flex items-center justify-between gap-1">
           {item.category_name
             ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#102937', color: '#ededed' }}>{item.category_name}</span>
             : <span />
           }
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => priceOpen ? setPriceOpen(false) : openPriceForm()}
-              className="px-2 py-0.5 text-[10px] font-semibold transition-all"
-              style={{
-                background:   priceOpen ? 'var(--bg-dark)' : 'var(--bg-base)',
-                color:        priceOpen ? 'var(--text-invert)' : 'var(--text-secondary)',
-                border:       `1px solid var(--border)`,
-                borderRadius: 6,
-              }}
-            >
-              価格改定
-            </button>
-          </div>
+          <button
+            onClick={() => onOpenPriceModal({ id: item.id, name: item.name, unit: item.unit, cost_price: item.cost_price })}
+            className="px-2 py-0.5 text-[10px] font-semibold transition-all"
+            style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: 6 }}
+          >
+            価格改定
+          </button>
         </div>
-
-        {/* 価格改定フォーム */}
-        {priceOpen && (
-          <div className="flex flex-col gap-2 py-2 px-3 rounded-xl" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-            <p className="text-[10px] font-semibold" style={{ color: 'var(--text-secondary)' }}>価格改定 + 入庫</p>
-            <div className="grid grid-cols-2 gap-1.5">
-              <div>
-                <p className="text-[9px] mb-0.5" style={{ color: 'var(--text-muted)' }}>仕入れ価格 *</p>
-                <input
-                  type="number" min="0" step="1"
-                  value={priceInput}
-                  onChange={e => setPriceInput(e.target.value)}
-                  placeholder="例: 1200"
-                  className="w-full px-2 py-1.5 text-[11px] tabular-nums outline-none"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 8 }}
-                  autoFocus
-                />
-              </div>
-              <div>
-                <p className="text-[9px] mb-0.5" style={{ color: 'var(--text-muted)' }}>入庫数 *</p>
-                <input
-                  type="number" min="0" step="1"
-                  value={qtyInput}
-                  onChange={e => setQtyInput(e.target.value)}
-                  placeholder={item.unit}
-                  className="w-full px-2 py-1.5 text-[11px] tabular-nums outline-none"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 8 }}
-                />
-              </div>
-            </div>
-            <input
-              type="text"
-              value={notesInput}
-              onChange={e => setNotesInput(e.target.value)}
-              placeholder="備考（省略可）"
-              className="w-full px-2 py-1.5 text-[11px] outline-none"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: 8 }}
-            />
-            {priceError && (
-              <p className="text-[10px]" style={{ color: '#d84f2a' }}>{priceError}</p>
-            )}
-            <div className="flex gap-1.5">
-              <button
-                onClick={handlePriceIn}
-                disabled={priceSaving}
-                className="flex-1 flex items-center justify-center gap-1 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', borderRadius: 8 }}
-              >
-                <RiCheckFill size={11} />
-                {priceSaving ? '保存中...' : '入庫・改定'}
-              </button>
-              <button
-                onClick={() => setPriceOpen(false)}
-                className="px-3 py-1.5 text-[11px] font-medium transition-opacity hover:opacity-70"
-                style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 8 }}
-              >
-                <RiCloseFill size={12} />
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* 商品名 */}
         <div>
@@ -588,6 +512,147 @@ const StockCard = memo(function StockCard({
     </div>
   )
 })
+
+// ─── 価格改定モーダル ─────────────────────────────────────────────────────────
+
+function PriceModalDialog({
+  item,
+  onClose,
+  onPriceIn,
+}: {
+  item:      PriceModal
+  onClose:   () => void
+  onPriceIn: (id: string, qty: number, price: number, notes?: string) => Promise<void>
+}) {
+  const [priceInput, setPriceInput] = useState(String(item.cost_price ?? ''))
+  const [qtyInput,   setQtyInput]   = useState('')
+  const [notesInput, setNotesInput] = useState('')
+  const [saving,     setSaving]     = useState(false)
+  const [error,      setError]      = useState<string | null>(null)
+
+  async function handleSubmit() {
+    const price = parseFloat(priceInput)
+    const qty   = parseFloat(qtyInput)
+    if (isNaN(price) || price <= 0) { setError('仕入れ価格を入力してください'); return }
+    if (isNaN(qty)   || qty   <= 0) { setError('入庫数を入力してください'); return }
+    setSaving(true)
+    setError(null)
+    try {
+      await onPriceIn(item.id, qty, price, notesInput || undefined)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存に失敗しました')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.45)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl overflow-hidden"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div>
+            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>価格改定 + 入庫</p>
+            <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>{item.name}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <RiCloseFill size={17} />
+          </button>
+        </div>
+
+        {/* フォーム */}
+        <div className="px-5 py-5 space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>仕入れ価格 *</label>
+            <div
+              className="flex items-center gap-2 px-3 h-12 rounded-xl"
+              style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+            >
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>¥</span>
+              <input
+                type="number" min="0" step="1"
+                value={priceInput}
+                onChange={e => setPriceInput(e.target.value)}
+                placeholder="例: 1200"
+                className="flex-1 text-base tabular-nums outline-none bg-transparent"
+                style={{ color: 'var(--text-primary)' }}
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>入庫数 *</label>
+            <div
+              className="flex items-center gap-2 px-3 h-12 rounded-xl"
+              style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+            >
+              <input
+                type="number" min="0" step="1"
+                value={qtyInput}
+                onChange={e => setQtyInput(e.target.value)}
+                placeholder={`数量 (${item.unit})`}
+                className="flex-1 text-base tabular-nums outline-none bg-transparent"
+                style={{ color: 'var(--text-primary)' }}
+              />
+              <span className="text-sm flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>備考（省略可）</label>
+            <div
+              className="flex items-center px-3 h-12 rounded-xl"
+              style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+            >
+              <input
+                type="text"
+                value={notesInput}
+                onChange={e => setNotesInput(e.target.value)}
+                placeholder="例: 新しいロット"
+                className="flex-1 text-base outline-none bg-transparent"
+                style={{ color: 'var(--text-primary)' }}
+              />
+            </div>
+          </div>
+
+          {error && <p className="text-xs" style={{ color: '#d84f2a' }}>{error}</p>}
+        </div>
+
+        {/* フッター */}
+        <div className="flex gap-3 px-5 pb-5">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
+            style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+          >
+            <RiCheckFill size={14} />
+            {saving ? '保存中...' : '入庫・改定'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── カテゴリフィルターボタン ─────────────────────────────────────────────────
 
