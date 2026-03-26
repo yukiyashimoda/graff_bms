@@ -86,6 +86,21 @@ export async function updateGlass(id: string, data: UpdateData): Promise<{ error
   return {}
 }
 
+export async function stockOutGlass(productId: string): Promise<{ error?: string }> {
+  const supabase = await createServiceClient()
+  const { error } = await (supabase as any).rpc('process_stock_transaction', {
+    p_product_id: productId,
+    p_type:       'out',
+    p_quantity:   1,
+    p_cost_price: null,
+    p_notes:      'グラス追加出庫',
+  })
+  if (error) return { error: error.message }
+  revalidatePath('/admin/products')
+  revalidatePath('/admin/stock')
+  return {}
+}
+
 export async function toggleGlassAvailability(id: string, is_available: boolean): Promise<{ error?: string }> {
   const supabase = await createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

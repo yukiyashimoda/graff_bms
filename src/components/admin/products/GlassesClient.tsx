@@ -14,6 +14,7 @@ import {
   updateGlass,
   deleteGlass,
   toggleGlassAvailability,
+  stockOutGlass,
 } from '@/app/admin/(protected)/products/glass-actions'
 
 /* ── 型定義 ──────────────────────────────────────────────── */
@@ -91,6 +92,9 @@ export function GlassesClient({
   products: ProductOption[]
 }) {
   const [glasses, setGlasses]   = useState(init)
+  const [stockMap, setStockMap] = useState<Record<string, number>>(() =>
+    Object.fromEntries(products.map(p => [p.id, p.stock]))
+  )
   const [showForm, setShowForm] = useState(false)
   const [step, setStep]         = useState(0)
 
@@ -223,6 +227,13 @@ export function GlassesClient({
     startTransition(async () => {
       await toggleGlassAvailability(id, val)
       setGlasses(prev => prev.map(g => g.id === id ? { ...g, is_available: val } : g))
+    })
+  }
+
+  function handleStockOut(productId: string) {
+    setStockMap(prev => ({ ...prev, [productId]: (prev[productId] ?? 0) - 1 }))
+    startTransition(async () => {
+      await stockOutGlass(productId)
     })
   }
 
@@ -680,6 +691,19 @@ export function GlassesClient({
                           </p>
                         )}
                       </div>
+
+                      {/* 追加出庫 */}
+                      {(stockMap[g.product_id] ?? 0) > 0 && (
+                        <button
+                          onClick={() => handleStockOut(g.product_id)}
+                          disabled={isPending}
+                          className="px-2.5 h-6 text-[10px] font-semibold rounded-full transition-opacity hover:opacity-80 disabled:opacity-40 whitespace-nowrap flex-shrink-0"
+                          style={{ background: '#102937', color: '#ededed' }}
+                          title={`在庫 ${stockMap[g.product_id]}本`}
+                        >
+                          追加出庫
+                        </button>
+                      )}
 
                       {/* 提供トグル */}
                       <button
