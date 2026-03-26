@@ -10,36 +10,59 @@ export function generateStaticParams() {
 
 export default async function MenuPage() {
   const supabase = await createServiceClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = supabase as any
 
-  const { data: products, error } = await supabase
-    .from('products')
-    .select(`
-      id, name, name_en, selling_price, image_url,
-      tags, is_available, display_out_of_stock,
-      is_recommended, custom_tag, category_id,
-      categories(name, name_en),
-      stock(quantity),
-      wine_details(wine_type)
-    `)
-    .order('is_recommended', { ascending: false })
-    .order('name')
+  const [
+    { data: products, error },
+    { data: cocktailsRaw },
+    { data: glassesRaw },
+  ] = await Promise.all([
+    supabase
+      .from('products')
+      .select(`
+        id, name, name_en, selling_price, image_url,
+        tags, is_available, display_out_of_stock,
+        is_recommended, custom_tag, category_id,
+        categories(name, name_en),
+        stock(quantity),
+        wine_details(wine_type),
+        spirits_details(shot_price, type, volume_ml)
+      `)
+      .order('is_recommended', { ascending: false })
+      .order('name'),
+
+    supabase
+      .from('cocktails')
+      .select('id, name, name_en, selling_price, tags, description, is_available, sort_order')
+      .eq('is_available', true)
+      .order('sort_order'),
+
+    sb
+      .from('glasses')
+      .select(`
+        id, serving_ml, selling_price,
+        products!inner(name, name_en, wine_details(wine_type, country, vintage, grape_varieties))
+      `)
+      .eq('is_available', true)
+      .order('opened_at', { ascending: false }),
+  ])
 
   if (error) console.error('[MenuPage] Supabase error:', error.message)
 
-  function resolveQty(raw: unknown): number {
-    if (!raw) return 0
-    const obj = Array.isArray(raw) ? raw[0] : raw
-    return Number((obj as { quantity?: number })?.quantity ?? 0)
+  function resolveOne<T>(raw: unknown): T | null {
+    if (!raw) return null
+    return (Array.isArray(raw) ? raw[0] : raw) as T
   }
 
+  // ── 商品リスト（display_out_of_stock=falseのみ除外、在庫0はComing Soon扱い）
   const rows = (products ?? [])
-    .filter(p => {
-      if (!p.display_out_of_stock) return false  // 目のアイコンOFF → 非表示
-      if (!p.is_available) return true           // 入荷待ち → 表示
-      return resolveQty(p.stock) > 0             // 提供中は在庫あるときのみ表示
-    })
+    .filter(p => p.display_out_of_stock !== false)
     .map(p => {
-      const is_waiting = !p.is_available
+      const qty   = Number(resolveOne<{ quantity: number }>(p.stock)?.quantity ?? 0)
+      const wd    = resolveOne<{ wine_type: string }>(p.wine_details)
+      const sd    = resolveOne<{ shot_price: number | null; type: string; volume_ml: number | null }>(p.spirits_details)
+      const is_waiting = !p.is_available || qty === 0
       return {
         id:               p.id,
         name:             p.name,
@@ -53,13 +76,45 @@ export default async function MenuPage() {
         category_id:      p.category_id,
         category_name:    (p.categories as unknown as { name: string; name_en: string } | null)?.name    ?? null,
         category_name_en: (p.categories as unknown as { name: string; name_en: string } | null)?.name_en ?? null,
-        wine_type: (() => {
-          const wd = p.wine_details
-          const obj = Array.isArray(wd) ? wd[0] : wd
-          return (obj as { wine_type?: string } | null)?.wine_type ?? null
-        })(),
+        wine_type:        wd?.wine_type ?? null,
+        shot_price:       sd?.shot_price ?? null,
+        spirits_type:     sd?.type       ?? null,
+        volume_ml:        sd?.volume_ml  ?? null,
       }
     })
 
-  return <MenuClient products={rows} />
+  // ── カクテル
+  const cocktails = (cocktailsRaw ?? []).map((c: {
+    id: string; name: string; name_en: string; selling_price: number | null
+    tags: string[]; description: string; is_available: boolean; sort_order: number
+  }) => ({
+    id:            c.id,
+    name:          c.name,
+    name_en:       c.name_en ?? '',
+    selling_price: c.selling_price,
+    tags:          c.tags ?? [],
+    description:   c.description ?? '',
+  }))
+
+  // ── グラスワイン
+  const glassWines = (glassesRaw ?? []).map((g: {
+    id: string; serving_ml: number; selling_price: number | null
+    products: { name: string; name_en: string; wine_details: unknown }
+  }) => {
+    const p  = g.products
+    const wd = resolveOne<{ wine_type: string; country: string; vintage: number | null; grape_varieties: string[] }>(p.wine_details)
+    return {
+      id:            g.id,
+      name:          p.name,
+      name_en:       p.name_en ?? '',
+      serving_ml:    g.serving_ml,
+      selling_price: g.selling_price,
+      wine_type:     wd?.wine_type   ?? null,
+      country:       wd?.country     ?? null,
+      vintage:       wd?.vintage     ?? null,
+      grape:         wd?.grape_varieties?.[0] ?? null,
+    }
+  })
+
+  return <MenuClient products={rows} cocktails={cocktails} glassWines={glassWines} />
 }

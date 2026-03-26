@@ -32,9 +32,41 @@ type Product = {
   category_name:    string | null
   category_name_en: string | null
   wine_type:        string | null
+  shot_price:       number | null
+  spirits_type:     string | null
+  volume_ml:        number | null
 }
 
-export function MenuClient({ products }: { products: Product[] }) {
+type Cocktail = {
+  id:            string
+  name:          string
+  name_en:       string
+  selling_price: number | null
+  tags:          string[]
+  description:   string
+}
+
+type GlassWine = {
+  id:            string
+  name:          string
+  name_en:       string
+  serving_ml:    number
+  selling_price: number | null
+  wine_type:     string | null
+  country:       string | null
+  vintage:       number | null
+  grape:         string | null
+}
+
+export function MenuClient({
+  products,
+  cocktails,
+  glassWines,
+}: {
+  products:   Product[]
+  cocktails:  Cocktail[]
+  glassWines: GlassWine[]
+}) {
   const locale   = useLocale()
   const router   = useRouter()
   const pathname = usePathname()
@@ -76,7 +108,7 @@ export function MenuClient({ products }: { products: Product[] }) {
     return Array.from(seen.values())
   }, [products])
 
-  const filtered = useMemo(() => {
+  const filteredProducts = useMemo(() => {
     if (!query) return products
     const q = query.toLowerCase()
     return products.filter(p => {
@@ -84,6 +116,24 @@ export function MenuClient({ products }: { products: Product[] }) {
       return n.toLowerCase().includes(q) || p.tags.some(tag => tag.toLowerCase().includes(q))
     })
   }, [products, query, isJa])
+
+  const filteredCocktails = useMemo(() => {
+    if (!query) return cocktails
+    const q = query.toLowerCase()
+    return cocktails.filter(c => {
+      const n = isJa ? c.name : (c.name_en || c.name)
+      return n.toLowerCase().includes(q) || c.tags.some(tag => tag.toLowerCase().includes(q))
+    })
+  }, [cocktails, query, isJa])
+
+  const filteredGlassWines = useMemo(() => {
+    if (!query) return glassWines
+    const q = query.toLowerCase()
+    return glassWines.filter(g => {
+      const n = isJa ? g.name : (g.name_en || g.name)
+      return n.toLowerCase().includes(q) || (g.country ?? '').toLowerCase().includes(q)
+    })
+  }, [glassWines, query, isJa])
 
   // カテゴリ＋ワイン種別でグループ化（価格昇順）
   const grouped = useMemo(() => {
@@ -96,10 +146,9 @@ export function MenuClient({ products }: { products: Product[] }) {
       })
     }
 
-    // カテゴリIDごとにまず仕分け
     const byCat = new Map<string, Product[]>(categories.map(c => [c.id, []]))
     const uncategorized: Product[] = []
-    filtered.forEach(p => {
+    filteredProducts.forEach(p => {
       if (p.category_id && byCat.has(p.category_id)) {
         byCat.get(p.category_id)!.push(p)
       } else {
@@ -113,7 +162,6 @@ export function MenuClient({ products }: { products: Product[] }) {
       const items = byCat.get(c.id) ?? []
       if (items.length === 0) return
 
-      // ワイン種別を持つ商品が1つでもあればワイン別に分割
       const hasWineType = items.some(p => p.wine_type && p.wine_type !== 'other')
       if (hasWineType) {
         const wineGroups = new Map<WineType, Product[]>()
@@ -122,7 +170,6 @@ export function MenuClient({ products }: { products: Product[] }) {
           if (!wineGroups.has(wt)) wineGroups.set(wt, [])
           wineGroups.get(wt)!.push(p)
         })
-        // 白 → 赤 → ロゼ → スパークリング → シャンパン → その他 の順
         WINE_TYPE_ORDER.forEach(wt => {
           const wItems = wineGroups.get(wt)
           if (wItems && wItems.length > 0) {
@@ -143,7 +190,24 @@ export function MenuClient({ products }: { products: Product[] }) {
       result.push({ id: '__none__', name: 'Others', name_en: 'Others', items: sortByPrice(uncategorized) })
     }
     return result
-  }, [filtered, categories])
+  }, [filteredProducts, categories])
+
+  // グラスワインをワイン種別でグループ化
+  const glassWineGrouped = useMemo(() => {
+    const groups = new Map<WineType, GlassWine[]>()
+    filteredGlassWines.forEach(g => {
+      const wt = (g.wine_type as WineType) ?? 'other'
+      if (!groups.has(wt)) groups.set(wt, [])
+      groups.get(wt)!.push(g)
+    })
+    return WINE_TYPE_ORDER.filter(wt => groups.has(wt)).map(wt => ({
+      wt,
+      label: WINE_TYPE_LABEL[wt],
+      items: groups.get(wt)!,
+    }))
+  }, [filteredGlassWines])
+
+  const hasContent = grouped.length > 0 || glassWineGrouped.length > 0 || filteredCocktails.length > 0
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
@@ -186,89 +250,214 @@ export function MenuClient({ products }: { products: Product[] }) {
 
       {/* メニューリスト */}
       <div className="max-w-3xl mx-auto px-5 pb-16 pt-6">
-        {grouped.length === 0 ? (
+        {!hasContent ? (
           <p className="text-center py-20 text-sm" style={{ color: 'var(--text-muted)' }}>
             該当する商品がありません
           </p>
         ) : (
           <div className="space-y-8">
+
+            {/* ── 通常商品（カテゴリ別） */}
             {grouped.map(group => (
               <section key={group.id}>
-
-                {/* カテゴリヘッダー */}
-                <div
-                  className="px-3 py-2 mb-4"
-                  style={{ background: 'var(--bg-dark)' }}
-                >
-                  <h2
-                    className="text-sm font-bold tracking-widest uppercase"
-                    style={{ color: 'var(--text-invert)' }}
-                  >
-                    {group.name_en || group.name}
-                  </h2>
-                </div>
-
-                {/* 商品リスト */}
+                <SectionHeader label={group.name_en || group.name} />
                 <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
-                  {group.items.map(product => {
-                    const name = isJa ? product.name : (product.name_en || product.name)
-                    return (
-                      <div key={product.id}>
-                        {/* 名前 + 価格 */}
-                        <div className="flex items-baseline justify-between gap-3">
-                          <p
-                            className="text-[13px] font-bold leading-snug"
-                            style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
-                          >
-                            {name}
-                            {product.is_recommended && !product.is_waiting && (
-                              <span
-                                className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
-                                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
-                              >
-                                FEATURED
-                              </span>
-                            )}
-                            {product.custom_tag && !product.is_waiting && (
-                              <span
-                                className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
-                                style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}
-                              >
-                                {product.custom_tag}
-                              </span>
-                            )}
-                          </p>
-                          <span
-                            className="text-[13px] font-bold tabular-nums flex-shrink-0"
-                            style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
-                          >
-                            {product.is_waiting
-                              ? 'Coming Soon'
-                              : product.selling_price != null
-                                ? `¥${product.selling_price.toLocaleString()}`
-                                : '—'
-                            }
-                          </span>
-                        </div>
-
-                        {/* タグ */}
-                        {product.tags.length > 0 && (
-                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                            {product.tags.join(' · ')}
-                          </p>
-                        )}
-
-                        {/* 区切り線 */}
-                        <div className="mt-4" style={{ borderBottom: '1px solid var(--border)' }} />
-                      </div>
-                    )
-                  })}
+                  {group.items.map(product => (
+                    <ProductCard key={product.id} product={product} isJa={isJa} />
+                  ))}
                 </div>
               </section>
             ))}
+
+            {/* ── グラスワイン */}
+            {glassWineGrouped.length > 0 && (
+              <>
+                {glassWineGrouped.map(({ wt, label, items }) => (
+                  <section key={`glass__${wt}`}>
+                    <SectionHeader label={`GLASS · ${label}`} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
+                      {items.map(g => (
+                        <GlassWineCard key={g.id} item={g} isJa={isJa} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </>
+            )}
+
+            {/* ── カクテル */}
+            {filteredCocktails.length > 0 && (
+              <section>
+                <SectionHeader label="COCKTAILS" />
+                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
+                  {filteredCocktails.map(c => (
+                    <CocktailCard key={c.id} cocktail={c} isJa={isJa} />
+                  ))}
+                </div>
+              </section>
+            )}
+
           </div>
         )}
       </div>
     </main>
+  )
+}
+
+/* ── セクションヘッダー */
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="px-3 py-2 mb-4" style={{ background: 'var(--bg-dark)' }}>
+      <h2 className="text-sm font-bold tracking-widest uppercase" style={{ color: 'var(--text-invert)' }}>
+        {label}
+      </h2>
+    </div>
+  )
+}
+
+/* ── 区切り線 */
+function Divider() {
+  return <div className="mt-4" style={{ borderBottom: '1px solid var(--border)' }} />
+}
+
+/* ── 通常商品カード */
+function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
+  const name = isJa ? product.name : (product.name_en || product.name)
+  const hasSpiritsPrice = product.shot_price != null
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p
+          className="text-[13px] font-bold leading-snug"
+          style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
+        >
+          {name}
+          {product.is_recommended && !product.is_waiting && (
+            <span
+              className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
+              style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            >
+              FEATURED
+            </span>
+          )}
+          {product.custom_tag && !product.is_waiting && (
+            <span
+              className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
+              style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+            >
+              {product.custom_tag}
+            </span>
+          )}
+        </p>
+
+        {/* スピリッツ以外 or Coming Soon は右に価格 */}
+        {(!hasSpiritsPrice || product.is_waiting) && (
+          <span
+            className="text-[13px] font-bold tabular-nums flex-shrink-0"
+            style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
+          >
+            {product.is_waiting
+              ? 'Coming Soon'
+              : product.selling_price != null
+                ? `¥${product.selling_price.toLocaleString()}`
+                : '—'
+            }
+          </span>
+        )}
+      </div>
+
+      {/* スピリッツ: Single / Bottle 価格 */}
+      {hasSpiritsPrice && !product.is_waiting && (
+        <p className="text-[11px] mt-0.5 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+          {product.shot_price != null && `Single ¥${product.shot_price.toLocaleString()}`}
+          {product.shot_price != null && product.selling_price != null && '  ·  '}
+          {product.selling_price != null && `Bottle ¥${product.selling_price.toLocaleString()}`}
+        </p>
+      )}
+
+      {/* タグ */}
+      {product.tags.length > 0 && (
+        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          {product.tags.join(' · ')}
+        </p>
+      )}
+
+      <Divider />
+    </div>
+  )
+}
+
+/* ── グラスワインカード */
+function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
+  const name = isJa ? item.name : (item.name_en || item.name)
+
+  // サブ情報: ヴィンテージ / 産地 / ブドウ品種
+  const sub = [
+    item.vintage  ? String(item.vintage) : null,
+    item.country  ?? null,
+    item.grape    ?? null,
+  ].filter(Boolean).join(' · ')
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
+          {name}
+        </p>
+        <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+          {item.selling_price != null ? `¥${item.selling_price.toLocaleString()}` : '—'}
+        </span>
+      </div>
+
+      {/* サブ情報 */}
+      {sub && (
+        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          {sub}
+          {item.serving_ml ? `  ·  ${item.serving_ml}ml` : ''}
+        </p>
+      )}
+      {!sub && item.serving_ml ? (
+        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          {item.serving_ml}ml
+        </p>
+      ) : null}
+
+      <Divider />
+    </div>
+  )
+}
+
+/* ── カクテルカード */
+function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean }) {
+  const name = isJa ? cocktail.name : (cocktail.name_en || cocktail.name)
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
+          {name}
+        </p>
+        <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+          {cocktail.selling_price != null ? `¥${cocktail.selling_price.toLocaleString()}` : '—'}
+        </span>
+      </div>
+
+      {/* タグ（味の特徴） */}
+      {cocktail.tags.length > 0 && (
+        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          {cocktail.tags.join(' · ')}
+        </p>
+      )}
+
+      {/* description */}
+      {cocktail.description && (
+        <p className="text-[11px] mt-0.5 italic" style={{ color: 'var(--text-muted)' }}>
+          {cocktail.description}
+        </p>
+      )}
+
+      <Divider />
+    </div>
   )
 }
