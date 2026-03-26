@@ -230,10 +230,12 @@ export function GlassesClient({
     })
   }
 
-  function handleStockOut(productId: string) {
+  function handleStockOut(glassId: string, productId: string) {
+    const openedAt = new Date().toISOString()
     setStockMap(prev => ({ ...prev, [productId]: (prev[productId] ?? 0) - 1 }))
+    setGlasses(prev => prev.map(g => g.id === glassId ? { ...g, opened_at: openedAt } : g))
     startTransition(async () => {
-      await stockOutGlass(productId)
+      await stockOutGlass(glassId, productId)
     })
   }
 
@@ -723,7 +725,7 @@ export function GlassesClient({
 
                   {(stockMap[g.product_id] ?? 0) > 0 && (
                     <button
-                      onClick={() => handleStockOut(g.product_id)}
+                      onClick={() => handleStockOut(g.id, g.product_id)}
                       disabled={isPending}
                       className="ml-auto px-4 h-10 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40 whitespace-nowrap"
                       style={{ background: '#102937', color: '#ededed' }}

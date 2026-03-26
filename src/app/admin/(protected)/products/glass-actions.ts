@@ -86,19 +86,27 @@ export async function updateGlass(id: string, data: UpdateData): Promise<{ error
   return {}
 }
 
-export async function stockOutGlass(productId: string): Promise<{ error?: string }> {
+export async function stockOutGlass(glassId: string, productId: string): Promise<{ error?: string; opened_at?: string }> {
   const supabase = await createServiceClient()
-  const { error } = await (supabase as any).rpc('process_stock_transaction', {
-    p_product_id: productId,
-    p_type:       'out',
-    p_quantity:   1,
-    p_cost_price: null,
-    p_notes:      'グラス追加出庫',
-  })
-  if (error) return { error: error.message }
+  const openedAt = new Date().toISOString()
+
+  const [{ error: rpcError }, { error: updateError }] = await Promise.all([
+    (supabase as any).rpc('process_stock_transaction', {
+      p_product_id: productId,
+      p_type:       'out',
+      p_quantity:   1,
+      p_cost_price: null,
+      p_notes:      'グラス追加出庫',
+    }),
+    (supabase as any).from('glasses').update({ opened_at: openedAt }).eq('id', glassId),
+  ])
+
+  if (rpcError) return { error: rpcError.message }
+  if (updateError) return { error: updateError.message }
+
   revalidatePath('/admin/products')
   revalidatePath('/admin/stock')
-  return {}
+  return { opened_at: openedAt }
 }
 
 export async function toggleGlassAvailability(id: string, is_available: boolean): Promise<{ error?: string }> {
