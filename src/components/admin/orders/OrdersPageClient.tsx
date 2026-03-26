@@ -101,37 +101,35 @@ export function OrdersPageClient({
 
   return (
     <div className="max-w-5xl space-y-6">
-      {/* ヘッダー + タブ */}
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注管理</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            {tab === 'order'     && '発注する商品を選んで発注書を作成'}
-            {tab === 'history'   && `過去の発注書 ${orders.length} 件`}
-            {tab === 'suppliers' && `発注先 ${suppliers.length} 件`}
-          </p>
-        </div>
+      {/* ヘッダー */}
+      <div>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注管理</h1>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          {tab === 'order'     && '発注する商品を選んで発注書を作成'}
+          {tab === 'history'   && `過去の発注書 ${orders.length} 件`}
+          {tab === 'suppliers' && `発注先 ${suppliers.length} 件`}
+        </p>
+      </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* タブ */}
-          <div
-            className="flex rounded-xl overflow-hidden"
-            style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}
-          >
-            {TABS.map(t => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className="px-4 py-2 text-sm font-medium transition-all"
-                style={{
-                  background: tab === t.key ? 'var(--bg-dark)' : 'transparent',
-                  color:      tab === t.key ? 'var(--text-invert)' : 'var(--text-secondary)',
-                }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+      {/* タブ（スマホ全幅 / デスクトップ左寄せ） */}
+      <div>
+        <div
+          className="flex w-full sm:w-auto rounded-xl overflow-hidden"
+          style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}
+        >
+          {TABS.map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className="flex-1 sm:flex-none px-4 py-2 text-sm font-medium transition-all"
+              style={{
+                background: tab === t.key ? 'var(--bg-dark)' : 'transparent',
+                color:      tab === t.key ? 'var(--text-invert)' : 'var(--text-secondary)',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
       </div>
 

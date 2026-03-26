@@ -76,24 +76,7 @@ export function SupplierManager({ suppliers }: Props) {
   const isOpen = adding || editId !== null
 
   return (
-    <div className="max-w-4xl space-y-6">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注先管理</h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{suppliers.length} 件</p>
-        </div>
-        {!isOpen && (
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
-          >
-            <RiAddLine size={16} />
-            発注先を追加
-          </button>
-        )}
-      </div>
+    <div className="space-y-6 pb-20">{/* pb-20: FABと被らないよう余白 */}
 
       {/* 追加 / 編集フォーム */}
       {isOpen && (
@@ -169,9 +152,6 @@ export function SupplierManager({ suppliers }: Props) {
         >
           <RiBuildingFill size={32} style={{ color: 'var(--text-muted)' }} />
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>発注先がまだありません</p>
-          <button onClick={openAdd} className="text-sm font-medium underline underline-offset-2" style={{ color: 'var(--text-secondary)' }}>
-            最初の発注先を追加する
-          </button>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -244,6 +224,18 @@ export function SupplierManager({ suppliers }: Props) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* FAB: 発注先を追加 */}
+      {!isOpen && (
+        <button
+          onClick={openAdd}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-opacity hover:opacity-80 active:scale-95"
+          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
+          title="発注先を追加"
+        >
+          <RiAddLine size={24} />
+        </button>
       )}
     </div>
   )
