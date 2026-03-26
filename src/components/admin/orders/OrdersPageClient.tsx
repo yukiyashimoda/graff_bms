@@ -447,8 +447,8 @@ export function OrdersPageClient({
                               : '単価未設定'}
                           </p>
 
-                          {/* 3段目: 検品ボタン（到着完了時は非表示） */}
-                          {!isArrived && (
+                          {/* 3段目: 検品ボタン（到着完了・終売時は非表示） */}
+                          {!isArrived && item.inspection_status !== 'missing' && (
                             <div className="flex flex-wrap gap-1.5">
                               {INSP_BTNS.map(btn => {
                                 const isActive = item.inspection_status === btn.key
