@@ -121,47 +121,20 @@ export async function saveOrderTextTemplate(template: string): Promise<{ error?:
   }
 }
 
-// ─── 棚卸し周期設定 ─────────────────────────────────────────────────────────
+// ─── 次回棚卸し予定日 ────────────────────────────────────────────────────────
 
-export type ScheduleType = 'interval' | 'monthly_end' | 'monthly_times'
-
-export type InventorySchedule = {
-  schedule_type:  ScheduleType
-  schedule_value: number | null
-  interval_days:  number
-}
-
-
-export async function getInventorySchedule(): Promise<InventorySchedule> {
+export async function getNextInventoryDate(): Promise<string | null> {
   const supabase = await createServiceClient()
   const { data } = await supabase
     .from('inventory_settings')
-    .select('schedule_type, schedule_value, interval_days')
+    .select('next_inventory_date')
     .limit(1)
     .maybeSingle()
-  return {
-    schedule_type:  (data?.schedule_type  as ScheduleType | null) ?? 'interval',
-    schedule_value: data?.schedule_value ?? null,
-    interval_days:  data?.interval_days  ?? 30,
-  }
+  return data?.next_inventory_date ?? null
 }
 
-export async function saveInventorySchedule(
-  type: ScheduleType,
-  value: number | null,
-): Promise<{ error?: string }> {
+export async function saveNextInventoryDate(date: string | null): Promise<{ error?: string }> {
   try {
-    let interval_days: number
-    if (type === 'monthly_end') {
-      interval_days = 31
-    } else if (type === 'monthly_times') {
-      if (!value || value < 1) return { error: '回数を入力してください' }
-      interval_days = Math.round(30 / value)
-    } else {
-      if (!value || value < 1) return { error: '日数を入力してください' }
-      interval_days = value
-    }
-
     const supabase = await createServiceClient()
     const { data: existing } = await supabase
       .from('inventory_settings')
@@ -172,13 +145,13 @@ export async function saveInventorySchedule(
     if (existing) {
       const { error } = await supabase
         .from('inventory_settings')
-        .update({ schedule_type: type, schedule_value: value, interval_days })
+        .update({ next_inventory_date: date })
         .eq('id', existing.id)
       if (error) return { error: error.message }
     } else {
       const { error } = await supabase
         .from('inventory_settings')
-        .insert({ schedule_type: type, schedule_value: value, interval_days })
+        .insert({ next_inventory_date: date })
       if (error) return { error: error.message }
     }
 

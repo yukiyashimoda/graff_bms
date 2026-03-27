@@ -38,13 +38,13 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export function InventoryMain({
-  scheduleLabel,
+  nextInventoryDate,
   isOverdue,
   lastApprovedAt,
   activeSession,
   history,
 }: {
-  scheduleLabel: string
+  nextInventoryDate: string | null
   isOverdue: boolean
   lastApprovedAt: string | null
   activeSession: Session | null
@@ -76,34 +76,33 @@ export function InventoryMain({
     <div className="space-y-5">
 
       {/* アラートバナー */}
-      {isOverdue && (
+      {/* 期限超過リマインド */}
+      {isOverdue && nextInventoryDate && (
         <div
           className="flex items-start gap-3 px-4 py-3.5 rounded-2xl"
           style={{ background: '#fef2f2', border: '1px solid #fecaca' }}
         >
           <RiAlertFill size={18} style={{ color: '#ef4444', marginTop: 1, flexShrink: 0 }} />
           <div>
-            <p className="text-sm font-semibold" style={{ color: '#991b1b' }}>棚卸しが期限を超過しています</p>
+            <p className="text-sm font-semibold" style={{ color: '#991b1b' }}>棚卸しの予定日を過ぎています</p>
             <p className="text-xs mt-0.5" style={{ color: '#b91c1c' }}>
-              設定された周期（{scheduleLabel}）以内に棚卸しが完了していません。
-              {lastApprovedAt
-                ? `前回の完了: ${formatDate(lastApprovedAt)}`
-                : '棚卸しの記録がありません。'}
+              予定日: {formatDate(nextInventoryDate)}
+              {lastApprovedAt ? `　前回完了: ${formatDate(lastApprovedAt)}` : '　棚卸しの記録がありません。'}
             </p>
           </div>
         </div>
       )}
 
-      {/* 周期表示 */}
-      {!isOverdue && lastApprovedAt && (
+      {/* 予定日表示 */}
+      {!isOverdue && nextInventoryDate && (
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-2xl"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
         >
           <RiCheckboxCircleFill size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
           <p className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>
-            周期: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{scheduleLabel}</span>
-            　前回完了: {formatDate(lastApprovedAt)}
+            次回予定日: <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{formatDate(nextInventoryDate)}</span>
+            {lastApprovedAt && <span>　前回完了: {formatDate(lastApprovedAt)}</span>}
           </p>
         </div>
       )}

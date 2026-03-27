@@ -23,8 +23,8 @@ const SETTINGS = [
   {
     href:        '/admin/settings/inventory-schedule',
     icon:        RiCalendar2Fill,
-    title:       '棚卸し周期',
-    description: '月末・月X回・X日ごとなど棚卸しの頻度を設定',
+    title:       '次回棚卸し予定日',
+    description: '棚卸しの目標日を設定してリマインド',
   },
 ]
 

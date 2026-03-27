@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { RiArrowLeftSLine } from 'react-icons/ri'
-import { getInventorySchedule } from '../actions'
+import { getNextInventoryDate } from '../actions'
 import { InventoryScheduleForm } from '@/components/admin/settings/InventoryScheduleForm'
 
 export default async function InventorySchedulePage() {
-  const schedule = await getInventorySchedule()
+  const nextDate = await getNextInventoryDate()
   return (
     <div className="max-w-lg space-y-5">
       <div className="flex items-center gap-2">
@@ -18,10 +18,10 @@ export default async function InventorySchedulePage() {
         </Link>
       </div>
       <div>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>棚卸し周期設定</h1>
-        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>棚卸しを行う頻度・タイミングを設定します</p>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>次回棚卸し予定日</h1>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>棚卸しの目標日を設定してリマインドを受け取る</p>
       </div>
-      <InventoryScheduleForm schedule={schedule} />
+      <InventoryScheduleForm nextDate={nextDate} />
     </div>
   )
 }
