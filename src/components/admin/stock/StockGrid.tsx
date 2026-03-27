@@ -126,19 +126,25 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
       }))
       applyOptimistic(optimisticUpdates)
 
-      const { results } = await batchStockTransactions(
-        Object.entries(snapshot).map(([id, delta]) => ({
-          productId: id,
-          type:      delta > 0 ? 'in' : 'out' as 'in' | 'out',
-          quantity:  Math.abs(delta),
-        }))
-      )
+      try {
+        const { results } = await batchStockTransactions(
+          Object.entries(snapshot).map(([id, delta]) => ({
+            productId: id,
+            type:      delta > 0 ? 'in' : 'out' as 'in' | 'out',
+            quantity:  Math.abs(delta),
+          }))
+        )
 
-      setItems(prev => prev.map(item => {
-        const r = results.find(r => r.id === item.id)
-        return r ? { ...item, quantity: r.newQuantity } : item
-      }))
-      router.refresh()
+        setItems(prev => prev.map(item => {
+          const r = results.find(r => r.id === item.id)
+          return r ? { ...item, quantity: r.newQuantity } : item
+        }))
+        router.refresh()
+      } catch {
+        // サーバーエラー時は楽観的更新を元に戻す
+        setDeltas(snapshot)
+        router.refresh()
+      }
     })
   }
 
@@ -545,6 +551,7 @@ function PriceModalDialog({
       await onPriceIn(item.id, qty, price, notesInput || undefined)
     } catch (e) {
       setError(e instanceof Error ? e.message : '保存に失敗しました')
+    } finally {
       setSaving(false)
     }
   }

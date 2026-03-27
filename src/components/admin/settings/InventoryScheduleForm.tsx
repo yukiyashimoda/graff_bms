@@ -25,11 +25,11 @@ export function InventoryScheduleForm({ nextDate }: { nextDate: string | null })
   async function handleClear() {
     setSaving(true); setError(null); setSaved(false)
     try {
-      await saveNextInventoryDate(null)
-      setDate('')
-      setSaved(true); setTimeout(() => setSaved(false), 2000)
-    } catch {
-      // ignore
+      const result = await saveNextInventoryDate(null)
+      if (result.error) setError(result.error)
+      else { setDate(''); setSaved(true); setTimeout(() => setSaved(false), 2000) }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '削除に失敗しました')
     } finally { setSaving(false) }
   }
 
