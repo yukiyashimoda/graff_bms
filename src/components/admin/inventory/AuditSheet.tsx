@@ -18,7 +18,7 @@ import {
 
 type Item = {
   id: string
-  product_id: string
+  product_id: string | null
   product_name: string
   product_name_en: string
   unit: string

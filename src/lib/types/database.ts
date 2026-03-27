@@ -1031,3 +1031,11 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
+// ─── カスタム複合型 ───────────────────────────────────────────────────────────
+
+export type ProductWithRelations = Database['public']['Tables']['products']['Row'] & {
+  stock:      { quantity: number; min_quantity: number } | { quantity: number; min_quantity: number }[] | null
+  categories: { name: string } | null
+  suppliers:  { id: string; name: string } | null
+}
