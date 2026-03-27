@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { InventoryMain } from '@/components/admin/inventory/InventoryMain'
-import { getInventorySchedule, scheduleLabel } from '@/app/admin/(protected)/settings/actions'
+import { getInventorySchedule } from '@/app/admin/(protected)/settings/actions'
+import { scheduleLabel } from '@/lib/inventory-schedule'
 
 export default async function InventoryPage() {
   const supabase = await createServiceClient()
