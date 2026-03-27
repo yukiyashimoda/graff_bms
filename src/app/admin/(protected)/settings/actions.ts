@@ -26,8 +26,7 @@ const DEFAULT_TEMPLATE = `お世話になっております。
 
 export async function getAppSettings(): Promise<AppSettings> {
   const supabase = await createServiceClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('company_profile')
     .select('name, phone, email, address, logo_url, alert_threshold, order_text_template')
     .eq('id', 1)
@@ -47,8 +46,6 @@ export async function getAppSettings(): Promise<AppSettings> {
 export async function saveIssuerProfile(formData: FormData): Promise<{ error?: string }> {
   try {
     const supabase = await createServiceClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = supabase as any
 
     const name     = (formData.get('name')    as string) || null
     const phone    = (formData.get('phone')   as string) || null
@@ -73,13 +70,11 @@ export async function saveIssuerProfile(formData: FormData): Promise<{ error?: s
 
     if (formData.get('remove_logo') === '1') logo_url = null
 
-    const update: Record<string, unknown> = {
+    const { error } = await supabase.from('company_profile').upsert({
       id: 1, name, phone, email, address,
       updated_at: new Date().toISOString(),
-    }
-    if (logo_url !== undefined) update.logo_url = logo_url
-
-    const { error } = await sb.from('company_profile').upsert(update)
+      ...(logo_url !== undefined ? { logo_url } : {}),
+    })
     if (error) return { error: error.message }
 
     revalidatePath('/admin/settings')
@@ -93,8 +88,7 @@ export async function saveIssuerProfile(formData: FormData): Promise<{ error?: s
 export async function saveAlertThreshold(threshold: number): Promise<{ error?: string }> {
   try {
     const supabase = await createServiceClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('company_profile')
       .upsert({ id: 1, alert_threshold: threshold, updated_at: new Date().toISOString() })
     if (error) return { error: error.message }
@@ -108,8 +102,7 @@ export async function saveAlertThreshold(threshold: number): Promise<{ error?: s
 export async function saveOrderTextTemplate(template: string): Promise<{ error?: string }> {
   try {
     const supabase = await createServiceClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('company_profile')
       .upsert({ id: 1, order_text_template: template, updated_at: new Date().toISOString() })
     if (error) return { error: error.message }
@@ -125,34 +118,31 @@ export async function saveOrderTextTemplate(template: string): Promise<{ error?:
 
 export async function getNextInventoryDate(): Promise<string | null> {
   const supabase = await createServiceClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('inventory_settings')
     .select('next_inventory_date')
     .limit(1)
     .maybeSingle()
-  return (data?.next_inventory_date as string | null) ?? null
+  return data?.next_inventory_date ?? null
 }
 
 export async function saveNextInventoryDate(date: string | null): Promise<{ error?: string }> {
   try {
     const supabase = await createServiceClient()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = supabase as any
-    const { data: existing } = await sb
+    const { data: existing } = await supabase
       .from('inventory_settings')
       .select('id')
       .limit(1)
       .maybeSingle()
 
     if (existing) {
-      const { error } = await sb
+      const { error } = await supabase
         .from('inventory_settings')
         .update({ next_inventory_date: date })
         .eq('id', existing.id)
       if (error) return { error: error.message }
     } else {
-      const { error } = await sb
+      const { error } = await supabase
         .from('inventory_settings')
         .insert({ next_inventory_date: date })
       if (error) return { error: error.message }

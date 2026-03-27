@@ -1,186 +1,1033 @@
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       categories: {
-        Row:           { id: string; name: string; name_en: string; sort_order: number; created_at: string }
-        Insert:        { id?: string; name: string; name_en?: string; sort_order?: number; created_at?: string }
-        Update:        Partial<Database['public']['Tables']['categories']['Insert']>
-        Relationships: []
-      }
-      suppliers: {
-        Row:           { id: string; name: string; name_en: string; contact_name: string | null; phone: string | null; address: string | null; notes: string | null; created_at: string; updated_at: string }
-        Insert:        { id?: string; name: string; name_en?: string; contact_name?: string | null; phone?: string | null; address?: string | null; notes?: string | null; created_at?: string; updated_at?: string }
-        Update:        Partial<Database['public']['Tables']['suppliers']['Insert']>
-        Relationships: []
-      }
-      products: {
-        Row:           { id: string; category_id: string | null; supplier_id: string | null; name: string; name_en: string; unit: string; cost_price: number | null; selling_price: number | null; image_url: string | null; tags: string[]; is_available: boolean; notes: string | null; created_at: string; updated_at: string; is_recommended: boolean; custom_tag: string | null; display_out_of_stock: boolean; default_supplier_id: string | null }
-        Insert:        { id?: string; category_id?: string | null; supplier_id?: string | null; name: string; name_en?: string; unit?: string; cost_price?: number | null; selling_price?: number | null; image_url?: string | null; tags?: string[]; is_available?: boolean; notes?: string | null; created_at?: string; updated_at?: string; is_recommended?: boolean; custom_tag?: string | null; display_out_of_stock?: boolean; default_supplier_id?: string | null }
-        Update:        Partial<Database['public']['Tables']['products']['Insert']>
-        Relationships: []
-      }
-      wine_details: {
-        Row:           { product_id: string; country: string; region: string; region_en: string; grape_varieties: string[]; body: 'light' | 'medium' | 'full' | null; vintage: number | null; description: string; description_en: string; wine_type: 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other'; created_at: string; updated_at: string }
-        Insert:        { product_id: string; country?: string; region?: string; region_en?: string; grape_varieties?: string[]; body?: 'light' | 'medium' | 'full' | null; vintage?: number | null; description?: string; description_en?: string; wine_type?: 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other'; created_at?: string; updated_at?: string }
-        Update:        Partial<Database['public']['Tables']['wine_details']['Insert']>
-        Relationships: [{ foreignKeyName: 'wine_details_product_id_fkey'; columns: ['product_id']; referencedRelation: 'products'; referencedColumns: ['id'] }]
-      }
-      spirits_details: {
-        Row:           { product_id: string; type: string; volume_ml: number | null; shot_price: number | null; age_statement: string | null; created_at: string; updated_at: string }
-        Insert:        { product_id: string; type?: string; volume_ml?: number | null; shot_price?: number | null; age_statement?: string | null; created_at?: string; updated_at?: string }
-        Update:        Partial<Database['public']['Tables']['spirits_details']['Insert']>
-        Relationships: [{ foreignKeyName: 'spirits_details_product_id_fkey'; columns: ['product_id']; referencedRelation: 'products'; referencedColumns: ['id'] }]
-      }
-      soft_drink_details: {
-        Row:           { product_id: string; volume_ml: number | null; is_mixer: boolean; created_at: string; updated_at: string }
-        Insert:        { product_id: string; volume_ml?: number | null; is_mixer?: boolean; created_at?: string; updated_at?: string }
-        Update:        Partial<Database['public']['Tables']['soft_drink_details']['Insert']>
-        Relationships: [{ foreignKeyName: 'soft_drink_details_product_id_fkey'; columns: ['product_id']; referencedRelation: 'products'; referencedColumns: ['id'] }]
-      }
-      stock: {
-        Row:           { id: string; product_id: string; quantity: number; min_quantity: number; updated_at: string }
-        Insert:        { id?: string; product_id: string; quantity?: number; min_quantity?: number; updated_at?: string }
-        Update:        Partial<Database['public']['Tables']['stock']['Insert']>
-        Relationships: []
-      }
-      stock_transactions: {
-        Row:           { id: string; product_id: string; type: 'in' | 'out' | 'adjustment'; quantity: number; cost_price: number | null; notes: string | null; created_at: string; created_by: string | null }
-        Insert:        { id?: string; product_id: string; type: 'in' | 'out' | 'adjustment'; quantity: number; cost_price?: number | null; notes?: string | null; created_at?: string; created_by?: string | null }
-        Update:        Partial<Database['public']['Tables']['stock_transactions']['Insert']>
-        Relationships: []
-      }
-      price_history: {
-        Row:           { id: string; product_id: string; cost_price: number; recorded_at: string }
-        Insert:        { id?: string; product_id: string; cost_price: number; recorded_at?: string }
-        Update:        Partial<Database['public']['Tables']['price_history']['Insert']>
-        Relationships: []
-      }
-      price_alerts: {
-        Row:           { id: string; product_id: string; previous_price: number; new_price: number; change_rate: number; is_read: boolean; created_at: string }
-        Insert:        { id?: string; product_id: string; previous_price: number; new_price: number; change_rate: number; is_read?: boolean; created_at?: string }
-        Update:        Partial<Database['public']['Tables']['price_alerts']['Insert']>
-        Relationships: []
-      }
-      cocktails: {
-        Row:           { id: string; name: string; name_en: string; description: string; description_en: string; selling_price: number | null; image_url: string | null; tags: string[]; is_available: boolean; sort_order: number; created_at: string; updated_at: string }
-        Insert:        { id?: string; name: string; name_en?: string; description?: string; description_en?: string; selling_price?: number | null; image_url?: string | null; tags?: string[]; is_available?: boolean; sort_order?: number; created_at?: string; updated_at?: string }
-        Update:        Partial<Database['public']['Tables']['cocktails']['Insert']>
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          name_en: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          name_en?: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          name_en?: string
+          sort_order?: number
+        }
         Relationships: []
       }
       cocktail_ingredients: {
-        Row:           { id: string; cocktail_id: string; product_id: string; quantity: number; unit: string }
-        Insert:        { id?: string; cocktail_id: string; product_id: string; quantity: number; unit: string }
-        Update:        Partial<Database['public']['Tables']['cocktail_ingredients']['Insert']>
+        Row: {
+          cocktail_id: string
+          id: string
+          product_id: string
+          quantity: number
+          unit: string
+        }
+        Insert: {
+          cocktail_id: string
+          id?: string
+          product_id: string
+          quantity: number
+          unit: string
+        }
+        Update: {
+          cocktail_id?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cocktail_ingredients_cocktail_id_fkey"
+            columns: ["cocktail_id"]
+            isOneToOne: false
+            referencedRelation: "cocktail_cost_view"
+            referencedColumns: ["cocktail_id"]
+          },
+          {
+            foreignKeyName: "cocktail_ingredients_cocktail_id_fkey"
+            columns: ["cocktail_id"]
+            isOneToOne: false
+            referencedRelation: "cocktails"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cocktail_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cocktails: {
+        Row: {
+          created_at: string
+          description: string
+          description_en: string
+          id: string
+          image_url: string | null
+          is_available: boolean
+          name: string
+          name_en: string
+          recipe_steps: string[]
+          selling_price: number | null
+          sort_order: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name: string
+          name_en?: string
+          recipe_steps?: string[]
+          selling_price?: number | null
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          description_en?: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name?: string
+          name_en?: string
+          recipe_steps?: string[]
+          selling_price?: number | null
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
         Relationships: []
       }
-      purchase_orders: {
-        Row:           { id: string; supplier_id: string; status: 'draft' | 'sent' | 'received' | 'cancelled'; order_date: string; expected_date: string | null; notes: string | null; created_at: string; updated_at: string; created_by: string | null }
-        Insert:        { id?: string; supplier_id: string; status?: 'draft' | 'sent' | 'received' | 'cancelled'; order_date?: string; expected_date?: string | null; notes?: string | null; created_at?: string; updated_at?: string; created_by?: string | null }
-        Update:        Partial<Database['public']['Tables']['purchase_orders']['Insert']>
+      company_profile: {
+        Row: {
+          address: string | null
+          alert_threshold: number | null
+          email: string | null
+          id: number
+          logo_url: string | null
+          name: string | null
+          order_text_template: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          alert_threshold?: number | null
+          email?: string | null
+          id?: number
+          logo_url?: string | null
+          name?: string | null
+          order_text_template?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          alert_threshold?: number | null
+          email?: string | null
+          id?: number
+          logo_url?: string | null
+          name?: string | null
+          order_text_template?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
         Relationships: []
       }
-      purchase_order_items: {
-        Row:           { id: string; purchase_order_id: string; product_id: string; quantity: number; unit_price: number | null; notes: string | null }
-        Insert:        { id?: string; purchase_order_id: string; product_id: string; quantity: number; unit_price?: number | null; notes?: string | null }
-        Update:        Partial<Database['public']['Tables']['purchase_order_items']['Insert']>
+      glasses: {
+        Row: {
+          bottle_ml: number | null
+          created_at: string
+          id: string
+          is_available: boolean
+          notes: string | null
+          opened_at: string
+          product_id: string
+          selling_price: number | null
+          serving_ml: number
+          updated_at: string
+        }
+        Insert: {
+          bottle_ml?: number | null
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
+          opened_at?: string
+          product_id: string
+          selling_price?: number | null
+          serving_ml: number
+          updated_at?: string
+        }
+        Update: {
+          bottle_ml?: number | null
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          notes?: string | null
+          opened_at?: string
+          product_id?: string
+          selling_price?: number | null
+          serving_ml?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "glasses_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_batches: {
+        Row: {
+          cost_price: number
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string | null
+          quantity_in: number
+          quantity_rem: number
+          received_at: string
+        }
+        Insert: {
+          cost_price: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity_in: number
+          quantity_rem: number
+          received_at?: string
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity_in?: number
+          quantity_rem?: number
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_batches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_session_items: {
+        Row: {
+          actual_quantity: number | null
+          id: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          product_name_en: string
+          session_id: string
+          system_quantity: number
+          unit: string
+        }
+        Insert: {
+          actual_quantity?: number | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          product_name_en?: string
+          session_id: string
+          system_quantity: number
+          unit?: string
+        }
+        Update: {
+          actual_quantity?: number | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          product_name_en?: string
+          session_id?: string
+          system_quantity?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_session_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_session_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_sessions: {
+        Row: {
+          approved_at: string | null
+          id: string
+          notes: string | null
+          started_at: string
+          status: string
+          submitted_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          submitted_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          id?: string
+          notes?: string | null
+          started_at?: string
+          status?: string
+          submitted_at?: string | null
+        }
         Relationships: []
       }
       inventory_settings: {
-        Row:           { id: string; interval_days: number; updated_at: string }
-        Insert:        { id?: string; interval_days: number; updated_at?: string }
-        Update:        Partial<Database['public']['Tables']['inventory_settings']['Insert']>
+        Row: {
+          id: string
+          interval_days: number
+          next_inventory_date: string | null
+          schedule_type: string
+          schedule_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          interval_days?: number
+          next_inventory_date?: string | null
+          schedule_type?: string
+          schedule_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          interval_days?: number
+          next_inventory_date?: string | null
+          schedule_type?: string
+          schedule_value?: number | null
+          updated_at?: string
+        }
         Relationships: []
       }
-      inventory_sessions: {
-        Row:           { id: string; status: 'in_progress' | 'submitted' | 'approved'; started_at: string; submitted_at: string | null; approved_at: string | null; notes: string | null }
-        Insert:        { id?: string; status?: 'in_progress' | 'submitted' | 'approved'; started_at?: string; submitted_at?: string | null; approved_at?: string | null; notes?: string | null }
-        Update:        Partial<Database['public']['Tables']['inventory_sessions']['Insert']>
+      price_alerts: {
+        Row: {
+          change_rate: number
+          created_at: string
+          id: string
+          is_read: boolean
+          new_price: number
+          previous_price: number
+          product_id: string | null
+        }
+        Insert: {
+          change_rate: number
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          new_price: number
+          previous_price: number
+          product_id?: string | null
+        }
+        Update: {
+          change_rate?: number
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          new_price?: number
+          previous_price?: number
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_alerts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_history: {
+        Row: {
+          cost_price: number
+          id: string
+          product_id: string | null
+          recorded_at: string
+        }
+        Insert: {
+          cost_price: number
+          id?: string
+          product_id?: string | null
+          recorded_at?: string
+        }
+        Update: {
+          cost_price?: number
+          id?: string
+          product_id?: string | null
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category_id: string | null
+          cost_price: number | null
+          created_at: string
+          custom_tag: string | null
+          default_supplier_id: string | null
+          display_out_of_stock: boolean
+          id: string
+          image_url: string | null
+          is_available: boolean
+          is_recommended: boolean
+          name: string
+          name_en: string
+          notes: string | null
+          selling_price: number | null
+          supplier_id: string | null
+          tags: string[]
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          cost_price?: number | null
+          created_at?: string
+          custom_tag?: string | null
+          default_supplier_id?: string | null
+          display_out_of_stock?: boolean
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          is_recommended?: boolean
+          name: string
+          name_en?: string
+          notes?: string | null
+          selling_price?: number | null
+          supplier_id?: string | null
+          tags?: string[]
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          cost_price?: number | null
+          created_at?: string
+          custom_tag?: string | null
+          default_supplier_id?: string | null
+          display_out_of_stock?: boolean
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          is_recommended?: boolean
+          name?: string
+          name_en?: string
+          notes?: string | null
+          selling_price?: number | null
+          supplier_id?: string | null
+          tags?: string[]
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_default_supplier_id_fkey"
+            columns: ["default_supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_order_items: {
+        Row: {
+          id: string
+          inspection_status: string | null
+          notes: string | null
+          product_id: string
+          purchase_order_id: string
+          quantity: number
+          received_quantity: number
+          unit_price: number | null
+        }
+        Insert: {
+          id?: string
+          inspection_status?: string | null
+          notes?: string | null
+          product_id: string
+          purchase_order_id: string
+          quantity: number
+          received_quantity?: number
+          unit_price?: number | null
+        }
+        Update: {
+          id?: string
+          inspection_status?: string | null
+          notes?: string | null
+          product_id?: string
+          purchase_order_id?: string
+          quantity?: number
+          received_quantity?: number
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expected_date: string | null
+          id: string
+          notes: string | null
+          order_date: string
+          status: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expected_date?: string | null
+          id?: string
+          notes?: string | null
+          order_date?: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expected_date?: string | null
+          id?: string
+          notes?: string | null
+          order_date?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      soft_drink_details: {
+        Row: {
+          created_at: string
+          is_mixer: boolean
+          product_id: string
+          updated_at: string
+          volume_ml: number | null
+        }
+        Insert: {
+          created_at?: string
+          is_mixer?: boolean
+          product_id: string
+          updated_at?: string
+          volume_ml?: number | null
+        }
+        Update: {
+          created_at?: string
+          is_mixer?: boolean
+          product_id?: string
+          updated_at?: string
+          volume_ml?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "soft_drink_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spirits_details: {
+        Row: {
+          age_statement: string | null
+          created_at: string
+          product_id: string
+          shot_price: number | null
+          type: string
+          updated_at: string
+          volume_ml: number | null
+        }
+        Insert: {
+          age_statement?: string | null
+          created_at?: string
+          product_id: string
+          shot_price?: number | null
+          type?: string
+          updated_at?: string
+          volume_ml?: number | null
+        }
+        Update: {
+          age_statement?: string | null
+          created_at?: string
+          product_id?: string
+          shot_price?: number | null
+          type?: string
+          updated_at?: string
+          volume_ml?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spirits_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock: {
+        Row: {
+          id: string
+          min_quantity: number
+          product_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          min_quantity?: number
+          product_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          min_quantity?: number
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_transactions: {
+        Row: {
+          cost_price: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string | null
+          quantity: number
+          type: string
+        }
+        Insert: {
+          cost_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity: number
+          type: string
+        }
+        Update: {
+          cost_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_transactions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string
+          id: string
+          name: string
+          name_en: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          name_en?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          name_en?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
         Relationships: []
       }
-      inventory_session_items: {
-        Row:           { id: string; session_id: string; product_id: string; product_name: string; product_name_en: string; unit: string; system_quantity: number; actual_quantity: number | null; notes: string | null }
-        Insert:        { id?: string; session_id: string; product_id: string; product_name: string; product_name_en?: string; unit?: string; system_quantity: number; actual_quantity?: number | null; notes?: string | null }
-        Update:        Partial<Database['public']['Tables']['inventory_session_items']['Insert']>
-        Relationships: []
+      wine_details: {
+        Row: {
+          body: string | null
+          country: string
+          created_at: string
+          description: string
+          description_en: string
+          grape_varieties: string[]
+          product_id: string
+          region: string
+          region_en: string
+          updated_at: string
+          vintage: number | null
+          wine_type: string
+        }
+        Insert: {
+          body?: string | null
+          country?: string
+          created_at?: string
+          description?: string
+          description_en?: string
+          grape_varieties?: string[]
+          product_id: string
+          region?: string
+          region_en?: string
+          updated_at?: string
+          vintage?: number | null
+          wine_type?: string
+        }
+        Update: {
+          body?: string | null
+          country?: string
+          created_at?: string
+          description?: string
+          description_en?: string
+          grape_varieties?: string[]
+          product_id?: string
+          region?: string
+          region_en?: string
+          updated_at?: string
+          vintage?: number | null
+          wine_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wine_details_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       cocktail_cost_view: {
-        Row: { cocktail_id: string; name: string; name_en: string; selling_price: number | null; total_cost: number; cost_rate_pct: number | null }
+        Row: {
+          cocktail_id: string | null
+          cost_rate_pct: number | null
+          name: string | null
+          name_en: string | null
+          selling_price: number | null
+          total_cost: number | null
+        }
         Relationships: []
       }
     }
-    Functions:      {}
-    Enums:          {}
-    CompositeTypes: {}
+    Functions: {
+      apply_inventory_session_adjustments: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
+      create_orders_from_cart: { Args: { p_cart_items: Json }; Returns: number }
+      process_stock_transaction: {
+        Args: {
+          p_cost_price?: number
+          p_notes?: string
+          p_product_id: string
+          p_quantity: number
+          p_type: string
+        }
+        Returns: number
+      }
+      receive_purchase_order: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
 
-// 便利な型エイリアス
-export type Category          = Database['public']['Tables']['categories']['Row']
-export type Supplier          = Database['public']['Tables']['suppliers']['Row']
-export type Product           = Database['public']['Tables']['products']['Row']
-export type Stock             = Database['public']['Tables']['stock']['Row']
-export type StockTransaction  = Database['public']['Tables']['stock_transactions']['Row']
-export type PriceAlert        = Database['public']['Tables']['price_alerts']['Row']
-export type Cocktail          = Database['public']['Tables']['cocktails']['Row']
-export type CocktailIngredient = Database['public']['Tables']['cocktail_ingredients']['Row']
-export type PurchaseOrder     = Database['public']['Tables']['purchase_orders']['Row']
-export type PurchaseOrderItem = Database['public']['Tables']['purchase_order_items']['Row']
-export type CocktailCostView  = Database['public']['Views']['cocktail_cost_view']['Row']
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-// 詳細テーブル型エイリアス
-export type WineDetails       = Database['public']['Tables']['wine_details']['Row']
-export type SpiritsDetails    = Database['public']['Tables']['spirits_details']['Row']
-export type SoftDrinkDetails  = Database['public']['Tables']['soft_drink_details']['Row']
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-// Insert / Update 型エイリアス
-export type ProductInsert        = Database['public']['Tables']['products']['Insert']
-export type ProductUpdate        = Database['public']['Tables']['products']['Update']
-export type WineDetailsInsert    = Database['public']['Tables']['wine_details']['Insert']
-export type WineDetailsUpdate    = Database['public']['Tables']['wine_details']['Update']
-export type SpiritsDetailsInsert = Database['public']['Tables']['spirits_details']['Insert']
-export type SpiritsDetailsUpdate = Database['public']['Tables']['spirits_details']['Update']
-export type SoftDrinkDetailsInsert = Database['public']['Tables']['soft_drink_details']['Insert']
-export type SoftDrinkDetailsUpdate = Database['public']['Tables']['soft_drink_details']['Update']
-
-// wine_details.body の定数ユニオン
-export type WineBody = 'light' | 'medium' | 'full'
-
-// 結合型
-export type ProductWithRelations = Product & {
-  categories: Pick<Category, 'name' | 'name_en'> | null
-  suppliers:  Pick<Supplier, 'name'> | null
-  stock:      Pick<Stock, 'quantity' | 'min_quantity'> | Pick<Stock, 'quantity' | 'min_quantity'>[] | null
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-export type ProductWithWine = Product & {
-  wine_details: WineDetails | null
-  categories:   Pick<Category, 'name' | 'name_en'> | null
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
-export type ProductWithSpirits = Product & {
-  spirits_details: SpiritsDetails | null
-  categories:      Pick<Category, 'name' | 'name_en'> | null
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
-export type ProductWithSoftDrink = Product & {
-  soft_drink_details: SoftDrinkDetails | null
-  categories:         Pick<Category, 'name' | 'name_en'> | null
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
-/** カテゴリに応じた詳細を含む汎用結合型（いずれか 1 つが非 null になる） */
-export type ProductWithDetails = Product & {
-  categories:         Pick<Category, 'name' | 'name_en'> | null
-  suppliers:          Pick<Supplier, 'name'> | null
-  wine_details:       WineDetails | null
-  spirits_details:    SpiritsDetails | null
-  soft_drink_details: SoftDrinkDetails | null
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
-export type PurchaseOrderWithDetails = PurchaseOrder & {
-  suppliers: Supplier
-  purchase_order_items: (PurchaseOrderItem & { products: Product })[]
-}
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
