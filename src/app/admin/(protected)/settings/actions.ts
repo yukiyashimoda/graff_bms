@@ -125,31 +125,34 @@ export async function saveOrderTextTemplate(template: string): Promise<{ error?:
 
 export async function getNextInventoryDate(): Promise<string | null> {
   const supabase = await createServiceClient()
-  const { data } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
     .from('inventory_settings')
     .select('next_inventory_date')
     .limit(1)
     .maybeSingle()
-  return data?.next_inventory_date ?? null
+  return (data?.next_inventory_date as string | null) ?? null
 }
 
 export async function saveNextInventoryDate(date: string | null): Promise<{ error?: string }> {
   try {
     const supabase = await createServiceClient()
-    const { data: existing } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = supabase as any
+    const { data: existing } = await sb
       .from('inventory_settings')
       .select('id')
       .limit(1)
       .maybeSingle()
 
     if (existing) {
-      const { error } = await supabase
+      const { error } = await sb
         .from('inventory_settings')
         .update({ next_inventory_date: date })
         .eq('id', existing.id)
       if (error) return { error: error.message }
     } else {
-      const { error } = await supabase
+      const { error } = await sb
         .from('inventory_settings')
         .insert({ next_inventory_date: date })
       if (error) return { error: error.message }
