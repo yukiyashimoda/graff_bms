@@ -10,8 +10,13 @@ import {
   RiArchiveFill,
   RiCheckFill,
   RiCloseFill,
+  RiFileListFill,
+  RiShoppingCart2Fill,
+  RiArrowDownSLine,
 } from 'react-icons/ri'
 import { recordStockTransaction, batchStockTransactions } from '@/app/admin/(protected)/stock/actions'
+import { createOrdersFromCart } from '@/app/admin/(protected)/orders/actions'
+import { getCategoryStyle } from '@/lib/categoryColor'
 
 export type BatchInfo = {
   cost_price:   number
@@ -27,6 +32,7 @@ export type StockItem = {
   category_name: string | null
   image_url:     string | null
   cost_price:    number | null
+  supplier_id:   string | null
   quantity:      number
   min_quantity:  number
   batches:       BatchInfo[]
@@ -46,8 +52,14 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
   const [query,      setQuery]      = useState('')
   const [lowOnly,    setLowOnly]    = useState(false)
   const [catFilter,  setCat]        = useState<string | null>(null)
-  const [showList,   setShowList]   = useState(false)
-  const [priceModal, setPriceModal] = useState<PriceModal | null>(null)
+  const [showList,        setShowList]        = useState(false)
+  const [priceModal,      setPriceModal]      = useState<PriceModal | null>(null)
+  const [orderDone,       setOrderDone]       = useState(false)
+  const [orderError,      setOrderError]      = useState<string | null>(null)
+  const [orderSaving,     setOrderSaving]     = useState(false)
+  const [deliveryModal,   setDeliveryModal]   = useState(false)
+  const [deliveryDate,    setDeliveryDate]    = useState('')
+  const [pendingCartItems, setPendingCartItems] = useState<{product_id:string;supplier_id:string|null;quantity:number;unit_price:number|null}[]>([])
 
   const [isPending, startTransition] = useTransition()
   const [optimisticItems, applyOptimistic] = useOptimistic(
@@ -100,14 +112,6 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
     setPriceModal(item)
   }, [])
 
-  const handleCatClick = useCallback((cat: string | null) => {
-    if (cat === null) {
-      setCat(null)
-    } else {
-      setCat(prev => prev === cat ? null : cat)
-    }
-  }, [])
-
   // ────────────────────────────────────────────────────────────────────────────
 
   const pendingIds   = Object.keys(deltas)
@@ -148,6 +152,48 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
     })
   }
 
+  function handleAddToOrderList() {
+    const cartItems = pendingIds
+      .filter(id => (deltas[id] ?? 0) > 0)
+      .map(id => {
+        const item = items.find(i => i.id === id)!
+        return {
+          product_id:  id,
+          supplier_id: item.supplier_id,
+          quantity:    deltas[id],
+          unit_price:  item.cost_price,
+        }
+      })
+    if (cartItems.length === 0) return
+    setPendingCartItems(cartItems)
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    setDeliveryDate(tomorrow.toISOString().slice(0, 10))
+    setShowList(false)
+    setDeliveryModal(true)
+  }
+
+  async function submitOrderWithDate(_date: string | null) {
+    setDeliveryModal(false)
+    setOrderSaving(true)
+    setOrderError(null)
+    try {
+      await createOrdersFromCart(pendingCartItems.map(c => ({ ...c, supplier_id: c.supplier_id ?? '' })))
+      setDeltas(prev => {
+        const next = { ...prev }
+        pendingCartItems.forEach(c => { delete next[c.product_id] })
+        return next
+      })
+      setPendingCartItems([])
+      setOrderDone(true)
+      setTimeout(() => setOrderDone(false), 3000)
+    } catch (e) {
+      setOrderError(e instanceof Error ? e.message : '発注リストへの追加に失敗しました')
+    } finally {
+      setOrderSaving(false)
+    }
+  }
+
   const lowCount = optimisticItems.filter(i => (i.quantity + (deltas[i.id] ?? 0)) < i.min_quantity).length
 
   const filtered = useMemo(() => {
@@ -167,35 +213,45 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
   return (
     <>
       {/* ツールバー */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div
-          className="flex items-center gap-2 px-3 h-10 rounded-xl flex-1 min-w-40"
-          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-        >
-          <RiSearchLine size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="商品名・カテゴリで検索..."
-            className="flex-1 text-sm bg-transparent outline-none"
-            style={{ color: 'var(--text-primary)' }}
-          />
+      <div className="flex flex-col sm:flex-row gap-2">
+        {/* 検索 + カテゴリドロップダウン */}
+        <div className="flex flex-col sm:flex-row gap-2 flex-1">
+          <div className="relative flex-1">
+            <RiSearchLine size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="商品名・カテゴリで検索..."
+              className="w-full appearance-none rounded-xl text-sm outline-none"
+              style={{ background: 'var(--bg-surface)', color: 'var(--text-primary)', border: '1px solid var(--border)', height: '40px', paddingLeft: '32px', paddingRight: '12px', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {categories.length > 0 && (
+            <div className="relative sm:w-44">
+              <select
+                value={catFilter ?? ''}
+                onChange={e => setCat(e.target.value || null)}
+                className="w-full appearance-none pl-3 pr-8 rounded-xl text-sm outline-none cursor-pointer"
+                style={{ background: 'var(--bg-surface)', color: catFilter ? 'var(--text-primary)' : 'var(--text-secondary)', border: '1px solid var(--border)', height: '40px' }}
+              >
+                <option value="" style={{ background: '#0c141c', color: '#e7eef9' }}>すべてのカテゴリ</option>
+                {categories.map(c => (
+                  <option key={c} value={c} style={{ background: '#0c141c', color: '#e7eef9' }}>{c}</option>
+                ))}
+              </select>
+              <RiArrowDownSLine size={14} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+            </div>
+          )}
         </div>
 
-        {/* カテゴリフィルター */}
-        <div className="flex gap-2 flex-wrap">
-          <CatBtn label="すべて" active={catFilter === null} cat={null} onCatClick={handleCatClick} />
-          {categories.map(c => (
-            <CatBtn key={c} label={c} active={catFilter === c} cat={c} onCatClick={handleCatClick} />
-          ))}
-        </div>
-
+        {/* 在庫不足のみ（独立） */}
         <button
           onClick={() => setLowOnly(v => !v)}
-          className="flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-medium transition-all"
+          className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-medium transition-all"
           style={{
-            background: lowOnly ? 'var(--bg-dark)' : 'var(--bg-surface)',
-            color:      lowOnly ? 'var(--text-invert)' : 'var(--text-secondary)',
+            background: lowOnly ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+            color:      lowOnly ? '#81ecff' : 'var(--text-secondary)',
             border:     lowOnly ? 'none' : '1px solid var(--border)',
           }}
         >
@@ -204,7 +260,7 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
           {lowCount > 0 && (
             <span
               className="ml-0.5 text-[11px] px-1.5 py-0.5 rounded-full font-semibold"
-              style={{ background: lowOnly ? 'rgba(255,255,255,0.2)' : 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              style={{ background: lowOnly ? 'rgba(255,255,255,0.2)' : 'rgba(129,236,255,0.12)', color: '#81ecff' }}
             >
               {lowCount}
             </span>
@@ -235,47 +291,36 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
               delta={deltas[item.id] ?? 0}
               onAdjust={handleAdjust}
               onReset={handleReset}
-              onOpenPriceModal={handleOpenPriceModal}
             />
           ))}
         </div>
       )}
 
-      {/* 変更確認バー */}
+      {/* カート FAB */}
       {pendingCount > 0 && (
-        <div
-          className="fixed bottom-6 right-8 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl"
+        <button
+          onClick={() => setShowList(true)}
+          className="fixed bottom-24 right-5 lg:bottom-8 lg:right-8 z-40 flex items-center gap-2 pl-4 pr-5 rounded-full active:scale-95 transition-transform"
           style={{
-            background: 'var(--bg-dark)',
-            color:      'var(--text-invert)',
-            boxShadow:  '0 8px 32px rgba(0,0,0,0.3)',
+            height:     '56px',
+            background: 'rgba(17,17,17,0.55)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border:     '1px solid rgba(129,236,255,0.35)',
+            boxShadow:  '0 0 20px rgba(129,236,255,0.2), 0 8px 32px rgba(0,0,0,0.4)',
+            color:      '#81ecff',
           }}
         >
-          <button
-            onClick={() => setShowList(true)}
-            className="text-sm font-medium opacity-80 hover:opacity-100 transition-opacity underline underline-offset-2"
+          <RiShoppingCart2Fill size={22} />
+          <span
+            className="text-sm font-bold tabular-nums"
+            style={{ fontFamily: 'var(--font-jetbrains-mono, monospace)', letterSpacing: '0.02em' }}
           >
-            {pendingCount} 品目を変更中
-          </button>
-          <button
-            onClick={() => setDeltas({})}
-            className="text-xs opacity-50 hover:opacity-90 transition-opacity"
-          >
-            リセット
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isPending}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'rgba(255,255,255,0.15)' }}
-          >
-            <RiCheckFill size={14} />
-            {isPending ? '保存中...' : '在庫を更新する'}
-          </button>
-        </div>
+            {pendingCount}
+          </span>
+        </button>
       )}
 
-      {/* 変更内容モーダル */}
       {/* 価格改定モーダル */}
       {priceModal && (
         <PriceModalDialog
@@ -288,6 +333,73 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
         />
       )}
 
+      {/* 納品希望日モーダル */}
+      {deliveryModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)' }}
+          onClick={() => { setDeliveryModal(false); setShowList(true) }}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+              <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>納品希望日</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>発注書に印刷されます</p>
+            </div>
+
+            <div className="px-5 py-5">
+              <input
+                type="date"
+                value={deliveryDate}
+                onChange={e => setDeliveryDate(e.target.value)}
+                className="w-full px-3 rounded-xl text-sm outline-none tabular-nums"
+                style={{
+                  background: 'var(--bg-base)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                  height: '44px',
+                  colorScheme: 'dark',
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 px-5 pb-5">
+              <button
+                onClick={() => submitOrderWithDate(deliveryDate || null)}
+                disabled={orderSaving}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
+              >
+                <RiCheckFill size={14} />
+                {orderSaving ? '追加中...' : '発注リストに追加'}
+              </button>
+              <button
+                onClick={() => submitOrderWithDate(null)}
+                disabled={orderSaving}
+                className="w-full py-2.5 rounded-xl text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                日付を指定せずに追加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {orderDone && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
+          style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
+        >
+          <RiCheckFill size={15} />
+          発注リストに追加しました
+        </div>
+      )}
+
+      {/* 変更内容モーダル */}
       {showList && (
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
@@ -315,32 +427,51 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
               </button>
             </div>
 
-            <div className="divide-y" style={{ maxHeight: '60vh', overflowY: 'auto', borderColor: 'var(--border)' }}>
+            <div className="flex flex-col gap-2 px-4 py-3" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
               {pendingIds.map(id => {
-                const item  = items.find(i => i.id === id)!
-                const delta = deltas[id]
+                const item   = items.find(i => i.id === id)!
+                const delta  = deltas[id]
                 const newQty = item.quantity + delta
                 return (
-                  <div key={id} className="flex items-center gap-3 px-5 py-3.5">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {item.name}
-                      </p>
-                      {item.category_name && (
-                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.category_name}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 tabular-nums text-sm shrink-0">
-                      <span style={{ color: 'var(--text-muted)' }}>{item.quantity}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>→</span>
-                      <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{newQty}</span>
-                      <span
-                        className="text-xs font-bold w-10 text-right"
-                        style={{ color: delta > 0 ? '#22c55e' : '#f87171' }}
+                  <div
+                    key={id}
+                    className="flex flex-col gap-1.5 px-4 py-3 rounded-xl"
+                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+                  >
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      {item.name}
+                    </p>
+                    <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {item.category_name ?? '—'}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center tabular-nums text-xs flex-1 min-w-0">
+                        <span style={{ color: 'var(--text-muted)' }}>{item.quantity}</span>
+                        <span className="mx-1" style={{ color: 'var(--text-muted)' }}>→</span>
+                        <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{newQty}</span>
+                        <span
+                          className="font-bold ml-5"
+                          style={{ color: delta > 0 ? 'var(--success)' : 'var(--danger)' }}
+                        >
+                          {delta > 0 ? `+${delta}` : delta}
+                        </span>
+                        <span className="ml-0.5" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>
+                        {item.cost_price != null && (
+                          <span className="ml-4" style={{ color: 'var(--text-muted)' }}>
+                            ¥{item.cost_price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowList(false)
+                          handleOpenPriceModal({ id: item.id, name: item.name, unit: item.unit, cost_price: item.cost_price })
+                        }}
+                        className="btn-inline flex-shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-70"
+                        style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                       >
-                        {delta > 0 ? `+${delta}` : delta}
-                      </span>
-                      <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>
+                        価格改定
+                      </button>
                     </div>
                   </div>
                 )
@@ -348,24 +479,38 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
             </div>
 
             <div
-              className="flex gap-3 px-5 py-4"
+              className="px-5 py-4 space-y-2"
               style={{ borderTop: '1px solid var(--border)' }}
             >
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setShowList(false); handleSave() }}
+                  disabled={isPending}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
+                >
+                  <RiCheckFill size={14} />
+                  {isPending ? '保存中...' : '在庫を更新する'}
+                </button>
+                <button
+                  onClick={handleAddToOrderList}
+                  disabled={orderSaving || pendingIds.every(id => (deltas[id] ?? 0) <= 0)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                >
+                  <RiFileListFill size={14} />
+                  {orderSaving ? '追加中...' : '発注リストに追加'}
+                </button>
+              </div>
+              {orderError && (
+                <p className="text-xs text-center" style={{ color: 'var(--danger)' }}>{orderError}</p>
+              )}
               <button
                 onClick={() => { setDeltas({}); setShowList(false) }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
-                style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                className="w-full py-2 text-xs rounded-xl transition-opacity hover:opacity-70"
+                style={{ color: 'var(--text-muted)' }}
               >
                 すべてリセット
-              </button>
-              <button
-                onClick={() => { setShowList(false); handleSave() }}
-                disabled={isPending}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
-              >
-                <RiCheckFill size={14} />
-                {isPending ? '保存中...' : '在庫を更新する'}
               </button>
             </div>
           </div>
@@ -377,35 +522,30 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
 
 // ─── カード ──────────────────────────────────────────────────────────────────
 
-// memo: onAdjust/onReset/onPriceIn が useCallback で固定されているため、
-// delta や item が変化しない限り再レンダリングをスキップする
 const StockCard = memo(function StockCard({
-  item, delta, onAdjust, onReset, onOpenPriceModal,
+  item, delta, onAdjust, onReset,
 }: {
-  item:               StockItem
-  delta:              number
-  onAdjust:           (id: string, amount: number) => void
-  onReset:            (id: string) => void
-  onOpenPriceModal:   (item: PriceModal) => void
+  item:     StockItem
+  delta:    number
+  onAdjust: (id: string, amount: number) => void
+  onReset:  (id: string) => void
 }) {
   const newQty   = item.quantity + delta
   const isLow    = newQty < item.min_quantity && item.min_quantity > 0
   const hasDelta = delta !== 0
-  const pct      = item.min_quantity > 0
-    ? Math.min(100, Math.round((newQty / item.min_quantity) * 100))
-    : 100
 
   return (
     <div
-      className="stock-card flex flex-col rounded-2xl overflow-hidden"
+      className="stock-card flex flex-col rounded-xl overflow-hidden"
       style={{
-        background: 'var(--bg-surface)',
+        background:     'rgba(18, 26, 34, 0.85)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         border:     hasDelta
-          ? '1.5px solid var(--bg-dark)'
+          ? '1px solid rgba(129,236,255,0.35)'
           : isLow
-            ? '1.5px solid var(--text-muted)'
-            : '1px solid var(--border)',
-        boxShadow:  'var(--shadow-sm)',
+            ? '1.5px solid rgba(255,113,108,0.5)'
+            : '1px solid rgba(129,236,255,0.1)',
       }}
     >
       <div className="px-4 pt-4 pb-3 flex flex-col gap-2.5 flex-1">
@@ -413,7 +553,7 @@ const StockCard = memo(function StockCard({
         {/* カテゴリ */}
         <div>
           {item.category_name
-            ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#102937', color: '#ededed' }}>{item.category_name}</span>
+            ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={getCategoryStyle(item.category_name)}>{item.category_name}</span>
             : <span />
           }
         </div>
@@ -433,30 +573,49 @@ const StockCard = memo(function StockCard({
           </span>
           <span className="text-[11px] pb-0.5" style={{ color: 'var(--text-muted)' }}>{item.unit}</span>
           {isLow && (
-            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full pb-0.5" style={{ background: '#d84f2a', color: '#ededed' }}>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full pb-0.5" style={{ background: 'var(--danger)', color: '#81ecff' }}>
               不足
             </span>
           )}
           {hasDelta && (
             <span
               className="ml-auto text-sm font-bold tabular-nums"
-              style={{ color: delta > 0 ? '#22c55e' : '#f87171' }}
+              style={{ color: delta > 0 ? 'var(--success)' : 'var(--danger)' }}
             >
               {delta > 0 ? `+${delta}` : delta}
             </span>
           )}
         </div>
 
-        {/* プログレスバー */}
-        <div>
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${pct}%`, background: isLow ? 'var(--bg-dark)' : 'var(--text-muted)' }}
-            />
-          </div>
-          <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>最低 {item.min_quantity} {item.unit}</p>
-        </div>
+        {/* ドットプログレスバー + 最低在庫 */}
+        {item.min_quantity > 0 && (() => {
+          const SEGMENTS = 24
+          const filled = Math.round(Math.min(SEGMENTS, Math.max(0, (newQty / item.min_quantity) * SEGMENTS)))
+          const color  = isLow ? 'var(--danger)' : '#81ecff'
+          const glow   = isLow ? '0 0 3px rgba(255,113,108,0.8)' : '0 0 3px rgba(129,236,255,0.8)'
+          return (
+            <div className="space-y-1">
+              <div className="flex gap-[2px] items-center">
+                {Array.from({ length: SEGMENTS }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      flex:        1,
+                      aspectRatio: '1 / 1',
+                      borderRadius:'1px',
+                      background:  i < filled ? color : 'rgba(255,255,255,0.07)',
+                      boxShadow:   i < filled ? glow : 'none',
+                      transition:  'background 0.2s, box-shadow 0.2s',
+                    }}
+                  />
+                ))}
+              </div>
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                最低 {item.min_quantity} {item.unit}
+              </p>
+            </div>
+          )
+        })()}
 
         {/* ロット別在庫 / 仕入れ値 */}
         {item.batches.length > 0 ? (
@@ -473,29 +632,19 @@ const StockCard = memo(function StockCard({
           </p>
         ) : null}
 
-        {/* 価格改定ボタン */}
-        <div className="flex justify-end mt-auto pt-1">
-          <button
-            onClick={() => onOpenPriceModal({ id: item.id, name: item.name, unit: item.unit, cost_price: item.cost_price })}
-            className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-opacity hover:opacity-70"
-            style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-          >
-            価格改定
-          </button>
-        </div>
       </div>
 
       {/* ±ボタン */}
       <div
         className="grid border-t"
         style={{
-          borderColor:         'var(--border)',
+          borderColor:         'rgba(129,236,255,0.12)',
           gridTemplateColumns: hasDelta ? '1fr auto 1fr' : '1fr 1fr',
         }}
       >
         <button
           onClick={() => onAdjust(item.id, -1)}
-          className="flex items-center justify-center py-3 transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)] active:scale-95"
+          className="flex items-center justify-center py-3 transition-all hover:bg-[rgba(129,236,255,0.12)] hover:text-[#81ecff] active:scale-95"
           style={{ color: 'var(--text-secondary)', borderRight: '1px solid var(--border)' }}
         >
           <RiSubtractFill size={15} />
@@ -513,7 +662,7 @@ const StockCard = memo(function StockCard({
 
         <button
           onClick={() => onAdjust(item.id, 1)}
-          className="flex items-center justify-center py-3 transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)] active:scale-95"
+          className="flex items-center justify-center py-3 transition-all hover:bg-[rgba(129,236,255,0.12)] hover:text-[#81ecff] active:scale-95"
           style={{ color: 'var(--text-secondary)' }}
         >
           <RiAddFill size={15} />
@@ -638,7 +787,7 @@ function PriceModalDialog({
             </div>
           </div>
 
-          {error && <p className="text-xs" style={{ color: '#d84f2a' }}>{error}</p>}
+          {error && <p className="text-xs" style={{ color: 'var(--danger)' }}>{error}</p>}
         </div>
 
         {/* フッター */}
@@ -654,7 +803,7 @@ function PriceModalDialog({
             onClick={handleSubmit}
             disabled={saving}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
           >
             <RiCheckFill size={14} />
             {saving ? '保存中...' : '入庫・改定'}
@@ -664,29 +813,3 @@ function PriceModalDialog({
     </div>
   )
 }
-
-// ─── カテゴリフィルターボタン ─────────────────────────────────────────────────
-
-// memo: onCatClick が useCallback で固定されているため、active が変化しない限り再レンダリングをスキップ
-const CatBtn = memo(function CatBtn({
-  label, active, cat, onCatClick,
-}: {
-  label:      string
-  active:     boolean
-  cat:        string | null
-  onCatClick: (cat: string | null) => void
-}) {
-  return (
-    <button
-      onClick={() => onCatClick(cat)}
-      className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
-      style={{
-        background: active ? 'var(--bg-dark)' : 'var(--bg-surface)',
-        color:      active ? 'var(--text-invert)' : 'var(--text-secondary)',
-        border:     active ? 'none' : '1px solid var(--border)',
-      }}
-    >
-      {label}
-    </button>
-  )
-})

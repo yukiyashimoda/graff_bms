@@ -89,16 +89,16 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 const STATUS_STYLE: Record<OrderStatus, React.CSSProperties> = {
   draft:     { background: 'var(--bg-base)',  color: 'var(--text-secondary)', border: '1px solid var(--border)' },
   sent:      { background: 'var(--bg-base)',  color: 'var(--text-primary)',   border: '1px solid var(--border)' },
-  received:  { background: 'var(--bg-dark)',  color: 'var(--text-invert)' },
+  received:  { background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' },
   cancelled: { background: 'var(--bg-base)',  color: 'var(--text-muted)',     border: '1px solid var(--border)' },
 }
 
 // ─── 検品ボタン定義 ───────────────────────────────────────────
 const INSP_BTNS = [
-  { key: 'arrived',       label: '到着',     active: { background: '#22c55e', color: '#fff', border: '1px solid #16a34a' } },
-  { key: 'partial',       label: '一部到着', active: { background: '#ef4444', color: '#fff', border: '1px solid #dc2626' } },
-  { key: 'missing',       label: '終売',     active: { background: '#6b7280', color: '#fff', border: '1px solid #4b5563' } },
-  { key: 'price_changed', label: '価格改定', active: { background: '#8b5cf6', color: '#fff', border: '1px solid #7c3aed' } },
+  { key: 'arrived',       label: '受領',     active: { background: 'var(--success)', color: '#fff', border: '1px solid var(--success)' } },
+  { key: 'partial',       label: '一部到着', active: { background: 'var(--danger)',  color: '#fff', border: '1px solid var(--danger)'  } },
+  { key: 'missing',       label: '終売',     active: { background: '#6b7280',        color: '#fff', border: '1px solid #4b5563'        } },
+  { key: 'price_changed', label: '価格改定', active: { background: '#8b5cf6',        color: '#fff', border: '1px solid #7c3aed'        } },
 ] as const
 
 const idle: React.CSSProperties = {
@@ -292,7 +292,7 @@ export function OrdersPageClient({
   // ─── タブ ─────────────────────────────────────────────────
   const TABS: { key: Tab; label: string }[] = [
     { key: 'order',     label: '発注書作成' },
-    { key: 'history',   label: '検品' },
+    { key: 'history',   label: '発注リスト' },
     { key: 'suppliers', label: '発注先一覧' },
   ]
 
@@ -302,10 +302,10 @@ export function OrdersPageClient({
       {/* ─── ヘッダー + タブ（PC） ─── */}
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注/検品</h1>
+          <h1 className="text-2xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-bitcount, system-ui)' }}>ORDERS</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
             {tab === 'order'     && '発注する商品を選んで発注書を作成'}
-            {tab === 'history'   && `発注書 ${orders.length} 件`}
+            {tab === 'history'   && `発注 ${orders.length} 件`}
             {tab === 'suppliers' && `発注先 ${suppliers.length} 件`}
           </p>
         </div>
@@ -319,8 +319,8 @@ export function OrdersPageClient({
               onClick={() => setTab(t.key)}
               className="px-4 py-2 text-sm font-medium transition-all"
               style={{
-                background: tab === t.key ? 'var(--bg-dark)' : 'transparent',
-                color:      tab === t.key ? 'var(--text-invert)' : 'var(--text-secondary)',
+                background: tab === t.key ? 'rgba(129,236,255,0.12)' : 'transparent',
+                color:      tab === t.key ? '#81ecff' : 'var(--text-secondary)',
               }}
             >
               {t.label}
@@ -340,8 +340,8 @@ export function OrdersPageClient({
             onClick={() => setTab(t.key)}
             className="flex-1 px-4 py-2 text-sm font-medium transition-all"
             style={{
-              background: tab === t.key ? 'var(--bg-dark)' : 'transparent',
-              color:      tab === t.key ? 'var(--text-invert)' : 'var(--text-secondary)',
+              background: tab === t.key ? 'rgba(129,236,255,0.12)' : 'transparent',
+              color:      tab === t.key ? '#81ecff' : 'var(--text-secondary)',
             }}
           >
             {t.label}
@@ -352,189 +352,197 @@ export function OrdersPageClient({
       {/* ─── 発注書作成 ─── */}
       {tab === 'order' && <OrderCart items={cartItems} />}
 
-      {/* ─── 検品 ─── */}
+      {/* ─── 発注リスト ─── */}
       {tab === 'history' && (
-        orders.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center py-24 rounded-2xl gap-3"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-          >
-            <RiFileListLine size={28} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>発注履歴がありません</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {orders.map(order => (
-              <div
-                key={order.id}
-                className="rounded-2xl overflow-hidden relative"
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-              >
-                {/* 削除ボタン（下書きのみ・右上絶対配置） */}
-                {order.status === 'draft' && (
-                  <button
-                    onClick={() => handleDelete(order.id)}
-                    className="absolute top-3 right-3 p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
-                    style={{ color: 'var(--text-muted)' }}
-                    title="削除"
-                  >
-                    <RiDeleteBinFill size={14} />
-                  </button>
-                )}
-
-                {/* オーダーヘッダー */}
-                <div
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 pr-10"
-                  style={{ borderBottom: '1px solid var(--border)' }}
+        <div className="space-y-3">
+          <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            商品到着時はこちらから検品してください
+          </p>
+          {orders.length === 0 ? (
+            <div
+              className="flex flex-col items-center justify-center py-24 rounded-2xl gap-3"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+            >
+              <RiFileListLine size={28} style={{ color: 'var(--text-muted)' }} />
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>発注履歴がありません</p>
+            </div>
+          ) : orders.map(order => (
+            <div
+              key={order.id}
+              className="rounded-2xl overflow-hidden relative"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+            >
+              {/* 削除ボタン（下書きのみ・右上絶対配置） */}
+              {order.status === 'draft' && (
+                <button
+                  onClick={() => handleDelete(order.id)}
+                  className="absolute top-3 right-3 p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
+                  style={{ color: 'var(--text-muted)' }}
+                  title="削除"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                        {order.supplier_name ?? '発注先不明'}
-                      </p>
-                      <p className="text-[10px] font-mono mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        #{order.id.slice(-8).toUpperCase()}
-                      </p>
-                    </div>
-                    {order.status !== 'draft' && (
-                      <span
-                        className="flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium"
-                        style={STATUS_STYLE[order.status]}
-                      >
-                        {STATUS_LABEL[order.status]}
-                      </span>
-                    )}
-                  </div>
+                  <RiDeleteBinFill size={14} />
+                </button>
+              )}
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                      {order.order_date}
-                    </span>
-                    {order.expected_date && (
-                      <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                        → {order.expected_date}
-                      </span>
-                    )}
-                    <div className="flex items-center gap-2 ml-2">
-                      {/* テキスト生成 */}
-                      <button
-                        onClick={() => handleOpenTextModal(order)}
-                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:opacity-80"
-                        style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-                      >
-                        <RiFileCopyLine size={13} />
-                        テキスト生成
-                      </button>
-                      {/* 発注書 */}
-                      <a
-                        href={`/admin/orders/${order.id}/print`}
-                        target="_blank"
-                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:opacity-80"
-                        style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)', textDecoration: 'none' }}
-                      >
-                        <RiPrinterFill size={13} />
-                        発注書
-                      </a>
-                    </div>
+              {/* オーダーヘッダー */}
+              <div
+                className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 pr-10"
+                style={{ borderBottom: '1px solid var(--border)' }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      {order.supplier_name ?? '発注先不明'}
+                    </p>
+                    <p className="text-[10px] font-mono mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      #{order.id.slice(-8).toUpperCase()}
+                    </p>
                   </div>
+                  {order.status !== 'draft' && (
+                    <span
+                      className="flex-shrink-0 px-2 py-0.5 rounded-md text-xs font-medium"
+                      style={STATUS_STYLE[order.status]}
+                    >
+                      {STATUS_LABEL[order.status]}
+                    </span>
+                  )}
                 </div>
 
-                {/* 品目リスト */}
-                <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
-                  {order.items.map(item => {
-                    const remaining  = item.quantity - item.received_quantity
-                    const isArrived  = item.inspection_status === 'arrived'
-                    const hasPartial = item.inspection_status === 'partial' || item.inspection_status === 'missing'
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                    {order.order_date}
+                  </span>
+                  <div className="flex items-center gap-2 ml-2">
+                    <button
+                      onClick={() => handleOpenTextModal(order)}
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-white/5 active:bg-white/10"
+                      style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                    >
+                      <RiFileCopyLine size={13} />
+                      テキスト
+                    </button>
+                    <a
+                      href={`/admin/orders/${order.id}/print`}
+                      target="_blank"
+                      className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors hover:bg-white/5 active:bg-white/10"
+                      style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border)', textDecoration: 'none' }}
+                    >
+                      <RiPrinterFill size={13} />
+                      発注書
+                    </a>
+                  </div>
+                </div>
+              </div>
 
-                    return (
-                      <div key={item.id} className="flex items-center gap-4 px-5 py-4">
+              {/* 品目リスト */}
+              <div className="flex flex-col gap-2 px-4 py-3">
+                {order.items.map(item => {
+                  const remaining  = item.quantity - item.received_quantity
+                  const isArrived  = item.inspection_status === 'arrived'
 
-                        {/* 左: 本数 / 残本数 */}
-                        <div className="flex-shrink-0 w-14 text-center">
-                          {isArrived ? (
-                            <>
-                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: '#22c55e' }}>
-                                {item.quantity}
-                              </p>
-                              <p className="text-[10px] mt-0.5 font-medium" style={{ color: '#22c55e' }}>完了</p>
-                            </>
-                          ) : item.inspection_status === 'missing' ? (
-                            <>
-                              <p className="text-lg font-bold leading-none" style={{ color: '#6b7280' }}>終売</p>
-                            </>
-                          ) : item.inspection_status === 'partial' ? (
-                            <>
-                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: '#ef4444' }}>
-                                {remaining}
-                              </p>
-                              <p className="text-[10px] mt-0.5" style={{ color: '#ef4444' }}>残 {item.product_unit}</p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>
-                                {item.quantity}
-                              </p>
-                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{item.product_unit}</p>
-                            </>
-                          )}
-                        </div>
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-4 px-4 py-3 rounded-xl"
+                      style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+                    >
 
-                        {/* 右: 3段 */}
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          {/* 1段目: 商品名 */}
-                          <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                            {item.product_name}
-                          </p>
+                      {/* 左: 本数 / 残本数 */}
+                      <div className="flex-shrink-0 w-14 text-center">
+                        {isArrived ? (
+                          <>
+                            <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: 'var(--success)' }}>
+                              {item.quantity}
+                            </p>
+                            <p className="text-[10px] mt-0.5 font-medium" style={{ color: 'var(--success)' }}>完了</p>
+                          </>
+                        ) : item.inspection_status === 'missing' ? (
+                          <>
+                            <p className="text-lg font-bold leading-none" style={{ color: '#6b7280' }}>終売</p>
+                          </>
+                        ) : item.inspection_status === 'partial' ? (
+                          <>
+                            <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: 'var(--danger)' }}>
+                              {remaining}
+                            </p>
+                            <p className="text-[10px] mt-0.5" style={{ color: 'var(--danger)' }}>残 {item.product_unit}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-2xl font-bold tabular-nums leading-none" style={{ color: 'var(--text-primary)' }}>
+                              {item.quantity}
+                            </p>
+                            <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{item.product_unit}</p>
+                          </>
+                        )}
+                      </div>
 
-                          {/* 2段目: 単価 */}
-                          <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                            {item.unit_price != null
-                              ? `¥${item.unit_price.toLocaleString()} / ${item.product_unit}`
-                              : '単価未設定'}
-                          </p>
+                      {/* 右: 3段 */}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        {/* 1段目: 商品名 */}
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
+                          {item.product_name}
+                        </p>
 
-                          {/* 3段目: 検品ボタン（到着完了・終売時は非表示） */}
-                          {!isArrived && item.inspection_status !== 'missing' && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {INSP_BTNS.map(btn => {
+                        {/* 2段目: 単価 */}
+                        <p className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                          {item.unit_price != null
+                            ? `¥${item.unit_price.toLocaleString()} / ${item.product_unit}`
+                            : '単価未設定'}
+                        </p>
+
+                        {/* 3段目: 検品ボタン（受領完了・終売時は非表示） */}
+                        {!isArrived && item.inspection_status !== 'missing' && (
+                          <div className="flex flex-col gap-1.5">
+                            {/* 受領ボタン（全幅・大） */}
+                            <button
+                              onClick={() => handleArrived(order, item)}
+                              className="w-full py-2 rounded-lg text-sm font-bold transition-all"
+                              style={item.inspection_status === 'arrived' ? INSP_BTNS[0].active : { ...idle, color: 'var(--success)', borderColor: 'rgba(129,236,255,0.25)' }}
+                            >
+                              受領
+                            </button>
+                            {/* 一部到着 / 終売 / 価格改定 */}
+                            <div className="flex gap-1.5">
+                              {([
+                                { key: 'partial',       label: '一部到着', onClick: () => openPartial(order, item) },
+                                { key: 'missing',       label: '終売',     onClick: () => handleMissing(order.id, item.id) },
+                                { key: 'price_changed', label: '価格改定', onClick: () => openPriceChange(order, item) },
+                              ] as const).map(btn => {
                                 const isActive = item.inspection_status === btn.key
+                                const activeStyle = INSP_BTNS.find(b => b.key === btn.key)!.active
                                 return (
                                   <button
                                     key={btn.key}
-                                    onClick={() => {
-                                      if (btn.key === 'arrived')       handleArrived(order, item)
-                                      else if (btn.key === 'partial')  openPartial(order, item)
-                                      else if (btn.key === 'missing')  handleMissing(order.id, item.id)
-                                      else if (btn.key === 'price_changed') openPriceChange(order, item)
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-                                    style={isActive ? btn.active : idle}
+                                    onClick={btn.onClick}
+                                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                                    style={isActive ? activeStyle : idle}
                                   >
                                     {btn.label}
                                   </button>
                                 )
                               })}
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    )
-                  })}
-                </div>
-
-                {/* 備考 */}
-                {order.notes && (
-                  <div
-                    className="px-5 py-3 text-xs"
-                    style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border)', background: 'var(--bg-base)' }}
-                  >
-                    {order.notes}
-                  </div>
-                )}
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        )
+
+              {/* 備考 */}
+              {order.notes && (
+                <div
+                  className="px-5 py-3 text-xs"
+                  style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border)', background: 'var(--bg-base)' }}
+                >
+                  {order.notes}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
 
       {/* ─── 発注先管理 ─── */}
@@ -577,7 +585,7 @@ export function OrdersPageClient({
               <button
                 onClick={handleCopyFromModal}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
               >
                 {copiedId === 'modal'
                   ? <><RiCheckLine size={14} />コピー済み</>
@@ -639,7 +647,7 @@ export function OrdersPageClient({
                 onClick={confirmPartial}
                 disabled={!inputQty || Number(inputQty) <= 0 || Number(inputQty) > partialModal.remaining}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
               >
                 入庫する
               </button>
@@ -709,15 +717,15 @@ export function OrdersPageClient({
                 onClick={confirmPriceFull}
                 disabled={!inputPrice || Number(inputPrice) <= 0}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: '#22c55e', color: '#fff' }}
+                style={{ background: 'var(--success)', color: '#fff' }}
               >
-                到着（{priceModal.remaining}{priceModal.unit}）
+                受領（{priceModal.remaining}{priceModal.unit}）
               </button>
               <button
                 onClick={confirmPriceToPartial}
                 disabled={!inputPrice || Number(inputPrice) <= 0}
                 className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: '#f59e0b', color: '#fff' }}
+                style={{ background: 'var(--warning)', color: '#fff' }}
               >
                 一部到着
               </button>

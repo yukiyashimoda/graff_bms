@@ -33,7 +33,7 @@ const TYPE_ICON  = {
   adjustment: <RiEqualizerFill size={10} />,
 }
 const TYPE_COLOR = {
-  in:         { bg: 'var(--bg-dark)',  color: 'var(--text-invert)' },
+  in:         { bg: 'rgba(129,236,255,0.12)',  color: '#81ecff' },
   out:        { bg: 'var(--bg-base)',  color: 'var(--text-secondary)', border: '1px solid var(--border)' },
   adjustment: { bg: 'var(--bg-base)',  color: 'var(--text-muted)',     border: '1px solid var(--border)' },
 }
@@ -221,8 +221,8 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
               onClick={() => { setActiveYear(y); setActiveMonth(null); setActiveDay(null) }}
               className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all"
               style={{
-                background: y === selectedYear ? 'var(--bg-dark)' : 'var(--bg-surface)',
-                color:      y === selectedYear ? 'var(--text-invert)' : 'var(--text-secondary)',
+                background: y === selectedYear ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+                color:      y === selectedYear ? '#81ecff' : 'var(--text-secondary)',
                 border:     y === selectedYear ? 'none' : '1px solid var(--border)',
               }}
             >
@@ -240,8 +240,8 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
             onClick={() => { setActiveMonth(m); setActiveDay(null) }}
             className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all"
             style={{
-              background: m === selectedMonth ? 'var(--bg-dark)' : 'var(--bg-surface)',
-              color:      m === selectedMonth ? 'var(--text-invert)' : 'var(--text-secondary)',
+              background: m === selectedMonth ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+              color:      m === selectedMonth ? '#81ecff' : 'var(--text-secondary)',
               border:     m === selectedMonth ? 'none' : '1px solid var(--border)',
             }}
           >
@@ -257,8 +257,8 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
             onClick={() => setActiveDay(null)}
             className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
             style={{
-              background: activeDay === null ? 'var(--bg-dark)' : 'var(--bg-surface)',
-              color:      activeDay === null ? 'var(--text-invert)' : 'var(--text-secondary)',
+              background: activeDay === null ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+              color:      activeDay === null ? '#81ecff' : 'var(--text-secondary)',
               border:     activeDay === null ? 'none' : '1px solid var(--border)',
             }}
           >
@@ -270,8 +270,8 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
               onClick={() => setActiveDay(activeDay === dk ? null : dk)}
               className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
               style={{
-                background: activeDay === dk ? 'var(--bg-dark)' : 'var(--bg-surface)',
-                color:      activeDay === dk ? 'var(--text-invert)' : 'var(--text-secondary)',
+                background: activeDay === dk ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+                color:      activeDay === dk ? '#81ecff' : 'var(--text-secondary)',
                 border:     activeDay === dk ? 'none' : '1px solid var(--border)',
               }}
             >
@@ -309,8 +309,8 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
           onClick={() => setCat(null)}
           className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
           style={{
-            background: catFilter === null ? 'var(--bg-dark)' : 'var(--bg-surface)',
-            color:      catFilter === null ? 'var(--text-invert)' : 'var(--text-secondary)',
+            background: catFilter === null ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+            color:      catFilter === null ? '#81ecff' : 'var(--text-secondary)',
             border:     catFilter === null ? 'none' : '1px solid var(--border)',
           }}
         >
@@ -322,8 +322,8 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
             onClick={() => setCat(c === catFilter ? null : c)}
             className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
             style={{
-              background: catFilter === c ? 'var(--bg-dark)' : 'var(--bg-surface)',
-              color:      catFilter === c ? 'var(--text-invert)' : 'var(--text-secondary)',
+              background: catFilter === c ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+              color:      catFilter === c ? '#81ecff' : 'var(--text-secondary)',
               border:     catFilter === c ? 'none' : '1px solid var(--border)',
             }}
           >
@@ -353,8 +353,8 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
             onClick={() => setTypeFilter(typeFilter === type ? null : type)}
             className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-all"
             style={{
-              background: typeFilter === type ? 'var(--bg-dark)' : 'var(--bg-surface)',
-              color:      typeFilter === type ? 'var(--text-invert)' : 'var(--text-secondary)',
+              background: typeFilter === type ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+              color:      typeFilter === type ? '#81ecff' : 'var(--text-secondary)',
               border:     typeFilter === type ? 'none' : '1px solid var(--border)',
             }}
           >
