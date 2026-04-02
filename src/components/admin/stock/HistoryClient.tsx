@@ -429,14 +429,15 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
                   </div>
                 </div>
 
-                {/* トランザクション行 */}
-                <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                {/* トランザクションカード */}
+                <div className="flex flex-col gap-2 px-4 py-3">
                   {txs.map(t => {
                     const tc = TYPE_COLOR[t.type]
                     return (
                       <div
                         key={t.id}
-                        className="group flex items-stretch gap-3 px-4 py-3 transition-colors hover:bg-[var(--bg-base)]"
+                        className="group flex items-center gap-3 px-4 py-3 rounded-xl transition-colors"
+                        style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
                       >
                         {/* 左: 3段テキスト */}
                         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
@@ -478,13 +479,13 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
                           </div>
                         </div>
 
-                        {/* 右: 本数（3段ぶち抜き）+ 削除 */}
+                        {/* 右: 本数 + 削除 */}
                         <div className="flex flex-col items-end justify-center gap-1 shrink-0">
                           <span
                             className="text-lg font-bold tabular-nums leading-none"
                             style={{
-                              color: t.type === 'in' ? '#22c55e'
-                                   : t.type === 'out' ? '#f87171'
+                              color: t.type === 'in' ? 'var(--success)'
+                                   : t.type === 'out' ? 'var(--danger)'
                                    : 'var(--text-muted)',
                             }}
                           >
@@ -496,7 +497,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
                           </span>
                           <button
                             onClick={() => setConfirmId(t.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg transition-all hover:bg-[rgba(255,113,108,0.15)]"
                             style={{ color: 'var(--text-muted)' }}
                             title="削除"
                           >
