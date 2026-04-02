@@ -42,11 +42,10 @@ const mainNav = [
 ]
 
 const bottomNav = [
-  { href: '/admin',          label: 'Home',     icon: RiDashboardFill },
+  { href: '/admin',          label: 'Home',    icon: RiDashboardFill },
   { href: '/admin/products', label: 'Products', icon: RiArchiveFill },
   { href: '/admin/stock',    label: 'Stock',    icon: RiBarChartBoxFill },
   { href: '/admin/orders',   label: 'Orders',   icon: RiFileListFill },
-  { href: '/admin/settings', label: 'Settings', icon: RiSettings3Fill },
 ]
 
 function isActive(pathname: string, href: string) {
@@ -322,6 +321,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
           </div>
 
+          {/* 設定アイコン（モバイルのみ） */}
+          <Link
+            href="/admin/settings"
+            className="lg:hidden ml-auto p-2 rounded-lg transition-opacity hover:opacity-70"
+            style={{
+              color:  isActive(pathname, '/admin/settings') ? '#81ecff' : 'var(--text-muted)',
+              filter: isActive(pathname, '/admin/settings') ? 'drop-shadow(0 0 5px rgba(129,236,255,0.7))' : 'none',
+            }}
+          >
+            <RiSettings3Fill size={20} />
+          </Link>
+
           {/* 検索（デスクトップ） */}
           <div
             className="hidden lg:flex items-center gap-2 px-3 h-9 rounded-lg text-sm w-56"
@@ -338,7 +349,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           {/* 右側 */}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="hidden lg:flex items-center gap-2 ml-auto">
             <button
               className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(129,236,255,0.08)]"
               style={{ color: 'var(--text-secondary)' }}
