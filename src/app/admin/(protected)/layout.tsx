@@ -41,8 +41,12 @@ const mainNav = [
   { href: '/admin/settings',         label: '設定',           icon: RiSettings3Fill },
 ]
 
+function isActive(pathname: string, href: string) {
+  return href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
+}
+
 function PublicPageSection() {
-  const [open,          setOpen]          = useState(false)
+  const [open,           setOpen]          = useState(false)
   const [selectedLocale, setSelectedLocale] = useState<string | null>(null)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -51,11 +55,10 @@ function PublicPageSection() {
     <div>
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-3 px-3 py-3 lg:py-2 rounded-xl text-base lg:text-[13px] font-medium transition-all duration-150"
-        style={{ color: 'var(--text-secondary)' }}
+        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150"
+        style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-space-grotesk, system-ui)', letterSpacing: '0.05em' }}
       >
-        <RiStoreFill size={18} className="lg:hidden flex-shrink-0" />
-        <RiStoreFill size={15} className="hidden lg:block flex-shrink-0" />
+        <RiStoreFill size={15} className="flex-shrink-0" />
         <span className="flex-1 text-left">公開ページ</span>
         <RiArrowDownSLine
           size={14}
@@ -70,18 +73,18 @@ function PublicPageSection() {
       {open && (
         <div
           className="mx-2 mt-1 rounded-xl overflow-hidden"
-          style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+          style={{ background: 'rgba(28,39,49,0.6)', border: '1px solid rgba(129,236,255,0.12)' }}
         >
           {/* ロケール選択 */}
-          <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex border-b" style={{ borderColor: 'rgba(129,236,255,0.08)' }}>
             {LOCALES.map(l => (
               <button
                 key={l.code}
                 onClick={() => setSelectedLocale(l.code)}
                 className="flex-1 py-1.5 text-[11px] font-medium transition-colors"
                 style={{
-                  background: selectedLocale === l.code ? 'var(--bg-dark)' : 'transparent',
-                  color:      selectedLocale === l.code ? 'var(--text-invert)' : 'var(--text-muted)',
+                  background: selectedLocale === l.code ? 'rgba(129,236,255,0.1)' : 'transparent',
+                  color:      selectedLocale === l.code ? '#81ecff' : 'var(--text-muted)',
                 }}
               >
                 {l.label}
@@ -100,7 +103,7 @@ function PublicPageSection() {
                   value={`${origin}/${selectedLocale}`}
                   size={120}
                   bgColor="#ffffff"
-                  fgColor="#1e1e1c"
+                  fgColor="#080f16"
                   level="M"
                 />
               </div>
@@ -108,8 +111,8 @@ function PublicPageSection() {
                 href={`/${selectedLocale}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 w-full justify-center py-2 rounded-lg text-[12px] font-semibold transition-colors hover:opacity-80"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                className="flex items-center gap-1.5 w-full justify-center py-2 rounded-lg text-[12px] font-semibold transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(129,236,255,0.1)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.2)' }}
               >
                 <RiExternalLinkFill size={12} />
                 ページを開く
@@ -133,14 +136,21 @@ function NavItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 px-3 py-3 lg:py-2 rounded-xl text-base lg:text-[13px] font-medium transition-all duration-150"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-150"
       style={{
-        background: active ? 'var(--bg-dark)' : 'transparent',
-        color:      active ? 'var(--text-invert)' : 'var(--text-secondary)',
+        background:  active ? 'rgba(129, 236, 255, 0.08)' : 'transparent',
+        color:       active ? '#81ecff' : 'var(--text-secondary)',
+        border:      active ? '1px solid rgba(129, 236, 255, 0.15)' : '1px solid transparent',
+        textShadow:  active ? '0 0 8px rgba(129, 236, 255, 0.5)' : 'none',
+        fontFamily:  'var(--font-space-grotesk, system-ui)',
+        letterSpacing: '0.05em',
       }}
     >
-      <Icon size={18} className="flex-shrink-0 lg:hidden" />
-      <Icon size={15} className="flex-shrink-0 hidden lg:block" />
+      <Icon
+        size={15}
+        className="flex-shrink-0"
+        style={{ filter: active ? 'drop-shadow(0 0 4px rgba(129,236,255,0.8))' : 'none' }}
+      />
       {label}
     </Link>
   )
@@ -149,42 +159,68 @@ function NavItem({
 function SidebarContent({ pathname, onNav }: { pathname: string; onNav: () => void }) {
   return (
     <>
-      {/* スクロール可能エリア */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-1 min-h-0">
         {/* ロゴ */}
-        <div className="flex items-center gap-2 px-3 mb-5">
+        <div className="flex items-center gap-2 px-3 mb-6">
           <div
-            className="w-11 h-11 rounded-lg flex items-center justify-center text-lg"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', fontFamily: 'var(--font-silkscreen)' }}
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-base border"
+            style={{
+              background:  'rgba(129, 236, 255, 0.08)',
+              color:       '#81ecff',
+              borderColor: 'rgba(129, 236, 255, 0.2)',
+              fontFamily:  'var(--font-silkscreen)',
+              filter:      'drop-shadow(0 0 6px rgba(129,236,255,0.4))',
+            }}
           >
             g
           </div>
-          <span className="text-[18px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-silkscreen)' }}>
+          <span
+            className="text-[20px] tracking-widest uppercase"
+            style={{
+              color:      '#81ecff',
+              fontFamily: 'var(--font-silkscreen)',
+              fontWeight: 700,
+              textShadow: '0 0 8px rgba(129,236,255,0.5)',
+            }}
+          >
             graff.bms
           </span>
         </div>
 
-        {/* メインナビ */}
-        <p className="text-xs lg:text-[10px] font-semibold tracking-widest uppercase px-3 mb-1"
-           style={{ color: 'var(--text-muted)' }}>
-          メニュー
+        {/* ナビ上部ラベル */}
+        <p
+          className="text-[9px] font-semibold tracking-[0.25em] uppercase px-3 mb-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Navigation
         </p>
+
         {mainNav.map(item => (
-          <NavItem key={item.href} {...item} active={pathname === item.href} onClick={onNav} />
+          <NavItem
+            key={item.href}
+            {...item}
+            active={isActive(pathname, item.href)}
+            onClick={onNav}
+          />
         ))}
 
         {/* 公開ページ */}
         <div className="mt-4">
-          <p className="text-xs lg:text-[10px] font-semibold tracking-widest uppercase px-3 mb-1"
-             style={{ color: 'var(--text-muted)' }}>
-            公開
+          <p
+            className="text-[9px] font-semibold tracking-[0.25em] uppercase px-3 mb-1"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Public
           </p>
           <PublicPageSection />
         </div>
       </div>
 
       {/* ログアウト（常に下部固定） */}
-      <div className="flex-shrink-0 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+      <div
+        className="flex-shrink-0 pt-3"
+        style={{ borderTop: '1px solid rgba(129, 236, 255, 0.08)' }}
+      >
         <LogoutButton />
       </div>
     </>
@@ -203,7 +239,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ━━━ Sidebar (desktop) ━━━ */}
       <aside
         className="hidden lg:flex w-52 flex-shrink-0 flex-col py-5 px-3 gap-1 h-screen sticky top-0"
-        style={{ background: 'var(--bg-surface)', borderRight: '1px solid var(--border)' }}
+        style={{
+          background:     'rgba(8, 15, 22, 0.9)',
+          backdropFilter: 'blur(12px)',
+          borderRight:    '1px solid rgba(129, 236, 255, 0.1)',
+        }}
       >
         <SidebarContent pathname={pathname} onNav={() => {}} />
       </aside>
@@ -212,7 +252,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {open && (
         <div
           className="fixed inset-0 z-40 lg:hidden"
-          style={{ background: 'rgba(0,0,0,0.45)' }}
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
           onClick={close}
         />
       )}
@@ -223,12 +263,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           lg:hidden
           ${open ? 'translate-x-0' : '-translate-x-full'}
         `}
-        style={{ background: 'var(--bg-surface)', borderRight: '1px solid var(--border)' }}
+        style={{
+          background:  'rgba(8, 15, 22, 0.97)',
+          borderRight: '1px solid rgba(129, 236, 255, 0.12)',
+        }}
       >
         {/* 閉じるボタン */}
         <button
           onClick={close}
-          className="absolute top-4 right-4 p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-base)]"
+          className="absolute top-4 right-4 p-1.5 rounded-lg transition-colors hover:bg-[rgba(129,236,255,0.08)]"
           style={{ color: 'var(--text-muted)' }}
         >
           <RiCloseFill size={18} />
@@ -241,43 +284,66 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* トップバー */}
         <header
-          className="h-14 flex items-center justify-between px-4 lg:px-6 gap-3 sticky top-0 z-30"
-          style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)' }}
+          className="h-16 flex items-center justify-between px-4 lg:px-6 gap-3 sticky top-0 z-30"
+          style={{
+            background:          'rgba(8, 15, 22, 0.45)',
+            backdropFilter:      'blur(28px)',
+            WebkitBackdropFilter: 'blur(28px)',
+            boxShadow:           '0 2px 40px rgba(0, 0, 0, 0.25)',
+          }}
         >
           {/* ハンバーガー＋ロゴ（モバイルのみ） */}
           <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setOpen(true)}
-              className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-base)]"
+              className="p-2 rounded-lg transition-colors hover:bg-[rgba(129,236,255,0.08)]"
               style={{ color: 'var(--text-secondary)' }}
             >
               <RiMenuFill size={18} />
             </button>
-            <span className="text-[17px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-silkscreen)' }}>
+            <span
+              className="text-[20px]"
+              style={{
+                color:      '#81ecff',
+                fontFamily: 'var(--font-silkscreen)',
+                fontWeight: 700,
+                textShadow: '0 0 8px rgba(129,236,255,0.5)',
+              }}
+            >
               graff.bms
             </span>
           </div>
 
-          {/* 検索 */}
+          {/* 検索（デスクトップ） */}
           <div
-            className="hidden sm:flex items-center gap-2 px-3 h-9 rounded-xl text-sm w-56"
-            style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}
+            className="hidden lg:flex items-center gap-2 px-3 h-9 rounded-lg text-sm w-56"
+            style={{
+              background: 'rgba(28, 39, 49, 0.4)',
+              border:     '1px solid rgba(129, 236, 255, 0.1)',
+              color:      'var(--text-muted)',
+            }}
           >
             <RiSearchLine size={14} />
-            <span className="text-[13px]">検索...</span>
+            <span className="text-[12px] uppercase tracking-widest" style={{ fontFamily: 'var(--font-space-grotesk, system-ui)' }}>
+              Search...
+            </span>
           </div>
 
           {/* 右側 */}
           <div className="flex items-center gap-2 ml-auto">
             <button
-              className="w-9 h-9 rounded-xl flex items-center justify-center transition-colors hover:bg-[var(--bg-base)]"
+              className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(129,236,255,0.08)]"
               style={{ color: 'var(--text-secondary)' }}
             >
               <RiBellFill size={17} />
             </button>
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
-              style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              style={{
+                background: 'rgba(129, 236, 255, 0.1)',
+                color:      '#81ecff',
+                border:     '1px solid rgba(129, 236, 255, 0.2)',
+              }}
             >
               <RiUserFill size={14} />
             </div>

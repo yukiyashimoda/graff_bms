@@ -8,8 +8,8 @@ export function LogoutButton() {
     <form action={signOut}>
       <button
         type="submit"
-        className="flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] w-full transition-colors hover:bg-black/5"
-        style={{ color: 'var(--text-muted)' }}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] w-full transition-all duration-150 hover:opacity-70"
+        style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-space-grotesk, system-ui)', letterSpacing: '0.05em' }}
       >
         <RiLogoutBoxLine size={15} />
         ログアウト
