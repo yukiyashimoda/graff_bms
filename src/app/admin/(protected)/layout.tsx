@@ -41,6 +41,14 @@ const mainNav = [
   { href: '/admin/settings',         label: '設定',           icon: RiSettings3Fill },
 ]
 
+const bottomNav = [
+  { href: '/admin',          label: 'Home',     icon: RiDashboardFill },
+  { href: '/admin/products', label: 'Products', icon: RiArchiveFill },
+  { href: '/admin/stock',    label: 'Stock',    icon: RiBarChartBoxFill },
+  { href: '/admin/orders',   label: 'Orders',   icon: RiFileListFill },
+  { href: '/admin/settings', label: 'Settings', icon: RiSettings3Fill },
+]
+
 function isActive(pathname: string, href: string) {
   return href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
 }
@@ -351,10 +359,60 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* コンテンツ */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="flex-1 p-4 pb-28 lg:p-6 lg:pb-6">
           {children}
         </main>
       </div>
+
+      {/* ━━━ ボトムナビ（モバイルのみ） ━━━ */}
+      <nav
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex"
+        style={{
+          background:          'rgba(8, 15, 22, 0.45)',
+          backdropFilter:      'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
+          boxShadow:           '0 -4px 30px rgba(0, 0, 0, 0.3)',
+          paddingBottom:       'env(safe-area-inset-bottom)',
+        }}
+      >
+        {bottomNav.map(({ href, label, icon: Icon }) => {
+          const active = isActive(pathname, href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all active:scale-90 relative"
+              style={{
+                minHeight: '72px',
+                color:  active ? '#81ecff' : 'var(--text-muted)',
+                filter: active ? 'drop-shadow(0 0 5px rgba(129,236,255,0.7))' : 'none',
+              }}
+            >
+              {active && (
+                <span
+                  className="absolute top-0 left-1/4 rounded-b-full"
+                  style={{
+                    width:      '50%',
+                    height:     '2px',
+                    background: '#81ecff',
+                    boxShadow:  '0 0 8px #81ecff',
+                  }}
+                />
+              )}
+              <Icon size={active ? 22 : 20} />
+              <span
+                className="text-[9px] uppercase tracking-[0.15em]"
+                style={{
+                  fontFamily: 'var(--font-space-grotesk, system-ui)',
+                  fontWeight: active ? 700 : 500,
+                }}
+              >
+                {label}
+              </span>
+            </Link>
+          )
+        })}
+      </nav>
     </div>
   )
 }
