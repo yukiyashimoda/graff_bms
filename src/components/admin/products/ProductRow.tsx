@@ -32,23 +32,28 @@ function ToggleSwitch({ checked, onChange, busy }: { checked: boolean; onChange:
       aria-checked={checked}
       onClick={onChange}
       disabled={busy}
-      className="relative flex-shrink-0 rounded-full transition-colors disabled:opacity-50"
+      // btn-inline で min-height:48px を解除、borderRadius で 6px !important を上書き
+      className="btn-inline relative flex-shrink-0 transition-colors disabled:opacity-50"
       style={{
-        width:      44,
-        height:     24,
-        background: checked ? 'rgba(129,236,255,0.2)' : 'rgba(129,236,255,0.06)',
-        border:     checked ? '1px solid rgba(129,236,255,0.4)' : '1px solid rgba(129,236,255,0.15)',
+        width:        44,
+        height:       24,
+        borderRadius: '9999px',
+        background:   checked ? 'rgba(129,236,255,0.2)' : 'rgba(129,236,255,0.06)',
+        border:       checked ? '1px solid rgba(129,236,255,0.4)' : '1px solid rgba(129,236,255,0.15)',
+        padding:      0,
       }}
     >
       <span
-        className="absolute top-0.5 rounded-full transition-transform duration-200"
+        className="absolute transition-transform duration-200"
         style={{
-          width:      20,
-          height:     20,
-          left:       2,
-          background: checked ? '#81ecff' : 'var(--text-muted)',
-          transform:  checked ? 'translateX(20px)' : 'translateX(0)',
-          boxShadow:  checked ? '0 0 6px rgba(129,236,255,0.6)' : 'none',
+          width:        20,
+          height:       20,
+          borderRadius: '9999px',
+          top:          2,
+          left:         2,
+          background:   checked ? '#81ecff' : 'var(--text-muted)',
+          transform:    checked ? 'translateX(20px)' : 'translateX(0)',
+          boxShadow:    checked ? '0 0 6px rgba(129,236,255,0.6)' : 'none',
         }}
       />
     </button>
@@ -297,29 +302,29 @@ export function ProductRow({ product }: { product: ProductWithRelations }) {
               </p>
             </div>
 
-            {/* 提供中 スイッチ */}
-            <div
-              className="flex items-center gap-3 px-5 py-4"
-              style={{ borderBottom: '1px solid var(--border)' }}
-            >
-              <div className="flex-1">
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>提供中</p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  {available ? '現在提供中' : '入荷待ち（メニューに「入荷待ち」表示）'}
-                </p>
-              </div>
-              <ToggleSwitch checked={available} onChange={toggleAvailable} busy={busyA} />
-            </div>
-
             {/* 表示/非表示 スイッチ */}
             <div
               className="flex items-center gap-3 px-5 py-4"
               style={{ borderBottom: '1px solid var(--border)' }}
             >
               <div className="flex-1">
-                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>在庫切れでも表示</p>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>メニューに表示</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                  {visible ? '在庫ゼロでも公開ページに表示' : '在庫切れ時は非表示'}
+                  {available ? '公開ページに表示中' : 'メニューから非表示（在庫の有無に関わらず）'}
+                </p>
+              </div>
+              <ToggleSwitch checked={available} onChange={toggleAvailable} busy={busyA} />
+            </div>
+
+            {/* 入荷待ち表示 スイッチ */}
+            <div
+              className="flex items-center gap-3 px-5 py-4"
+              style={{ borderBottom: '1px solid var(--border)' }}
+            >
+              <div className="flex-1">
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>入荷待ち表示</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  {visible ? '在庫切れでも「入荷待ち」として公開ページに表示' : '在庫切れ時は非表示（デフォルト）'}
                 </p>
               </div>
               <ToggleSwitch checked={visible} onChange={toggleVisible} busy={busyV} />
