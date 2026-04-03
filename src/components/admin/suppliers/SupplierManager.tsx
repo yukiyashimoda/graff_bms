@@ -230,7 +230,7 @@ export function SupplierManager({ suppliers }: Props) {
       {!isOpen && (
         <button
           onClick={openAdd}
-          className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-opacity hover:opacity-80 active:scale-95"
+          className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-opacity hover:opacity-80 active:scale-95 lg:bottom-8"
           style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
           title="発注先を追加"
         >
