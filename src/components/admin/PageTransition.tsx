@@ -6,7 +6,7 @@ export function PageTransition() {
       style={{
         position:       'fixed',
         inset:          0,
-        background:     '#ededed',
+        background:     '#080f16',
         display:        'flex',
         flexDirection:  'column',
         alignItems:     'center',
@@ -21,13 +21,14 @@ export function PageTransition() {
         style={{
           width:          56,
           height:         56,
-          background:     '#091d26',
+          background:     'rgba(129,236,255,0.08)',
+          border:         '1px solid rgba(129,236,255,0.25)',
           borderRadius:   12,
           display:        'flex',
           alignItems:     'center',
           justifyContent: 'center',
           fontSize:       26,
-          color:          '#ededed',
+          color:          '#81ecff',
           fontFamily:     'var(--font-doto, monospace)',
           animation:      'pt-logo 0.45s cubic-bezier(0.16,1,0.3,1) 0.05s both',
         }}
@@ -36,7 +37,7 @@ export function PageTransition() {
       </div>
 
       {/* graff.bms テキスト */}
-      <div style={{ display: 'flex', fontFamily: 'var(--font-doto, monospace)', fontSize: 18, color: '#091d26', letterSpacing: 1 }}>
+      <div style={{ display: 'flex', fontFamily: 'var(--font-doto, monospace)', fontSize: 18, color: '#81ecff', letterSpacing: 1 }}>
         {CHARS.map((char, i) => (
           <span
             key={i}
@@ -53,11 +54,11 @@ export function PageTransition() {
       </div>
 
       {/* ローディングバー */}
-      <div style={{ width: 56, height: 2, background: 'rgba(9,29,38,0.12)', borderRadius: 99, overflow: 'hidden', marginTop: 4 }}>
+      <div style={{ width: 56, height: 2, background: 'rgba(129,236,255,0.12)', borderRadius: 99, overflow: 'hidden', marginTop: 4 }}>
         <div
           style={{
             height:          '100%',
-            background:      '#d84f2a',
+            background:      '#81ecff',
             borderRadius:    99,
             animation:       'pt-bar 0.9s cubic-bezier(0.4,0,0.2,1) 0.2s both',
           }}
