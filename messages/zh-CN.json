@@ -1,0 +1,96 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "search": "搜索",
+    "filter": "筛选",
+    "loading": "加载中...",
+    "error": "发生错误",
+    "confirm": "确认",
+    "back": "返回",
+    "next": "下一步",
+    "close": "关闭",
+    "download": "下载",
+    "preview": "预览",
+    "available": "供应中",
+    "unavailable": "缺货",
+    "all": "全部"
+  },
+  "nav": {
+    "dashboard": "仪表板",
+    "products": "商品管理",
+    "stock": "库存管理",
+    "orders": "订单管理",
+    "menu": "菜单",
+    "alerts": "提醒"
+  },
+  "products": {
+    "title": "商品管理",
+    "add": "添加商品",
+    "name": "商品名称",
+    "category": "分类",
+    "supplier": "供应商",
+    "unit": "单位",
+    "costPrice": "成本价",
+    "sellingPrice": "售价",
+    "tags": "标签",
+    "image": "图片",
+    "notes": "备注",
+    "isAvailable": "供应状态",
+    "searchPlaceholder": "搜索商品..."
+  },
+  "stock": {
+    "title": "库存管理",
+    "quantity": "库存数量",
+    "minQuantity": "最低库存",
+    "addStock": "入库",
+    "removeStock": "出库",
+    "adjust": "调整",
+    "history": "记录",
+    "lowStock": "库存不足"
+  },
+  "orders": {
+    "title": "订单管理",
+    "create": "创建订单",
+    "supplier": "供应商",
+    "orderDate": "订单日期",
+    "expectedDate": "预计到货日",
+    "status": {
+      "draft": "草稿",
+      "sent": "已发送",
+      "received": "已收货",
+      "cancelled": "已取消"
+    },
+    "generatePdf": "生成PDF",
+    "items": "商品明细",
+    "quantity": "数量",
+    "unitPrice": "单价"
+  },
+  "menu": {
+    "title": "菜单",
+    "cocktails": "鸡尾酒",
+    "searchPlaceholder": "搜索饮品...",
+    "costRate": "成本率",
+    "comingSoon": "即将上架",
+    "noResults": "未找到相关饮品"
+  },
+  "alerts": {
+    "priceAlert": "价格上涨提醒",
+    "changeRate": "变动率",
+    "previousPrice": "上次价格",
+    "newPrice": "新价格",
+    "markAsRead": "标为已读"
+  },
+  "categories": {
+    "spirits": "烈酒",
+    "wine": "葡萄酒",
+    "champagne": "香槟",
+    "beer": "啤酒",
+    "softDrink": "软饮料",
+    "food": "食物",
+    "others": "其他"
+  }
+}

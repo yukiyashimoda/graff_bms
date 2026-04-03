@@ -1,11 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { MenuClient } from '@/components/menu/MenuClient'
 
-// ja / en を静的生成 → 30秒 ISR
+// 全ロケールを静的生成 → 30秒 ISR
 export const revalidate = 30
 
 export function generateStaticParams() {
-  return [{ locale: 'ja' }, { locale: 'en' }]
+  return ['ja', 'en', 'ko', 'zh-CN', 'zh-TW'].map(locale => ({ locale }))
 }
 
 export default async function MenuPage() {

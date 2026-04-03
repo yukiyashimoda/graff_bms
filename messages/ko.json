@@ -1,0 +1,96 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "편집",
+    "add": "추가",
+    "search": "검색",
+    "filter": "필터",
+    "loading": "로딩 중...",
+    "error": "오류가 발생했습니다",
+    "confirm": "확인",
+    "back": "뒤로",
+    "next": "다음",
+    "close": "닫기",
+    "download": "다운로드",
+    "preview": "미리보기",
+    "available": "제공 가능",
+    "unavailable": "품절",
+    "all": "전체"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "products": "상품 관리",
+    "stock": "재고 관리",
+    "orders": "주문 관리",
+    "menu": "메뉴",
+    "alerts": "알림"
+  },
+  "products": {
+    "title": "상품 관리",
+    "add": "상품 추가",
+    "name": "상품명",
+    "category": "카테고리",
+    "supplier": "공급업체",
+    "unit": "단위",
+    "costPrice": "원가",
+    "sellingPrice": "판매가",
+    "tags": "태그",
+    "image": "이미지",
+    "notes": "메모",
+    "isAvailable": "제공 상태",
+    "searchPlaceholder": "상품 검색..."
+  },
+  "stock": {
+    "title": "재고 관리",
+    "quantity": "재고 수량",
+    "minQuantity": "최소 재고",
+    "addStock": "입고",
+    "removeStock": "출고",
+    "adjust": "조정",
+    "history": "이력",
+    "lowStock": "재고 부족"
+  },
+  "orders": {
+    "title": "주문 관리",
+    "create": "주문서 작성",
+    "supplier": "공급업체",
+    "orderDate": "주문일",
+    "expectedDate": "납품 예정일",
+    "status": {
+      "draft": "임시저장",
+      "sent": "전송 완료",
+      "received": "수령 완료",
+      "cancelled": "취소됨"
+    },
+    "generatePdf": "PDF 생성",
+    "items": "품목",
+    "quantity": "수량",
+    "unitPrice": "단가"
+  },
+  "menu": {
+    "title": "메뉴",
+    "cocktails": "칵테일",
+    "searchPlaceholder": "음료 검색...",
+    "costRate": "원가율",
+    "comingSoon": "입고 예정",
+    "noResults": "해당하는 음료가 없습니다"
+  },
+  "alerts": {
+    "priceAlert": "가격 상승 알림",
+    "changeRate": "변동률",
+    "previousPrice": "이전 가격",
+    "newPrice": "새 가격",
+    "markAsRead": "읽음 처리"
+  },
+  "categories": {
+    "spirits": "스피리츠",
+    "wine": "와인",
+    "champagne": "샴페인",
+    "beer": "맥주",
+    "softDrink": "소프트드링크",
+    "food": "푸드",
+    "others": "기타"
+  }
+}

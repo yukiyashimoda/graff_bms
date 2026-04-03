@@ -73,7 +73,9 @@
     "title": "メニュー",
     "cocktails": "カクテル",
     "searchPlaceholder": "ドリンクを探す...",
-    "costRate": "原価率"
+    "costRate": "原価率",
+    "comingSoon": "入荷待ち",
+    "noResults": "該当するドリンクがありません"
   },
   "alerts": {
     "priceAlert": "価格高騰アラート",

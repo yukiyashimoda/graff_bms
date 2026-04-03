@@ -3,8 +3,16 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { RiSearchLine, RiTranslate2 } from 'react-icons/ri'
+import { RiSearchLine } from 'react-icons/ri'
 import { createClient } from '@/lib/supabase/client'
+
+const LOCALES = [
+  { code: 'ja',    label: 'JA' },
+  { code: 'en',    label: 'EN' },
+  { code: 'ko',    label: 'KO' },
+  { code: 'zh-CN', label: '简' },
+  { code: 'zh-TW', label: '繁' },
+] as const
 
 type WineType = 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other'
 
@@ -86,8 +94,7 @@ export function MenuClient({
     return () => { supabase.removeChannel(channel) }
   }, [router])
 
-  function toggleLocale() {
-    const next     = isJa ? 'en' : 'ja'
+  function switchLocale(next: string) {
     const segments = pathname.split('/')
     segments[1]    = next
     router.push(segments.join('/') || '/')
@@ -219,14 +226,27 @@ export function MenuClient({
             <p className="text-[19px]" style={{ fontFamily: 'var(--font-doto, monospace)', color: 'var(--text-primary)' }}>
               graff.
             </p>
-            <button
-              onClick={toggleLocale}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
-              style={{ color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-            >
-              <RiTranslate2 size={13} />
-              {isJa ? 'EN' : 'JA'}
-            </button>
+
+            {/* 言語スイッチャー */}
+            <div className="flex items-center gap-0.5">
+              {LOCALES.map(({ code, label }) => {
+                const isActive = locale === code
+                return (
+                  <button
+                    key={code}
+                    onClick={() => switchLocale(code)}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
+                    style={{
+                      background: isActive ? 'rgba(129,236,255,0.15)' : 'transparent',
+                      color:      isActive ? '#81ecff' : 'var(--text-muted)',
+                      border:     isActive ? '1px solid rgba(129,236,255,0.3)' : '1px solid transparent',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* 検索 */}
@@ -252,7 +272,7 @@ export function MenuClient({
       <div className="max-w-3xl mx-auto px-5 pb-16 pt-6">
         {!hasContent ? (
           <p className="text-center py-20 text-sm" style={{ color: 'var(--text-muted)' }}>
-            該当する商品がありません
+            {t('menu.noResults')}
           </p>
         ) : (
           <div className="space-y-8">
@@ -322,6 +342,7 @@ function Divider() {
 
 /* ── 通常商品カード */
 function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
+  const t = useTranslations()
   const name = isJa ? product.name : (product.name_en || product.name)
   const hasSpiritsPrice = product.shot_price != null
 
@@ -358,7 +379,7 @@ function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
             style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
           >
             {product.is_waiting
-              ? 'Coming Soon'
+              ? t('menu.comingSoon')
               : product.selling_price != null
                 ? `¥${product.selling_price.toLocaleString()}`
                 : '—'

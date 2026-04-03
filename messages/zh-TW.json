@@ -1,0 +1,96 @@
+{
+  "common": {
+    "save": "儲存",
+    "cancel": "取消",
+    "delete": "刪除",
+    "edit": "編輯",
+    "add": "新增",
+    "search": "搜尋",
+    "filter": "篩選",
+    "loading": "載入中...",
+    "error": "發生錯誤",
+    "confirm": "確認",
+    "back": "返回",
+    "next": "下一步",
+    "close": "關閉",
+    "download": "下載",
+    "preview": "預覽",
+    "available": "供應中",
+    "unavailable": "缺貨",
+    "all": "全部"
+  },
+  "nav": {
+    "dashboard": "儀表板",
+    "products": "商品管理",
+    "stock": "庫存管理",
+    "orders": "訂單管理",
+    "menu": "菜單",
+    "alerts": "提醒"
+  },
+  "products": {
+    "title": "商品管理",
+    "add": "新增商品",
+    "name": "商品名稱",
+    "category": "分類",
+    "supplier": "供應商",
+    "unit": "單位",
+    "costPrice": "成本價",
+    "sellingPrice": "售價",
+    "tags": "標籤",
+    "image": "圖片",
+    "notes": "備註",
+    "isAvailable": "供應狀態",
+    "searchPlaceholder": "搜尋商品..."
+  },
+  "stock": {
+    "title": "庫存管理",
+    "quantity": "庫存數量",
+    "minQuantity": "最低庫存",
+    "addStock": "入庫",
+    "removeStock": "出庫",
+    "adjust": "調整",
+    "history": "記錄",
+    "lowStock": "庫存不足"
+  },
+  "orders": {
+    "title": "訂單管理",
+    "create": "建立訂單",
+    "supplier": "供應商",
+    "orderDate": "訂單日期",
+    "expectedDate": "預計到貨日",
+    "status": {
+      "draft": "草稿",
+      "sent": "已發送",
+      "received": "已收貨",
+      "cancelled": "已取消"
+    },
+    "generatePdf": "產生PDF",
+    "items": "商品明細",
+    "quantity": "數量",
+    "unitPrice": "單價"
+  },
+  "menu": {
+    "title": "菜單",
+    "cocktails": "調酒",
+    "searchPlaceholder": "搜尋飲品...",
+    "costRate": "成本率",
+    "comingSoon": "即將上架",
+    "noResults": "找不到相關飲品"
+  },
+  "alerts": {
+    "priceAlert": "價格上漲提醒",
+    "changeRate": "變動率",
+    "previousPrice": "上次價格",
+    "newPrice": "新價格",
+    "markAsRead": "標為已讀"
+  },
+  "categories": {
+    "spirits": "烈酒",
+    "wine": "葡萄酒",
+    "champagne": "香檳",
+    "beer": "啤酒",
+    "softDrink": "軟飲料",
+    "food": "食物",
+    "others": "其他"
+  }
+}

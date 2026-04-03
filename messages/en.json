@@ -73,7 +73,9 @@
     "title": "Menu",
     "cocktails": "Cocktails",
     "searchPlaceholder": "Search drinks...",
-    "costRate": "Cost Rate"
+    "costRate": "Cost Rate",
+    "comingSoon": "Coming Soon",
+    "noResults": "No drinks found"
   },
   "alerts": {
     "priceAlert": "Price Alert",
