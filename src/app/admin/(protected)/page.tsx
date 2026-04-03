@@ -41,6 +41,7 @@ export default async function AdminDashboardPage() {
 
   const recentTx = (recentTxRaw ?? []).map(t => ({
     id:           t.id as string,
+    type:         t.type as 'in' | 'out' | 'adjustment',
     quantity:     Number(t.quantity),
     created_at:   t.created_at as string,
     product_name: (t.products as unknown as { name: string } | null)?.name ?? '—',
@@ -157,9 +158,14 @@ export default async function AdminDashboardPage() {
         ) : (
           <div className="space-y-2">
             {recentTx.map(tx => {
-              const isIn  = tx.quantity > 0
-              const color = isIn ? '#81ecff' : '#fe9400'
-              const time  = new Date(tx.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+              const isIn  = tx.type === 'in'
+              const isAdj = tx.type === 'adjustment'
+              const color = isIn ? '#81ecff' : isAdj ? 'var(--text-muted)' : '#fe9400'
+              const sign  = isIn ? '+' : isAdj ? '' : '−'
+              const label = isIn ? 'Inbound' : isAdj ? 'Adjust' : 'Outbound'
+              const time  = new Intl.DateTimeFormat('ja-JP', {
+                hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo',
+              }).format(new Date(tx.created_at))
               return (
                 <div
                   key={tx.id}
@@ -185,7 +191,7 @@ export default async function AdminDashboardPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center">
                       <p className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
-                        {isIn ? 'Inbound' : 'Outbound'}
+                        {label}
                       </p>
                       <span
                         className="text-[10px] flex-shrink-0 ml-2"
@@ -197,7 +203,7 @@ export default async function AdminDashboardPage() {
                     <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                       {tx.product_name}{' '}
                       <span style={{ color, fontFamily: 'var(--font-doto, var(--font-jetbrains-mono, monospace))' }}>
-                        {isIn ? '+' : ''}{tx.quantity}
+                        {sign}{tx.quantity}
                       </span>
                     </p>
                   </div>
