@@ -1,18 +1,11 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
 import { RiSearchLine } from 'react-icons/ri'
 import { createClient } from '@/lib/supabase/client'
-
-const LOCALES = [
-  { code: 'ja',    label: 'JA' },
-  { code: 'en',    label: 'EN' },
-  { code: 'ko',    label: 'KO' },
-  { code: 'zh-CN', label: '简' },
-  { code: 'zh-TW', label: '繁' },
-] as const
+import { TranslateWidget } from './TranslateWidget'
 
 type WineType = 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other'
 
@@ -93,12 +86,6 @@ export function MenuClient({
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [router])
-
-  function switchLocale(next: string) {
-    const segments = pathname.split('/')
-    segments[1]    = next
-    router.push(segments.join('/') || '/')
-  }
 
   // カテゴリ順序を保持しながら重複除去
   const categories = useMemo(() => {
@@ -226,27 +213,7 @@ export function MenuClient({
             <p className="text-[19px]" style={{ fontFamily: 'var(--font-doto, monospace)', color: 'var(--text-primary)' }}>
               graff.
             </p>
-
-            {/* 言語スイッチャー */}
-            <div className="flex items-center gap-0.5">
-              {LOCALES.map(({ code, label }) => {
-                const isActive = locale === code
-                return (
-                  <button
-                    key={code}
-                    onClick={() => switchLocale(code)}
-                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
-                    style={{
-                      background: isActive ? 'rgba(129,236,255,0.15)' : 'transparent',
-                      color:      isActive ? '#81ecff' : 'var(--text-muted)',
-                      border:     isActive ? '1px solid rgba(129,236,255,0.3)' : '1px solid transparent',
-                    }}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
+            <TranslateWidget />
           </div>
 
           {/* 検索 */}
