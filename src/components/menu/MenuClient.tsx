@@ -68,10 +68,9 @@ export function MenuClient({
   cocktails:  Cocktail[]
   glassWines: GlassWine[]
 }) {
-  const locale   = useLocale()
-  const router   = useRouter()
-  const pathname = usePathname()
-  const t        = useTranslations()
+  const locale = useLocale()
+  const router = useRouter()
+  const t      = useTranslations()
 
   const [query, setQuery] = useState('')
   const isJa = locale === 'ja'
