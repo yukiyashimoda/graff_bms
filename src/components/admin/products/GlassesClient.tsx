@@ -262,7 +262,7 @@ export function GlassesClient({
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 px-4 h-10 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 flex-shrink-0"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
           >
             <RiAddLine size={16} />
             <span className="hidden sm:inline">グラスを追加</span>
@@ -351,7 +351,7 @@ export function GlassesClient({
                           <div className="flex-1 min-w-0">
                             <p
                               className="text-sm font-medium truncate"
-                              style={{ color: isActive ? 'var(--text-invert)' : 'var(--text-primary)' }}
+                              style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-primary)' }}
                             >
                               {p.name}
                             </p>
@@ -403,7 +403,7 @@ export function GlassesClient({
                         onClick={() => { setServingPreset(ml); setCustomServing('') }}
                         className="px-3.5 h-9 rounded-xl text-sm font-semibold transition-all"
                         style={servingPreset === ml
-                          ? { background: 'var(--bg-dark)', color: 'var(--text-invert)' }
+                          ? { background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }
                           : { background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
                         }
                       >
@@ -585,7 +585,7 @@ export function GlassesClient({
                   onClick={() => setStep(s => s + 1)}
                   disabled={step === 0 ? !canNext1 : !canNext2}
                   className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                  style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                  style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
                 >
                   次へ
                 </button>
@@ -594,7 +594,7 @@ export function GlassesClient({
                   onClick={handleRegister}
                   disabled={isPending}
                   className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                  style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                  style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
                 >
                   {isPending ? '登録中...' : '登録する'}
                 </button>
@@ -771,7 +771,7 @@ export function GlassesClient({
                       </button>
                       <button onClick={() => handleSaveEdit(g.id)} disabled={isPending}
                         className="px-5 h-8 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40"
-                        style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>
+                        style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>
                         {isPending ? '保存中...' : '保存'}
                       </button>
                     </div>

@@ -55,7 +55,7 @@ export function AlertsClient({ alerts }: { alerts: AlertRow[] }) {
             onClick={handleMarkAll}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
           >
             <RiCheckFill size={12} />
             すべて既読にする

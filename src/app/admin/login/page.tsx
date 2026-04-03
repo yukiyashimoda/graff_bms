@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: Props) {
         <div className="flex items-center gap-3">
           <div
             className="w-[60px] h-[60px] rounded-2xl flex items-center justify-center text-xl"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', fontFamily: 'var(--font-doto, monospace)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)', fontFamily: 'var(--font-doto, monospace)' }}
           >
             g
           </div>
@@ -107,7 +107,7 @@ export default async function LoginPage({ searchParams }: Props) {
           <button
             type="submit"
             className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98] mt-2"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
           >
             ログイン
           </button>

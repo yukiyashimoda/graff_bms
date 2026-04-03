@@ -308,7 +308,7 @@ export function MenuClient({
 function SectionHeader({ label }: { label: string }) {
   return (
     <div className="px-3 py-2 mb-4" style={{ background: 'var(--bg-dark)' }}>
-      <h2 className="text-sm font-bold tracking-widest uppercase" style={{ color: 'var(--text-invert)' }}>
+      <h2 className="text-sm font-bold tracking-widest uppercase" style={{ color: 'var(--text-primary)' }}>
         {label}
       </h2>
     </div>
@@ -336,7 +336,7 @@ function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
           {product.is_recommended && !product.is_waiting && (
             <span
               className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
-              style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
             >
               FEATURED
             </span>

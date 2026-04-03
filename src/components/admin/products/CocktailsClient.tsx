@@ -332,7 +332,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
           <button
             onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 px-4 h-10 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 flex-shrink-0"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
           >
             <RiAddLine size={16} />
             <span className="hidden sm:inline">カクテルを追加</span>
@@ -364,7 +364,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>材料を選んでください</p>
                   {selectedProducts.length > 0 && (
-                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>
                       {selectedProducts.length} 種類選択中
                     </span>
                   )}
@@ -385,7 +385,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
                               {active && <RiCheckLine size={9} color="#fff" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate" style={{ color: active ? 'var(--text-invert)' : 'var(--text-primary)' }}>{p.name}</p>
+                              <p className="text-sm font-medium truncate" style={{ color: active ? 'var(--text-primary)' : 'var(--text-primary)' }}>{p.name}</p>
                               {p.category && <p className="text-[11px]" style={{ color: active ? '#9ab4bc' : 'var(--text-muted)' }}>{p.category}</p>}
                             </div>
                             {p.stock <= 0 && (
@@ -497,9 +497,9 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
                 </button>
               )}
               <div className="flex-1" />
-              {step === 0 && <button onClick={goStep2} disabled={!canNext1} className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>次へ</button>}
-              {step === 1 && <button onClick={() => setStep(2)} disabled={!canNext2} className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>次へ</button>}
-              {step === 2 && <button onClick={handleRegister} disabled={isPending || !cocktailName.trim()} className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>{isPending ? '登録中...' : '登録する'}</button>}
+              {step === 0 && <button onClick={goStep2} disabled={!canNext1} className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>次へ</button>}
+              {step === 1 && <button onClick={() => setStep(2)} disabled={!canNext2} className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>次へ</button>}
+              {step === 2 && <button onClick={handleRegister} disabled={isPending || !cocktailName.trim()} className="px-6 h-9 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>{isPending ? '登録中...' : '登録する'}</button>}
             </div>
           </div>
         </div>
@@ -711,7 +711,7 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
                       <button onClick={() => setEditingId(null)} className="px-4 h-9 text-sm rounded-xl transition-opacity hover:opacity-70" style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
                         キャンセル
                       </button>
-                      <button onClick={() => handleSaveEdit(c.id)} disabled={isPending} className="px-5 h-9 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>
+                      <button onClick={() => handleSaveEdit(c.id)} disabled={isPending} className="px-5 h-9 text-sm font-semibold rounded-xl transition-opacity hover:opacity-80 disabled:opacity-40" style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>
                         {isPending ? '保存中...' : '保存'}
                       </button>
                     </div>

@@ -127,7 +127,7 @@ export function SupplierManager({ suppliers }: Props) {
                 type="submit"
                 disabled={loading || !form.name}
                 className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
               >
                 <RiCheckFill size={14} />
                 {loading ? '保存中...' : (adding ? '追加する' : '更新する')}
@@ -231,7 +231,7 @@ export function SupplierManager({ suppliers }: Props) {
         <button
           onClick={openAdd}
           className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-opacity hover:opacity-80 active:scale-95"
-          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
+          style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
           title="発注先を追加"
         >
           <RiAddLine size={24} />

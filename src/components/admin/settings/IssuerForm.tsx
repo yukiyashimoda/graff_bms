@@ -99,7 +99,7 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
             onDragLeave={() => setDragging(false)}
             onClick={() => fileInputRef.current?.click()}
             className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl cursor-pointer transition-all"
-            style={{ background: dragging ? 'var(--bg-dark)' : 'var(--bg-base)', border: `2px dashed ${dragging ? 'var(--text-secondary)' : 'var(--border)'}`, color: dragging ? 'var(--text-invert)' : 'var(--text-muted)' }}
+            style={{ background: dragging ? 'var(--bg-dark)' : 'var(--bg-base)', border: `2px dashed ${dragging ? 'var(--text-secondary)' : 'var(--border)'}`, color: dragging ? 'var(--text-primary)' : 'var(--text-muted)' }}
           >
             <RiUploadCloud2Fill size={22} />
             <p className="text-xs font-medium">クリックまたはドラッグ＆ドロップ</p>
@@ -131,7 +131,7 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
 
       <button onClick={handleSave} disabled={saving || saved}
         className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-60"
-        style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>
+        style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>
         <RiCheckFill size={14} />
         {saved ? '保存しました' : saving ? '保存中...' : '保存する'}
       </button>

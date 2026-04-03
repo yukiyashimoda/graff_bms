@@ -176,7 +176,7 @@ export function IssuerEditModal({ profile }: { profile: IssuerProfile }) {
                     style={{
                       background: dragging ? 'var(--bg-dark)' : 'var(--bg-base)',
                       border:     `2px dashed ${dragging ? 'var(--text-secondary)' : 'var(--border)'}`,
-                      color:      dragging ? 'var(--text-invert)' : 'var(--text-muted)',
+                      color:      dragging ? 'var(--text-primary)' : 'var(--text-muted)',
                     }}
                   >
                     <RiUploadCloud2Fill size={22} />
@@ -263,7 +263,7 @@ export function IssuerEditModal({ profile }: { profile: IssuerProfile }) {
                 onClick={handleSave}
                 disabled={saving || success}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
               >
                 <RiCheckFill size={14} />
                 {success ? '保存しました' : saving ? '保存中...' : '保存する'}

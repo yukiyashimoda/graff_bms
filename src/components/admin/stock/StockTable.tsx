@@ -144,7 +144,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                       {isLow ? (
                         <span
                           className="px-2 py-0.5 rounded-md text-xs font-medium"
-                          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                          style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
                         >
                           不足
                         </span>
@@ -284,7 +284,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                 onClick={handleSubmit}
                 disabled={loading || !qty}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
               >
                 {loading ? (
                   <span className="text-xs">処理中...</span>
@@ -317,7 +317,7 @@ function ActionBtn({
     <button
       onClick={onClick}
       title={label}
-      className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
+      className="p-2 rounded-lg transition-colors hover:bg-[rgba(129,236,255,0.12)] hover:text-[#81ecff]"
       style={{ color: 'var(--text-secondary)' }}
     >
       <Icon size={14} />

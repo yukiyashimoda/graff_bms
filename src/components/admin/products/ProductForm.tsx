@@ -266,7 +266,7 @@ export default function ProductForm({
           <button
             type="submit"
             className="px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
           >
             {isEdit ? '更新する' : '登録する'}
           </button>

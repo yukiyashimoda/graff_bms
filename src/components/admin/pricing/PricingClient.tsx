@@ -458,7 +458,7 @@ export function PricingClient({
             className="flex-1 sm:flex-none flex items-center justify-center px-4 h-9 rounded-xl text-sm font-semibold transition-all duration-150 whitespace-nowrap"
             style={
               activeTab === tab.id
-                ? { background: 'var(--bg-dark)', color: 'var(--text-invert)' }
+                ? { background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }
                 : { color: 'var(--text-secondary)' }
             }
           >
@@ -491,7 +491,7 @@ export function PricingClient({
               className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
               style={{
                 background: catFilter === null ? 'var(--bg-dark)' : 'var(--bg-surface)',
-                color:      catFilter === null ? 'var(--text-invert)' : 'var(--text-secondary)',
+                color:      catFilter === null ? 'var(--text-primary)' : 'var(--text-secondary)',
                 border:     catFilter === null ? 'none' : '1px solid var(--border)',
               }}
             >
@@ -504,7 +504,7 @@ export function PricingClient({
                 className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
                 style={{
                   background: catFilter === c ? 'var(--bg-dark)' : 'var(--bg-surface)',
-                  color:      catFilter === c ? 'var(--text-invert)' : 'var(--text-secondary)',
+                  color:      catFilter === c ? 'var(--text-primary)' : 'var(--text-secondary)',
                   border:     catFilter === c ? 'none' : '1px solid var(--border)',
                 }}
               >
@@ -520,7 +520,7 @@ export function PricingClient({
         onClick={handleSave}
         disabled={saving || dirtyCount === 0}
         className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl text-sm font-semibold shadow-lg transition-all disabled:opacity-0 disabled:pointer-events-none hover:opacity-90 active:scale-95"
-        style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+        style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
       >
         <RiCheckFill size={16} />
         {saving ? '保存中...' : saved ? '保存しました' : `${dirtyCount}件を更新`}
