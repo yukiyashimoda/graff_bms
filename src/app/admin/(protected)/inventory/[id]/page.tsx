@@ -18,11 +18,26 @@ export default async function InventorySessionPage({
 
   if (!session) notFound()
 
-  const { data: items } = await supabase
+  const { data: rawItems } = await supabase
     .from('inventory_session_items')
-    .select('id, product_id, product_name, product_name_en, unit, system_quantity, actual_quantity, notes')
+    .select('id, product_id, product_name, product_name_en, unit, system_quantity, actual_quantity, notes, products(cost_price)')
     .eq('session_id', id)
     .order('product_name')
+
+  const items = (rawItems ?? []).map(r => {
+    const prod = r.products as { cost_price: number | null } | null
+    return {
+      id:              r.id,
+      product_id:      r.product_id,
+      product_name:    r.product_name,
+      product_name_en: r.product_name_en,
+      unit:            r.unit,
+      system_quantity: r.system_quantity,
+      actual_quantity: r.actual_quantity,
+      notes:           r.notes,
+      cost_price:      prod?.cost_price ?? null,
+    }
+  })
 
   return (
     <div className="max-w-5xl space-y-6">
@@ -36,7 +51,7 @@ export default async function InventorySessionPage({
         </p>
       </div>
 
-      <AuditSheet session={session} items={items ?? []} />
+      <AuditSheet session={session} items={items} />
     </div>
   )
 }

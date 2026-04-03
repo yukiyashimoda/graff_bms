@@ -102,6 +102,70 @@ export async function saveInventoryActuals(
 }
 
 // ────────────────────────────────────────────────────────
+// リセット（items を再スナップショット）
+// ────────────────────────────────────────────────────────
+export async function resetInventorySession(sessionId: string): Promise<{ error: string } | Record<string, never>> {
+  try {
+    const supabase = await createServiceClient()
+
+    // 既存 items を削除
+    await supabase.from('inventory_session_items').delete().eq('session_id', sessionId)
+
+    // 全商品 + 在庫スナップショット再取得
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, name, name_en, unit, stock(quantity)')
+      .eq('is_available', true)
+      .order('name')
+
+    if (products && products.length > 0) {
+      const items = products.map(p => {
+        const stockRaw = p.stock as unknown
+        const qty = Array.isArray(stockRaw)
+          ? ((stockRaw[0] as { quantity: number } | undefined)?.quantity ?? 0)
+          : ((stockRaw as { quantity: number } | null)?.quantity ?? 0)
+        return {
+          session_id:      sessionId,
+          product_id:      p.id,
+          product_name:    p.name,
+          product_name_en: p.name_en ?? '',
+          unit:            p.unit ?? '本',
+          system_quantity: qty,
+          actual_quantity: null,
+        }
+      })
+      await supabase.from('inventory_session_items').insert(items)
+    }
+
+    // status を in_progress に戻す
+    await supabase
+      .from('inventory_sessions')
+      .update({ status: 'in_progress', submitted_at: null })
+      .eq('id', sessionId)
+
+    revalidatePath(`/admin/inventory/${sessionId}`)
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'リセットに失敗しました' }
+  }
+}
+
+// ────────────────────────────────────────────────────────
+// 削除
+// ────────────────────────────────────────────────────────
+export async function deleteInventorySession(sessionId: string): Promise<{ error: string } | Record<string, never>> {
+  try {
+    const supabase = await createServiceClient()
+    await supabase.from('inventory_session_items').delete().eq('session_id', sessionId)
+    await supabase.from('inventory_sessions').delete().eq('id', sessionId)
+    revalidatePath('/admin/inventory')
+    return {}
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : '削除に失敗しました' }
+  }
+}
+
+// ────────────────────────────────────────────────────────
 // 申請（submitted に変更）
 // ────────────────────────────────────────────────────────
 export async function submitInventorySession(sessionId: string) {

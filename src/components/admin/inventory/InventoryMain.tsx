@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   RiAlertFill,
@@ -8,8 +8,15 @@ import {
   RiTimeLine,
   RiClipboardLine,
   RiArrowRightLine,
+  RiMoreLine,
+  RiRefreshLine,
+  RiDeleteBinLine,
 } from 'react-icons/ri'
-import { createInventorySession } from '@/app/admin/(protected)/inventory/actions'
+import {
+  createInventorySession,
+  resetInventorySession,
+  deleteInventorySession,
+} from '@/app/admin/(protected)/inventory/actions'
 
 type Session = {
   id: string
@@ -53,6 +60,49 @@ export function InventoryMain({
   const router = useRouter()
   const [startingSession, setStartingSession] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [actionLoading, setActionLoading] = useState<'reset' | 'delete' | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [menuOpen])
+
+  async function handleReset() {
+    if (!activeSession) return
+    setMenuOpen(false)
+    setActionLoading('reset')
+    setActionError(null)
+    const result = await resetInventorySession(activeSession.id)
+    setActionLoading(null)
+    if ('error' in result) {
+      setActionError(result.error)
+    } else {
+      router.push(`/admin/inventory/${activeSession.id}`)
+    }
+  }
+
+  async function handleDelete() {
+    if (!activeSession) return
+    setMenuOpen(false)
+    setActionLoading('delete')
+    setActionError(null)
+    const result = await deleteInventorySession(activeSession.id)
+    setActionLoading(null)
+    if ('error' in result) {
+      setActionError(result.error)
+    } else {
+      router.refresh()
+    }
+  }
 
   async function handleStart() {
     setStartingSession(true)
@@ -121,25 +171,73 @@ export function InventoryMain({
                   進行中の棚卸し
                 </p>
               </div>
-              <span
-                className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{
-                  background: `${STATUS_COLOR[activeSession.status]}20`,
-                  color:      STATUS_COLOR[activeSession.status],
-                }}
-              >
-                {STATUS_LABEL[activeSession.status]}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                  style={{
+                    background: `${STATUS_COLOR[activeSession.status]}20`,
+                    color:      STATUS_COLOR[activeSession.status],
+                  }}
+                >
+                  {STATUS_LABEL[activeSession.status]}
+                </span>
+
+                {/* ケバブメニュー */}
+                <div className="relative" ref={menuRef}>
+                  <button
+                    className="btn-inline flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+                    style={{ color: 'var(--text-muted)' }}
+                    onClick={() => setMenuOpen(v => !v)}
+                    disabled={actionLoading !== null}
+                  >
+                    <RiMoreLine size={17} />
+                  </button>
+
+                  {menuOpen && (
+                    <div
+                      className="absolute right-0 top-9 z-50 min-w-[160px] rounded-xl overflow-hidden shadow-lg"
+                      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+                    >
+                      <button
+                        className="btn-inline flex items-center gap-2.5 w-full px-4 py-3 text-sm transition-colors hover:bg-[var(--bg-base)] text-left"
+                        style={{ color: 'var(--text-primary)' }}
+                        onClick={handleReset}
+                      >
+                        <RiRefreshLine size={15} style={{ color: '#60a5fa', flexShrink: 0 }} />
+                        リセット（再読み込み）
+                      </button>
+                      <div style={{ height: '1px', background: 'var(--border)' }} />
+                      <button
+                        className="btn-inline flex items-center gap-2.5 w-full px-4 py-3 text-sm transition-colors hover:bg-[var(--bg-base)] text-left"
+                        style={{ color: '#ff716c' }}
+                        onClick={handleDelete}
+                      >
+                        <RiDeleteBinLine size={15} style={{ flexShrink: 0 }} />
+                        削除
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
               開始: {new Date(activeSession.started_at).toLocaleString('ja-JP')}
             </p>
 
+            {actionLoading && (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {actionLoading === 'reset' ? 'リセット中...' : '削除中...'}
+              </p>
+            )}
+            {actionError && (
+              <p className="text-xs font-medium" style={{ color: '#ef4444' }}>{actionError}</p>
+            )}
+
             <button
               onClick={() => router.push(`/admin/inventory/${activeSession.id}`)}
               className="flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-              style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
             >
               <RiClipboardLine size={15} />
               棚卸しシートを開く
@@ -159,7 +257,7 @@ export function InventoryMain({
               onClick={handleStart}
               disabled={startingSession}
               className="flex items-center gap-2 h-11 px-5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
-              style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
             >
               <RiClipboardLine size={15} />
               {startingSession ? '準備中...' : '棚卸し開始'}
