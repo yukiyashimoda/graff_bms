@@ -55,14 +55,22 @@ export default async function MenuPage() {
     return (Array.isArray(raw) ? raw[0] : raw) as T
   }
 
-  // ── 商品リスト（display_out_of_stock=falseのみ除外、在庫0はComing Soon扱い）
+  // ── 商品リスト
+  // ・is_available=false (メニューに表示 OFF) → 常に非表示
+  // ・is_available=true  + 在庫0 + display_out_of_stock=false (入荷待ち表示 OFF) → 非表示
+  // ・is_available=true  + 在庫0 + display_out_of_stock=true  (入荷待ち表示 ON)  → 「入荷待ち」表示
+  // ・is_available=true  + 在庫1以上 → 通常表示
   const rows = (products ?? [])
-    .filter(p => p.display_out_of_stock !== false)
+    .filter(p => {
+      if (!p.is_available) return false
+      const qty = Number(resolveOne<{ quantity: number }>(p.stock)?.quantity ?? 0)
+      return qty > 0 || p.display_out_of_stock
+    })
     .map(p => {
       const qty   = Number(resolveOne<{ quantity: number }>(p.stock)?.quantity ?? 0)
       const wd    = resolveOne<{ wine_type: string }>(p.wine_details)
       const sd    = resolveOne<{ shot_price: number | null; type: string; volume_ml: number | null }>(p.spirits_details)
-      const is_waiting = !p.is_available || qty === 0
+      const is_waiting = qty === 0
       return {
         id:               p.id,
         name:             p.name,
