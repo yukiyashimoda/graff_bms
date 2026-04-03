@@ -83,15 +83,17 @@ export function OrderCart({ items }: { items: CartItem[] }) {
     setSaving(true)
     setConfirmError(null)
     try {
-      const cartItems = pendingIds.map(id => {
-        const item = items.find(i => i.id === id)!
-        return {
-          product_id:  id,
-          supplier_id: item.supplier_id ?? null,
-          quantity:    cart[id],
-          unit_price:  item.cost_price,
-        }
-      })
+      const cartItems = pendingIds
+        .map(id => {
+          const item = items.find(i => i.id === id)!
+          return {
+            product_id:  id,
+            supplier_id: item.supplier_id ?? '',
+            quantity:    cart[id],
+            unit_price:  item.cost_price,
+          }
+        })
+        .filter(i => i.supplier_id)
 
       const { count } = await createOrdersFromCart(cartItems)
       setCart({})
