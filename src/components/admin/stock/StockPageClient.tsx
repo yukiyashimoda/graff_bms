@@ -26,10 +26,12 @@ export function StockPageClient({
   items,
   transactions,
   lowCount,
+  initialZeroFilter = false,
 }: {
-  items:        StockItem[]
-  transactions: TxRow[]
-  lowCount:     number
+  items:              StockItem[]
+  transactions:       TxRow[]
+  lowCount:           number
+  initialZeroFilter?: boolean
 }) {
   const [tab, setTab] = useState<Tab>('stock')
 
@@ -86,7 +88,7 @@ export function StockPageClient({
       </div>
 
       {tab === 'stock'
-        ? <StockGrid items={items} />
+        ? <StockGrid items={items} initialZeroFilter={initialZeroFilter} />
         : <HistoryClient transactions={transactions} />
       }
     </div>

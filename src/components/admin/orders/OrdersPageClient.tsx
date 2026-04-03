@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   RiPrinterFill,
   RiDeleteBinFill,
@@ -8,6 +8,8 @@ import {
   RiCloseFill,
   RiFileCopyLine,
   RiCheckLine,
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
 } from 'react-icons/ri'
 import { SupplierManager } from '@/components/admin/suppliers/SupplierManager'
 import {
@@ -117,6 +119,26 @@ export function OrdersPageClient({
   const [tab,       setTab]      = useState<Tab>('history')
   const [orders,    setOrders]   = useState<Order[]>(initialOrders)
   const [copiedId,  setCopiedId] = useState<string | null>(null)
+
+  // 月別フィルター（デフォルト: 今月）
+  const todayMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+  const [selectedMonth, setSelectedMonth] = useState(todayMonth)
+
+  function shiftMonth(delta: number) {
+    const [y, m] = selectedMonth.split('-').map(Number)
+    const d = new Date(y, m - 1 + delta, 1)
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
+
+  const monthLabel = (() => {
+    const [y, m] = selectedMonth.split('-')
+    return `${y}年${Number(m)}月`
+  })()
+
+  const filteredOrders = useMemo(
+    () => orders.filter(o => o.order_date.startsWith(selectedMonth)),
+    [orders, selectedMonth],
+  )
 
   // Sync when server re-renders with fresh data
   useEffect(() => { setOrders(initialOrders) }, [initialOrders])
@@ -290,7 +312,7 @@ export function OrdersPageClient({
         <div>
           <h1 className="text-2xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-bitcount, system-ui)' }}>ORDERS</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            {tab === 'history'   && `発注 ${orders.length} 件`}
+            {tab === 'history'   && `発注 ${filteredOrders.length} 件`}
             {tab === 'suppliers' && `発注先 ${suppliers.length} 件`}
           </p>
         </div>
@@ -337,18 +359,45 @@ export function OrdersPageClient({
       {/* ─── 発注リスト ─── */}
       {tab === 'history' && (
         <div className="space-y-3">
-          <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
-            商品到着時はこちらから検品してください
-          </p>
-          {orders.length === 0 ? (
+          {/* 月ナビ */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+              商品到着時はこちらから検品してください
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => shiftMonth(-1)}
+                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-surface)]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <RiArrowLeftSLine size={16} />
+              </button>
+              <span
+                className="text-xs font-semibold tabular-nums px-2"
+                style={{ color: 'var(--text-primary)', minWidth: 72, textAlign: 'center' }}
+              >
+                {monthLabel}
+              </span>
+              <button
+                onClick={() => shiftMonth(1)}
+                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-surface)]"
+                style={{ color: selectedMonth >= todayMonth ? 'var(--text-muted)' : 'var(--text-muted)', opacity: selectedMonth >= todayMonth ? 0.3 : 1 }}
+                disabled={selectedMonth >= todayMonth}
+              >
+                <RiArrowRightSLine size={16} />
+              </button>
+            </div>
+          </div>
+
+          {filteredOrders.length === 0 ? (
             <div
               className="flex flex-col items-center justify-center py-24 rounded-2xl gap-3"
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
             >
               <RiFileListLine size={28} style={{ color: 'var(--text-muted)' }} />
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>発注履歴がありません</p>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>この月の発注履歴がありません</p>
             </div>
-          ) : orders.map(order => (
+          ) : filteredOrders.map(order => (
             <div
               key={order.id}
               className="rounded-2xl overflow-hidden relative"

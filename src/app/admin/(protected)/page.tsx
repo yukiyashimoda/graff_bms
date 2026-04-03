@@ -20,23 +20,26 @@ const quickLinks = [
 export default async function AdminDashboardPage() {
   const supabase = await createServiceClient()
 
+  const now = new Date()
+  const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+
   const [
     { count: productCount },
-    { count: lowStockCount },
+    { count: zeroStockCount },
     { count: orderCount },
     { count: alertCount },
   ] = await Promise.all([
     supabase.from('products').select('*', { count: 'exact', head: true }),
-    supabase.from('stock').select('*', { count: 'exact', head: true }).lt('quantity', 1),
-    supabase.from('purchase_orders').select('*', { count: 'exact', head: true }),
+    supabase.from('stock').select('*', { count: 'exact', head: true }).eq('quantity', 0),
+    supabase.from('purchase_orders').select('*', { count: 'exact', head: true }).gte('order_date', startOfMonth),
     supabase.from('price_alerts').select('*', { count: 'exact', head: true }).eq('is_read', false),
   ])
 
   const stats = [
-    { label: '総商品数',     value: productCount  ?? '—', sub: '商品マスタ', href: null,           accent: '#81ecff' },
-    { label: '在庫なし',     value: lowStockCount ?? '—', sub: '要確認',     href: null,           accent: '#ff716c' },
-    { label: '発注件数',     value: orderCount    ?? '—', sub: '累計',       href: null,           accent: '#70aaff' },
-    { label: '価格アラート', value: alertCount    ?? '—', sub: '未読',       href: '/admin/alerts', accent: '#fe9400', alert: (alertCount ?? 0) > 0 },
+    { label: '総商品数',         value: productCount  ?? '—', sub: '商品マスタ', href: '/admin/products',   accent: '#81ecff' },
+    { label: '在庫なし',         value: zeroStockCount ?? '—', sub: '要確認',    href: '/admin/stock?zero=1', accent: '#ff716c' },
+    { label: '今月の発注件数',   value: orderCount    ?? '—', sub: '今月',       href: '/admin/orders',     accent: '#70aaff' },
+    { label: '価格アラート',     value: alertCount    ?? '—', sub: '未読',       href: '/admin/alerts',     accent: '#fe9400', alert: (alertCount ?? 0) > 0 },
   ]
 
   return (
@@ -56,34 +59,27 @@ export default async function AdminDashboardPage() {
 
       {/* 統計グリッド */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {stats.map(({ label, value, sub, href, accent, alert }) => {
-          const card = (
-            <div
-              className="rounded-2xl p-4 flex flex-col gap-2 h-full"
-              style={{
-                background: 'var(--bg-surface)',
-                border:     alert ? `1px solid ${accent}40` : '1px solid var(--border)',
-                boxShadow:  alert ? `0 0 16px ${accent}20` : 'var(--shadow-sm)',
-              }}
+        {stats.map(({ label, value, sub, href, accent, alert }) => (
+          <Link
+            key={label}
+            href={href}
+            className="rounded-2xl p-4 flex flex-col gap-2 transition-opacity hover:opacity-85"
+            style={{
+              background: 'var(--bg-surface)',
+              border:     alert ? `1px solid ${accent}40` : '1px solid var(--border)',
+              boxShadow:  alert ? `0 0 16px ${accent}20` : 'none',
+            }}
+          >
+            <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
+            <p
+              className="text-3xl font-bold tracking-tight tabular-nums"
+              style={{ color: alert ? accent : 'var(--text-primary)', textShadow: alert ? `0 0 12px ${accent}60` : 'none' }}
             >
-              <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{label}</p>
-              <p
-                className="text-3xl font-bold tracking-tight tabular-nums"
-                style={{ color: alert ? accent : 'var(--text-primary)', textShadow: alert ? `0 0 12px ${accent}60` : 'none' }}
-              >
-                {value}
-              </p>
-              <p className="text-[11px]" style={{ color: accent + '99' }}>{sub}</p>
-            </div>
-          )
-          return href ? (
-            <Link key={label} href={href} className="rounded-2xl transition-opacity hover:opacity-85">
-              {card}
-            </Link>
-          ) : (
-            <div key={label}>{card}</div>
-          )
-        })}
+              {value}
+            </p>
+            <p className="text-[11px]" style={{ color: accent + '99' }}>{sub}</p>
+          </Link>
+        ))}
       </div>
 
       {/* クイックアクション */}

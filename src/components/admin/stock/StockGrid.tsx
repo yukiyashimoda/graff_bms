@@ -45,12 +45,13 @@ type PriceModal = {
   cost_price: number | null
 }
 
-export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
+export function StockGrid({ items: initialItems, initialZeroFilter = false }: { items: StockItem[]; initialZeroFilter?: boolean }) {
   const router  = useRouter()
   const [items,      setItems]      = useState<StockItem[]>(initialItems)
   const [deltas,     setDeltas]     = useState<Record<string, number>>({})
   const [query,      setQuery]      = useState('')
   const [lowOnly,    setLowOnly]    = useState(false)
+  const [zeroOnly,   setZeroOnly]   = useState(initialZeroFilter)
   const [catFilter,  setCat]        = useState<string | null>(null)
   const [showList,        setShowList]        = useState(false)
   const [priceModal,      setPriceModal]      = useState<PriceModal | null>(null)
@@ -198,6 +199,7 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
 
   const filtered = useMemo(() => {
     return optimisticItems.filter(item => {
+      if (zeroOnly && item.quantity !== 0) return false
       if (lowOnly && item.quantity >= item.min_quantity) return false
       if (catFilter && item.category_name !== catFilter) return false
       if (!query) return true
@@ -208,7 +210,7 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
         (item.category_name ?? '').toLowerCase().includes(q)
       )
     })
-  }, [optimisticItems, query, lowOnly, catFilter])
+  }, [optimisticItems, query, lowOnly, zeroOnly, catFilter])
 
   return (
     <>
@@ -244,6 +246,20 @@ export function StockGrid({ items: initialItems }: { items: StockItem[] }) {
             </div>
           )}
         </div>
+
+        {/* 在庫なしのみ */}
+        <button
+          onClick={() => setZeroOnly(v => !v)}
+          className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-sm font-medium transition-all"
+          style={{
+            background: zeroOnly ? 'rgba(255,113,108,0.12)' : 'var(--bg-surface)',
+            color:      zeroOnly ? '#ff716c' : 'var(--text-secondary)',
+            border:     zeroOnly ? '1px solid rgba(255,113,108,0.3)' : '1px solid var(--border)',
+          }}
+        >
+          <RiAlertFill size={13} />
+          在庫なし
+        </button>
 
         {/* 在庫不足のみ（独立） */}
         <button
