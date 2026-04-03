@@ -1,6 +1,7 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { Noto_Sans_JP, Silkscreen, Space_Grotesk, JetBrains_Mono, Doto } from 'next/font/google'
+import { SwRegister } from '@/components/admin/SwRegister'
 import './globals.css'
 
 const notoSans = Noto_Sans_JP({
@@ -34,8 +35,21 @@ const doto = Doto({
 })
 
 export const metadata: Metadata = {
-  title: 'graff.bms',
+  title:       'graff.bms',
   description: '統合管理システム — 在庫 / メニュー / 発注',
+  manifest:    '/manifest.webmanifest',
+  appleWebApp: {
+    capable:           true,
+    title:             'graff.bms',
+    statusBarStyle:    'black-translucent',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor:          '#080f16',
+  width:               'device-width',
+  initialScale:        1,
+  viewportFit:         'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="noise-overlay" />
         <div className="scanline-overlay" />
         {children}
+        <SwRegister />
         <Analytics />
       </body>
     </html>
