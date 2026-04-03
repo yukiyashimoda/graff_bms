@@ -63,7 +63,7 @@
   --color-background: var(--bg-base);
   --color-foreground: var(--text-primary);
   --font-sans:        var(--font-sans);
-  --font-logo:        var(--font-silkscreen);
+  --font-logo:        var(--font-doto, monospace);
   --font-headline:    var(--font-space-grotesk, "Space Grotesk", system-ui);
   --font-mono-code:   var(--font-jetbrains-mono, "JetBrains Mono", monospace);
 }

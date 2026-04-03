@@ -216,7 +216,7 @@ export function MenuClient({
       <header className="sticky top-0 z-20" style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}>
         <div className="max-w-3xl mx-auto px-5">
           <div className="flex items-center justify-between h-14">
-            <p className="text-[19px]" style={{ fontFamily: 'var(--font-silkscreen)', color: 'var(--text-primary)' }}>
+            <p className="text-[19px]" style={{ fontFamily: 'var(--font-doto, monospace)', color: 'var(--text-primary)' }}>
               graff.
             </p>
             <button

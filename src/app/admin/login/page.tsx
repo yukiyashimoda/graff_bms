@@ -19,12 +19,12 @@ export default async function LoginPage({ searchParams }: Props) {
         <div className="flex items-center gap-3">
           <div
             className="w-[60px] h-[60px] rounded-2xl flex items-center justify-center text-xl"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', fontFamily: 'var(--font-silkscreen)' }}
+            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', fontFamily: 'var(--font-doto, monospace)' }}
           >
             g
           </div>
           <div>
-            <p className="text-[21px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-silkscreen)' }}>
+            <p className="text-[21px]" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-doto, monospace)' }}>
               graff.bms
             </p>
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>

@@ -28,7 +28,7 @@ export function PageTransition() {
           justifyContent: 'center',
           fontSize:       26,
           color:          '#ededed',
-          fontFamily:     'var(--font-silkscreen)',
+          fontFamily:     'var(--font-doto, monospace)',
           animation:      'pt-logo 0.45s cubic-bezier(0.16,1,0.3,1) 0.05s both',
         }}
       >
@@ -36,7 +36,7 @@ export function PageTransition() {
       </div>
 
       {/* graff.bms テキスト */}
-      <div style={{ display: 'flex', fontFamily: 'var(--font-silkscreen)', fontSize: 18, color: '#091d26', letterSpacing: 1 }}>
+      <div style={{ display: 'flex', fontFamily: 'var(--font-doto, monospace)', fontSize: 18, color: '#091d26', letterSpacing: 1 }}>
         {CHARS.map((char, i) => (
           <span
             key={i}

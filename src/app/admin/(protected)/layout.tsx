@@ -175,7 +175,7 @@ function SidebarContent({ pathname, onNav }: { pathname: string; onNav: () => vo
               background:  'rgba(129, 236, 255, 0.08)',
               color:       '#81ecff',
               borderColor: 'rgba(129, 236, 255, 0.2)',
-              fontFamily:  'var(--font-silkscreen)',
+              fontFamily:  'var(--font-doto, monospace)',
               filter:      'drop-shadow(0 0 6px rgba(129,236,255,0.4))',
             }}
           >
@@ -185,7 +185,7 @@ function SidebarContent({ pathname, onNav }: { pathname: string; onNav: () => vo
             className="text-[20px] tracking-widest uppercase"
             style={{
               color:      '#81ecff',
-              fontFamily: 'var(--font-silkscreen)',
+              fontFamily: 'var(--font-doto, monospace)',
               fontWeight: 700,
               textShadow: '0 0 8px rgba(129,236,255,0.5)',
             }}
@@ -312,7 +312,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               className="text-[20px]"
               style={{
                 color:      '#81ecff',
-                fontFamily: 'var(--font-silkscreen)',
+                fontFamily: 'var(--font-doto, monospace)',
                 fontWeight: 700,
                 textShadow: '0 0 8px rgba(129,236,255,0.5)',
               }}
