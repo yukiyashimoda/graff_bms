@@ -6,6 +6,7 @@ import {
   RiCalendar2Fill,
   RiArrowRightSLine,
   RiBarChartBoxFill,
+  RiPriceTag3Fill,
 } from 'react-icons/ri'
 
 const SETTINGS = [
@@ -15,6 +16,13 @@ const SETTINGS = [
     color:       '#81ecff',
     title:       '発注書情報',
     description: '会社名・電話番号・ロゴなど、発注書に印刷される情報',
+  },
+  {
+    href:        '/admin/settings/categories',
+    icon:        RiPriceTag3Fill,
+    color:       '#70aaff',
+    title:       'カテゴリ管理',
+    description: '大カテゴリーとサブカテゴリーを追加・削除',
   },
   {
     href:        '/admin/settings/stock-alerts',
