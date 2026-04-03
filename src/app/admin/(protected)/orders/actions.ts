@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
 
 type OrderItem = {
@@ -11,33 +10,37 @@ type OrderItem = {
   notes?: string | null
 }
 
-export async function createOrder(formData: FormData) {
+export async function createOrder(params: {
+  supplier_id:   string
+  order_date:    string
+  expected_date: string | null
+  notes:         string | null
+  items: {
+    product_id:  string
+    quantity:    number
+    unit_price:  number | null
+    notes?:      string | null
+  }[]
+}): Promise<{ id: string }> {
   const supabase = await createServiceClient()
-
-  const supplier_id   = formData.get('supplier_id')   as string
-  const order_date    = formData.get('order_date')    as string
-  const expected_date = (formData.get('expected_date') as string) || null
-  const notes         = (formData.get('notes')         as string) || null
-  const itemsJson     = formData.get('items')          as string
-  const items: OrderItem[] = JSON.parse(itemsJson)
 
   const { data: order, error } = await supabase
     .from('purchase_orders')
     .insert({
-      supplier_id,
-      status: 'draft',
-      order_date: order_date || new Date().toISOString().split('T')[0],
-      expected_date,
-      notes,
+      supplier_id:   params.supplier_id,
+      status:        'draft',
+      order_date:    params.order_date || new Date().toISOString().split('T')[0],
+      expected_date: params.expected_date,
+      notes:         params.notes,
     })
     .select('id')
     .single()
 
   if (error || !order) throw new Error('発注書の作成に失敗しました')
 
-  if (items.length > 0) {
+  if (params.items.length > 0) {
     await supabase.from('purchase_order_items').insert(
-      items.map(item => ({
+      params.items.map(item => ({
         purchase_order_id: order.id,
         product_id:        item.product_id,
         quantity:          item.quantity,
@@ -49,7 +52,7 @@ export async function createOrder(formData: FormData) {
 
   revalidatePath('/admin/orders/history')
   revalidatePath('/admin/orders')
-  redirect('/admin/orders')
+  return { id: order.id }
 }
 
 export async function updateOrderStatus(

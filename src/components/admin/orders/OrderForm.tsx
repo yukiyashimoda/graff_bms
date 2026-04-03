@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { RiArrowLeftLine, RiAddLine, RiDeleteBinFill } from 'react-icons/ri'
 import { createOrder } from '@/app/admin/(protected)/orders/actions'
@@ -22,9 +23,13 @@ export function OrderForm({
   suppliers: Supplier[]
   products:  Product[]
 }) {
-  const [supplierId, setSupplierId] = useState('')
-  const [items, setItems]           = useState<LineItem[]>([])
-  const [submitting, setSubmitting]  = useState(false)
+  const router = useRouter()
+  const [supplierId,   setSupplierId]   = useState('')
+  const [orderDate,    setOrderDate]    = useState(new Date().toISOString().split('T')[0])
+  const [expectedDate, setExpectedDate] = useState('')
+  const [notes,        setNotes]        = useState('')
+  const [items,        setItems]        = useState<LineItem[]>([])
+  const [submitting,   setSubmitting]   = useState(false)
   const keyCounter = useRef(0)
 
   function addItem() {
@@ -49,23 +54,30 @@ export function OrderForm({
     )
   }
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!supplierId || items.length === 0) return
     setSubmitting(true)
-    const payload = items.map(item => ({
-      product_id: item.product_id,
-      quantity:   item.quantity,
-      unit_price: item.unit_price,
-    }))
-    formData.set('items', JSON.stringify(payload))
-    await createOrder(formData)
-    setSubmitting(false)
+    try {
+      await createOrder({
+        supplier_id:   supplierId,
+        order_date:    orderDate,
+        expected_date: expectedDate || null,
+        notes:         notes || null,
+        items:         items.map(item => ({
+          product_id: item.product_id,
+          quantity:   item.quantity,
+          unit_price: item.unit_price,
+        })),
+      })
+      router.push('/admin/orders')
+    } finally {
+      setSubmitting(false)
+    }
   }
-
-  const today = new Date().toISOString().split('T')[0]
 
   return (
     <div className="max-w-3xl space-y-6">
-      {/* ヘッダー */}
       <div className="flex items-center gap-3">
         <Link
           href="/admin/orders"
@@ -77,8 +89,7 @@ export function OrderForm({
         <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>発注書を作成</h1>
       </div>
 
-      <form action={handleSubmit} className="space-y-5">
-        {/* 発注先・日付 */}
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div
           className="rounded-2xl p-6 space-y-5"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
@@ -88,7 +99,6 @@ export function OrderForm({
           <div className="grid grid-cols-2 gap-4">
             <Field label="発注先 *">
               <select
-                name="supplier_id"
                 required
                 value={supplierId}
                 onChange={e => setSupplierId(e.target.value)}
@@ -105,9 +115,9 @@ export function OrderForm({
             <Field label="発注日 *">
               <input
                 type="date"
-                name="order_date"
                 required
-                defaultValue={today}
+                value={orderDate}
+                onChange={e => setOrderDate(e.target.value)}
                 className={input}
                 style={inputStyle}
               />
@@ -118,7 +128,8 @@ export function OrderForm({
             <Field label="納品予定日">
               <input
                 type="date"
-                name="expected_date"
+                value={expectedDate}
+                onChange={e => setExpectedDate(e.target.value)}
                 className={input}
                 style={inputStyle}
               />
@@ -127,7 +138,8 @@ export function OrderForm({
 
           <Field label="備考">
             <textarea
-              name="notes"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
               rows={2}
               placeholder="任意のメモ"
               className={`${input} resize-none`}
@@ -136,7 +148,6 @@ export function OrderForm({
           </Field>
         </div>
 
-        {/* 発注明細 */}
         <div
           className="rounded-2xl p-6 space-y-4"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
@@ -147,7 +158,7 @@ export function OrderForm({
               type="button"
               onClick={addItem}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-80"
-              style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
             >
               <RiAddLine size={13} />
               追加
@@ -165,7 +176,6 @@ export function OrderForm({
             </div>
           ) : (
             <div className="space-y-2">
-              {/* テーブルヘッダ */}
               <div className="grid gap-2 px-1" style={{ gridTemplateColumns: '1fr 80px 100px 32px' }}>
                 {['商品', '数量', '単価（¥）', ''].map(h => (
                   <span key={h} className="text-[10px] font-semibold" style={{ color: 'var(--text-muted)' }}>
@@ -227,7 +237,7 @@ export function OrderForm({
                     <button
                       type="button"
                       onClick={() => removeItem(item.key)}
-                      className="flex items-center justify-center w-8 h-8 rounded-xl transition-colors hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)]"
+                      className="flex items-center justify-center w-8 h-8 rounded-xl transition-colors hover:bg-[rgba(129,236,255,0.12)] hover:text-[#81ecff]"
                       style={{ color: 'var(--text-muted)' }}
                     >
                       <RiDeleteBinFill size={13} />
@@ -236,7 +246,6 @@ export function OrderForm({
                 )
               })}
 
-              {/* 合計 */}
               {items.some(i => i.unit_price != null) && (
                 <div
                   className="flex items-center justify-between pt-3 mt-2"
@@ -254,13 +263,12 @@ export function OrderForm({
           )}
         </div>
 
-        {/* ボタン */}
         <div className="flex gap-3">
           <button
             type="submit"
             disabled={submitting || items.length === 0 || !supplierId}
             className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
           >
             {submitting ? '保存中...' : '下書きとして保存'}
           </button>
