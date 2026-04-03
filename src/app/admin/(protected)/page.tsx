@@ -4,7 +4,6 @@ import {
   RiBarChartBoxFill,
   RiFileListFill,
   RiArrowRightSLine,
-  RiInboxLine,
   RiAlertFill,
   RiAddBoxLine,
   RiPriceTag3Fill,
@@ -28,12 +27,24 @@ export default async function AdminDashboardPage() {
     { count: zeroStockCount },
     { count: orderCount },
     { count: alertCount },
+    { data: recentTxRaw },
   ] = await Promise.all([
     supabase.from('products').select('*', { count: 'exact', head: true }),
     supabase.from('stock').select('*', { count: 'exact', head: true }).eq('quantity', 0),
     supabase.from('purchase_orders').select('*', { count: 'exact', head: true }).gte('order_date', startOfMonth),
     supabase.from('price_alerts').select('*', { count: 'exact', head: true }).eq('is_read', false),
+    supabase.from('stock_transactions')
+      .select('id, type, quantity, created_at, products(name)')
+      .order('created_at', { ascending: false })
+      .limit(8),
   ])
+
+  const recentTx = (recentTxRaw ?? []).map(t => ({
+    id:           t.id as string,
+    quantity:     Number(t.quantity),
+    created_at:   t.created_at as string,
+    product_name: (t.products as unknown as { name: string } | null)?.name ?? '—',
+  }))
 
   const stats = [
     { label: '総商品数',         value: productCount  ?? '—', sub: '商品マスタ', href: '/admin/products',   accent: '#81ecff' },
@@ -118,12 +129,9 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* アクティビティ */}
-      <div
-        className="rounded-2xl p-5 flex flex-col gap-4"
-        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-      >
-        <div className="flex items-center justify-between">
+      {/* ログフィード */}
+      <section className="space-y-2">
+        <div className="flex justify-between items-center px-1">
           <p
             className="text-[9px] uppercase tracking-[0.25em]"
             style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-space-grotesk, system-ui)' }}
@@ -131,21 +139,74 @@ export default async function AdminDashboardPage() {
             Log Feed / 履歴
           </p>
           <Link
-            href="/admin/stock/history"
+            href="/admin/stock"
             className="text-[10px] transition-opacity hover:opacity-70 flex items-center gap-1"
             style={{ color: '#81ecff' }}
           >
             View All <RiArrowRightSLine size={12} />
           </Link>
         </div>
-        <div
-          className="flex flex-col items-center justify-center py-8 rounded-xl gap-2"
-          style={{ background: 'var(--bg-base)' }}
-        >
-          <RiInboxLine size={24} style={{ color: 'var(--text-muted)' }} />
-          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>No transactions yet</p>
-        </div>
-      </div>
+
+        {recentTx.length === 0 ? (
+          <div
+            className="rounded-xl py-10 flex flex-col items-center justify-center gap-2"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+          >
+            <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>No transactions yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {recentTx.map(tx => {
+              const isIn  = tx.quantity > 0
+              const color = isIn ? '#81ecff' : '#fe9400'
+              const time  = new Date(tx.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })
+              return (
+                <div
+                  key={tx.id}
+                  className="rounded-lg p-3 flex items-center gap-3"
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+                >
+                  {/* カラーインジケーター */}
+                  <div
+                    className="flex-shrink-0 flex flex-col items-center justify-center"
+                    style={{ width: '8px', height: '40px' }}
+                  >
+                    <div
+                      className="rounded-full"
+                      style={{
+                        width: '6px', height: '6px',
+                        background: color,
+                        boxShadow: `0 0 5px ${color}`,
+                      }}
+                    />
+                  </div>
+
+                  {/* コンテンツ */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <p className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                        {isIn ? 'Inbound' : 'Outbound'}
+                      </p>
+                      <span
+                        className="text-[10px] flex-shrink-0 ml-2"
+                        style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-doto, var(--font-jetbrains-mono, monospace))' }}
+                      >
+                        {time}
+                      </span>
+                    </div>
+                    <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {tx.product_name}{' '}
+                      <span style={{ color, fontFamily: 'var(--font-doto, var(--font-jetbrains-mono, monospace))' }}>
+                        {isIn ? '+' : ''}{tx.quantity}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
 
       {/* 価格上昇注意バナー */}
       {(alertCount ?? 0) > 0 && (
