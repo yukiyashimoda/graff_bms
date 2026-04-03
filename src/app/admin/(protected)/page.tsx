@@ -1,18 +1,20 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
-  RiArchiveFill,
   RiBarChartBoxFill,
   RiFileListFill,
   RiArrowRightSLine,
   RiInboxLine,
   RiAlertFill,
+  RiAddBoxLine,
+  RiPriceTag3Fill,
 } from 'react-icons/ri'
 
 const quickLinks = [
-  { href: '/admin/products', label: '商品を追加',   icon: RiArchiveFill },
-  { href: '/admin/stock',    label: '入出庫管理',   icon: RiBarChartBoxFill },
-  { href: '/admin/orders',   label: '発注書を作成', icon: RiFileListFill },
+  { href: '/admin/products/new', labelEn: 'New Item', icon: RiAddBoxLine },
+  { href: '/admin/stock',        labelEn: 'Stock',    icon: RiBarChartBoxFill },
+  { href: '/admin/orders',       labelEn: 'Order',    icon: RiFileListFill },
+  { href: '/admin/pricing',      labelEn: 'Price',    icon: RiPriceTag3Fill },
 ]
 
 export default async function AdminDashboardPage() {
@@ -84,70 +86,68 @@ export default async function AdminDashboardPage() {
         })}
       </div>
 
-      {/* 2カラム */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-
-        {/* クイックアクション */}
-        <div
-          className="rounded-2xl p-5 flex flex-col gap-4"
-          style={{
-            background: 'rgba(28, 39, 49, 0.6)',
-            border:     '1px solid rgba(129, 236, 255, 0.12)',
-            backdropFilter: 'blur(12px)',
-          }}
+      {/* クイックアクション */}
+      <section>
+        <p
+          className="text-[9px] uppercase tracking-[0.25em] mb-3 px-1"
+          style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-space-grotesk, system-ui)' }}
         >
-          <p
-            className="text-sm font-semibold"
-            style={{ color: '#81ecff', textShadow: '0 0 8px rgba(129,236,255,0.4)', fontFamily: 'var(--font-space-grotesk, system-ui)', letterSpacing: '0.05em' }}
-          >
-            クイックアクション
-          </p>
-          <div className="flex flex-col gap-1">
-            {quickLinks.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all hover:bg-[rgba(129,236,255,0.06)] group"
+          Operations / 操作
+        </p>
+        <div className="grid grid-cols-4 gap-3">
+          {quickLinks.map(({ href, labelEn, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all active:scale-95"
+              style={{
+                background: 'var(--bg-surface)',
+                border:     '1px solid var(--border)',
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(129,236,255,0.08)', border: '1px solid rgba(129,236,255,0.12)' }}
+              >
+                <Icon size={18} style={{ color: '#81ecff' }} />
+              </div>
+              <span
+                className="text-[9px] text-center uppercase tracking-tight"
                 style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-space-grotesk, system-ui)' }}
               >
-                <span className="flex items-center gap-2.5">
-                  <Icon size={15} style={{ color: 'var(--text-muted)' }} />
-                  {label}
-                </span>
-                <RiArrowRightSLine size={15} className="opacity-30 group-hover:opacity-70 transition-opacity" />
-              </Link>
-            ))}
-          </div>
+                {labelEn}
+              </span>
+            </Link>
+          ))}
         </div>
+      </section>
 
-        {/* アクティビティ */}
-        <div
-          className="rounded-2xl p-5 flex flex-col gap-4 sm:col-span-2"
-          style={{
-            background: 'var(--bg-surface)',
-            border:     '1px solid var(--border)',
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <p
-              className="text-sm font-semibold"
-              style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-space-grotesk, system-ui)' }}
-            >
-              最近のアクティビティ
-            </p>
-            <button className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
-              すべて見る
-            </button>
-          </div>
-          <div
-            className="flex-1 flex flex-col items-center justify-center py-8 rounded-xl gap-2"
-            style={{ background: 'var(--bg-base)' }}
+      {/* アクティビティ */}
+      <div
+        className="rounded-2xl p-5 flex flex-col gap-4"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-center justify-between">
+          <p
+            className="text-[9px] uppercase tracking-[0.25em]"
+            style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-space-grotesk, system-ui)' }}
           >
-            <RiInboxLine size={24} style={{ color: 'var(--text-muted)' }} />
-            <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
-              まだデータがありません
-            </p>
-          </div>
+            Log Feed / 履歴
+          </p>
+          <Link
+            href="/admin/stock/history"
+            className="text-[10px] transition-opacity hover:opacity-70 flex items-center gap-1"
+            style={{ color: '#81ecff' }}
+          >
+            View All <RiArrowRightSLine size={12} />
+          </Link>
+        </div>
+        <div
+          className="flex flex-col items-center justify-center py-8 rounded-xl gap-2"
+          style={{ background: 'var(--bg-base)' }}
+        >
+          <RiInboxLine size={24} style={{ color: 'var(--text-muted)' }} />
+          <p className="text-[12px]" style={{ color: 'var(--text-muted)' }}>No transactions yet</p>
         </div>
       </div>
 
