@@ -139,7 +139,7 @@ export default async function AdminDashboardPage() {
             Log Feed / 履歴
           </p>
           <Link
-            href="/admin/stock"
+            href="/admin/stock?tab=history"
             className="text-[10px] transition-opacity hover:opacity-70 flex items-center gap-1"
             style={{ color: '#81ecff' }}
           >

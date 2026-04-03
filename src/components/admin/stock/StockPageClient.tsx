@@ -27,13 +27,15 @@ export function StockPageClient({
   transactions,
   lowCount,
   initialZeroFilter = false,
+  initialTab = 'stock',
 }: {
   items:              StockItem[]
   transactions:       TxRow[]
   lowCount:           number
   initialZeroFilter?: boolean
+  initialTab?:        Tab
 }) {
-  const [tab, setTab] = useState<Tab>('stock')
+  const [tab, setTab] = useState<Tab>(initialTab)
 
   return (
     <div className="max-w-6xl space-y-6">

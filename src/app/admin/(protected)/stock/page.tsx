@@ -4,10 +4,11 @@ import { StockPageClient } from '@/components/admin/stock/StockPageClient'
 export default async function StockPage({
   searchParams,
 }: {
-  searchParams: Promise<{ zero?: string }>
+  searchParams: Promise<{ zero?: string; tab?: string }>
 }) {
-  const { zero } = await searchParams
+  const { zero, tab } = await searchParams
   const initialZeroFilter = zero === '1'
+  const initialTab = tab === 'history' ? 'history' : 'stock'
   const supabase = await createServiceClient()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,6 +107,7 @@ export default async function StockPage({
       transactions={txRows}
       lowCount={lowCount}
       initialZeroFilter={initialZeroFilter}
+      initialTab={initialTab}
     />
   )
 }
