@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect } from 'react'
 import {
   RiPrinterFill,
   RiDeleteBinFill,
@@ -9,7 +9,6 @@ import {
   RiFileCopyLine,
   RiCheckLine,
 } from 'react-icons/ri'
-import { OrderCart } from './OrderCart'
 import { SupplierManager } from '@/components/admin/suppliers/SupplierManager'
 import {
   updateOrderStatus,
@@ -17,12 +16,11 @@ import {
   updateItemInspectionStatus,
   receiveOrderItem,
 } from '@/app/admin/(protected)/orders/actions'
-import type { CartItem } from './OrderCart'
 import type { IssuerProfile } from '@/app/admin/(protected)/orders/issuer-actions'
 
 type InspectionStatus = 'arrived' | 'partial' | 'missing' | 'price_changed' | null
 
-type Tab = 'order' | 'history' | 'suppliers'
+type Tab = 'history' | 'suppliers'
 
 type Supplier = {
   id:           string
@@ -107,22 +105,22 @@ const idle: React.CSSProperties = {
 
 // ─── コンポーネント ────────────────────────────────────────────
 export function OrdersPageClient({
-  cartItems,
   orders: initialOrders,
   suppliers,
   orderTextTemplate,
 }: {
-  cartItems:          CartItem[]
   orders:             Order[]
   suppliers:          Supplier[]
   issuerProfile:      IssuerProfile
   orderTextTemplate:  string
 }) {
-  const [tab,       setTab]      = useState<Tab>('order')
+  const [tab,       setTab]      = useState<Tab>('history')
   const [orders,    setOrders]   = useState<Order[]>(initialOrders)
   const [copiedId,  setCopiedId] = useState<string | null>(null)
+
+  // Sync when server re-renders with fresh data
+  useEffect(() => { setOrders(initialOrders) }, [initialOrders])
   const [textModal, setTextModal] = useState<{ text: string } | null>(null)
-  const [, startTransition] = useTransition()
 
   function generateOrderText(order: Order): string {
     const itemLines = order.items
@@ -159,18 +157,14 @@ export function OrdersPageClient({
   const [inputPrice,   setInputPrice]   = useState('')
 
   // ─── オーダー操作 ─────────────────────────────────────────
-  function handleStatusUpdate(orderId: string, status: OrderStatus) {
-    startTransition(async () => {
-      await updateOrderStatus(orderId, status)
-      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o))
-    })
+  async function handleStatusUpdate(orderId: string, status: OrderStatus) {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o))
+    await updateOrderStatus(orderId, status)
   }
 
-  function handleDelete(orderId: string) {
-    startTransition(async () => {
-      await deleteOrder(orderId)
-      setOrders(prev => prev.filter(o => o.id !== orderId))
-    })
+  async function handleDelete(orderId: string) {
+    setOrders(prev => prev.filter(o => o.id !== orderId))
+    await deleteOrder(orderId)
   }
 
   // ─── 品目の楽観的更新ヘルパー ─────────────────────────────
@@ -192,8 +186,7 @@ export function OrdersPageClient({
     const remaining = item.quantity - item.received_quantity
     if (remaining <= 0) return
     patchItem(order.id, item.id, { inspection_status: 'arrived', received_quantity: item.quantity })
-    startTransition(async () => {
-      const { fullyReceived } = await receiveOrderItem(item.id, remaining, null, false)
+    receiveOrderItem(item.id, remaining, null, false).then(({ fullyReceived }) => {
       if (fullyReceived && order.items.every(i => i.id === item.id || i.inspection_status === 'arrived')) {
         markOrderReceived(order.id)
       }
@@ -203,9 +196,7 @@ export function OrdersPageClient({
   // ─── 欠品 ────────────────────────────────────────────────
   function handleMissing(orderId: string, itemId: string) {
     patchItem(orderId, itemId, { inspection_status: 'missing' })
-    startTransition(async () => {
-      await updateItemInspectionStatus(itemId, 'missing')
-    })
+    void updateItemInspectionStatus(itemId, 'missing')
   }
 
   // ─── 一部到着ポップアップを開く ───────────────────────────
@@ -235,9 +226,7 @@ export function OrdersPageClient({
     })
     const snap = { ...partialModal }
     setPartialModal(null)
-    startTransition(async () => {
-      await receiveOrderItem(snap.itemId, qty, snap.newPrice, snap.isPriceChange)
-    })
+    void receiveOrderItem(snap.itemId, qty, snap.newPrice, snap.isPriceChange)
   }
 
   // ─── 価格改定ポップアップを開く ───────────────────────────
@@ -263,9 +252,7 @@ export function OrdersPageClient({
     const snap = { ...priceModal }
     setPriceModal(null)
     patchItem(snap.orderId, snap.itemId, { inspection_status: 'arrived', unit_price: price })
-    startTransition(async () => {
-      await receiveOrderItem(snap.itemId, snap.remaining, price, true)
-    })
+    void receiveOrderItem(snap.itemId, snap.remaining, price, true)
   }
 
   // 価格改定 → 一部到着（部分モーダルへ）
@@ -291,7 +278,6 @@ export function OrdersPageClient({
 
   // ─── タブ ─────────────────────────────────────────────────
   const TABS: { key: Tab; label: string }[] = [
-    { key: 'order',     label: '発注書作成' },
     { key: 'history',   label: '発注リスト' },
     { key: 'suppliers', label: '発注先一覧' },
   ]
@@ -304,7 +290,6 @@ export function OrdersPageClient({
         <div>
           <h1 className="text-2xl" style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-bitcount, system-ui)' }}>ORDERS</h1>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            {tab === 'order'     && '発注する商品を選んで発注書を作成'}
             {tab === 'history'   && `発注 ${orders.length} 件`}
             {tab === 'suppliers' && `発注先 ${suppliers.length} 件`}
           </p>
@@ -348,9 +333,6 @@ export function OrdersPageClient({
           </button>
         ))}
       </div>
-
-      {/* ─── 発注書作成 ─── */}
-      {tab === 'order' && <OrderCart items={cartItems} />}
 
       {/* ─── 発注リスト ─── */}
       {tab === 'history' && (

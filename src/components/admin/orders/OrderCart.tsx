@@ -33,9 +33,10 @@ export function OrderCart({ items }: { items: CartItem[] }) {
   const [query,     setQuery]    = useState('')
   const [lowOnly,   setLowOnly]  = useState(false)
   const [catFilter, setCat]      = useState<string | null>(null)
-  const [saving,    setSaving]   = useState(false)
-  const [showList,  setShowList] = useState(false)
-  const [doneMsg,   setDoneMsg]  = useState<string | null>(null)
+  const [saving,       setSaving]      = useState(false)
+  const [showList,     setShowList]    = useState(false)
+  const [doneMsg,      setDoneMsg]     = useState<string | null>(null)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
 
   const categories = useMemo(() => {
     const seen = new Set<string>()
@@ -80,18 +81,17 @@ export function OrderCart({ items }: { items: CartItem[] }) {
   async function handleConfirm() {
     if (saving || pendingCount === 0) return
     setSaving(true)
+    setConfirmError(null)
     try {
-      const cartItems = pendingIds
-        .map(id => {
-          const item = items.find(i => i.id === id)!
-          return {
-            product_id:  id,
-            supplier_id: item.supplier_id ?? '',
-            quantity:    cart[id],
-            unit_price:  item.cost_price,
-          }
-        })
-        .filter(i => i.supplier_id)  // 発注先なしは除外
+      const cartItems = pendingIds.map(id => {
+        const item = items.find(i => i.id === id)!
+        return {
+          product_id:  id,
+          supplier_id: item.supplier_id ?? null,
+          quantity:    cart[id],
+          unit_price:  item.cost_price,
+        }
+      })
 
       const { count } = await createOrdersFromCart(cartItems)
       setCart({})
@@ -101,6 +101,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
       setTimeout(() => setDoneMsg(null), 4000)
     } catch (e) {
       console.error(e)
+      setConfirmError(e instanceof Error ? e.message : String(e))
     } finally {
       setSaving(false)
     }
@@ -151,8 +152,8 @@ export function OrderCart({ items }: { items: CartItem[] }) {
           onClick={() => setLowOnly(v => !v)}
           className="flex items-center gap-2 h-11 px-4 rounded-xl text-sm font-medium transition-all"
           style={{
-            background: lowOnly ? 'var(--bg-dark)' : 'var(--bg-surface)',
-            color:      lowOnly ? 'var(--text-invert)' : 'var(--text-secondary)',
+            background: lowOnly ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+            color:      lowOnly ? '#81ecff' : 'var(--text-secondary)',
             border:     lowOnly ? 'none' : '1px solid var(--border)',
           }}
         >
@@ -161,7 +162,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
           {lowCount > 0 && (
             <span
               className="ml-0.5 text-[11px] px-1.5 py-0.5 rounded-full font-semibold"
-              style={{ background: lowOnly ? 'rgba(255,255,255,0.2)' : 'var(--bg-dark)', color: 'var(--text-invert)' }}
+              style={{ background: lowOnly ? 'rgba(255,255,255,0.2)' : 'rgba(129,236,255,0.12)', color: '#81ecff' }}
             >
               {lowCount}
             </span>
@@ -200,8 +201,8 @@ export function OrderCart({ items }: { items: CartItem[] }) {
       {/* フローティングバー */}
       {pendingCount > 0 && (
         <div
-          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 sm:bottom-6 z-40 flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 rounded-2xl"
-          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
+          className="fixed bottom-24 left-4 right-4 lg:left-auto lg:right-8 lg:bottom-6 z-40 flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 rounded-2xl"
+          style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
         >
           <button
             onClick={() => setShowList(true)}
@@ -231,7 +232,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
       {doneMsg && (
         <div
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-semibold flex items-center gap-2"
-          style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
+          style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
         >
           <RiCheckFill size={15} />
           {doneMsg}
@@ -313,6 +314,12 @@ export function OrderCart({ items }: { items: CartItem[] }) {
 
             {/* 合計 + フッター */}
             <div className="px-5 py-4 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
+              {confirmError && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+                  <RiAlertFill size={13} style={{ color: '#ef4444' }} />
+                  <p className="text-xs" style={{ color: '#dc2626' }}>{confirmError}</p>
+                </div>
+              )}
               {totalAmount > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>合計（仕入れ価格）</span>
@@ -333,7 +340,7 @@ export function OrderCart({ items }: { items: CartItem[] }) {
                   onClick={handleConfirm}
                   disabled={saving}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                  style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}
+                  style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
                 >
                   <RiCheckFill size={14} />
                   {saving ? '作成中...' : '発注書を作成'}
@@ -369,7 +376,7 @@ function OrderCard({
       style={{
         background: 'var(--bg-surface)',
         border:     hasQty
-          ? '1.5px solid var(--bg-dark)'
+          ? '1px solid rgba(129,236,255,0.3)'
           : isLow
             ? '1.5px solid var(--text-muted)'
             : '1px solid var(--border)',
@@ -385,7 +392,7 @@ function OrderCard({
             : <span />
           }
           {isLow && (
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-dark)', color: 'var(--text-invert)' }}>不足</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>不足</span>
           )}
         </div>
 
@@ -415,7 +422,7 @@ function OrderCard({
           <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
             <div
               className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${pct}%`, background: isLow ? 'var(--bg-dark)' : 'var(--text-muted)' }}
+              style={{ width: `${pct}%`, background: isLow ? 'rgba(129,236,255,0.12)' : 'var(--text-muted)' }}
             />
           </div>
           <div className="flex items-center justify-between mt-1">
@@ -442,7 +449,7 @@ function OrderCard({
         <button
           onClick={() => onAdjust(-1)}
           disabled={!hasQty}
-          className="flex items-center justify-center py-3 transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)] active:scale-95 disabled:opacity-30"
+          className="flex items-center justify-center py-3 transition-all hover:bg-[rgba(129,236,255,0.12)] hover:text-[#81ecff] active:scale-95 disabled:opacity-30"
           style={{ color: 'var(--text-secondary)', borderRight: '1px solid var(--border)' }}
         >
           <RiSubtractFill size={15} />
@@ -460,7 +467,7 @@ function OrderCard({
 
         <button
           onClick={() => onAdjust(1)}
-          className="flex items-center justify-center py-3 transition-all hover:bg-[var(--bg-dark)] hover:text-[var(--text-invert)] active:scale-95"
+          className="flex items-center justify-center py-3 transition-all hover:bg-[rgba(129,236,255,0.12)] hover:text-[#81ecff] active:scale-95"
           style={{ color: 'var(--text-secondary)' }}
         >
           <RiAddFill size={15} />
@@ -476,8 +483,8 @@ function CatBtn({ label, active, onClick }: { label: string; active: boolean; on
       onClick={onClick}
       className="h-11 px-3 rounded-xl text-xs font-medium transition-all"
       style={{
-        background: active ? 'var(--bg-dark)' : 'var(--bg-surface)',
-        color:      active ? 'var(--text-invert)' : 'var(--text-secondary)',
+        background: active ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
+        color:      active ? '#81ecff' : 'var(--text-secondary)',
         border:     active ? 'none' : '1px solid var(--border)',
       }}
     >
