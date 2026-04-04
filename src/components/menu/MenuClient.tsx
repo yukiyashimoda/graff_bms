@@ -436,7 +436,7 @@ function SectionHeader({ label }: { label: string }) {
     <div className="mb-6 mt-2">
       <h2
         className="text-[10px] font-bold tracking-[0.3em] uppercase"
-        style={{ color: '#6b6058' }}
+        style={{ color: '#1c1712', filter: 'url(#kasure)' }}
       >
         {label}
       </h2>
@@ -445,10 +445,7 @@ function SectionHeader({ label }: { label: string }) {
   )
 }
 
-/* ── アイテム区切り線 */
-function ItemDivider() {
-  return <div style={{ borderBottom: '1px solid rgba(28,23,18,0.1)' }} />
-}
+const jaFont = { fontFamily: 'var(--font-shippori, serif)' }
 
 /* ── 通常商品カード */
 function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t: ReturnType<typeof useTranslations> }) {
@@ -461,13 +458,13 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
         <div className="flex-1 min-w-0">
           <p
             className="text-[13px] font-semibold leading-snug"
-            style={{ color: product.is_waiting ? '#b0a598' : '#1c1712' }}
+            style={{ color: '#1c1712', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}
           >
             {name}
             {product.is_recommended && !product.is_waiting && (
               <span
                 className="ml-2 text-[8px] font-bold px-1.5 py-0.5 rounded align-middle tracking-widest"
-                style={{ background: 'rgba(28,23,18,0.08)', color: '#6b6058', border: '1px solid rgba(28,23,18,0.2)' }}
+                style={{ background: 'rgba(28,23,18,0.08)', color: '#1c1712', border: '1px solid rgba(28,23,18,0.2)', fontFamily: 'inherit' }}
               >
                 FEATURED
               </span>
@@ -475,7 +472,7 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
             {product.custom_tag && !product.is_waiting && (
               <span
                 className="ml-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded align-middle tracking-widest"
-                style={{ border: '1px solid rgba(28,23,18,0.18)', color: '#9a8f82' }}
+                style={{ border: '1px solid rgba(28,23,18,0.18)', color: '#1c1712', fontFamily: 'inherit' }}
               >
                 {product.custom_tag}
               </span>
@@ -489,7 +486,7 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
           )}
 
           {hasSpiritsPrice && !product.is_waiting && (
-            <p translate="no" className="text-[11px] mt-0.5 tabular-nums" style={{ color: '#7a7068' }}>
+            <p translate="no" className="text-[11px] mt-0.5 tabular-nums" style={{ color: '#1c1712', filter: 'url(#kasure)' }}>
               {product.shot_price != null && `Single ¥${product.shot_price.toLocaleString()}`}
               {product.shot_price != null && product.selling_price != null && '  ·  '}
               {product.selling_price != null && `Bottle ¥${product.selling_price.toLocaleString()}`}
@@ -501,7 +498,7 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
           <span
             translate="no"
             className="text-[13px] tabular-nums flex-shrink-0"
-            style={{ color: product.is_waiting ? '#b0a598' : '#1c1712' }}
+            style={{ color: '#1c1712', filter: 'url(#kasure)' }}
           >
             {product.is_waiting
               ? t('menu.comingSoon')
@@ -529,7 +526,7 @@ function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
     <div className="py-3">
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#1c1712' }}>
+          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#1c1712', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}>
             {name}
           </p>
           {sub && (
@@ -541,7 +538,7 @@ function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
             <p className="text-[11px] mt-0.5" style={{ color: '#9a8f82' }}>{item.serving_ml}ml</p>
           ) : null}
         </div>
-        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#1c1712' }}>
+        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#1c1712', filter: 'url(#kasure)' }}>
           {item.selling_price != null ? `¥${item.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
@@ -557,7 +554,7 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
     <div className="py-3">
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#1c1712' }}>
+          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#1c1712', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}>
             {name}
           </p>
           {cocktail.tags.length > 0 && (
@@ -571,7 +568,7 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
             </p>
           )}
         </div>
-        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#1c1712' }}>
+        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#1c1712', filter: 'url(#kasure)' }}>
           {cocktail.selling_price != null ? `¥${cocktail.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
