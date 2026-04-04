@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { RiSearchLine } from 'react-icons/ri'
+import { RiSearchLine, RiMoonLine, RiSunLine } from 'react-icons/ri'
 import { createClient } from '@/lib/supabase/client'
 import { TranslateWidget } from './TranslateWidget'
 
@@ -19,18 +19,16 @@ const WINE_TYPE_LABEL: Record<WineType, string> = {
   other:      'WINE',
 }
 
-// ウイスキー系スピリッツタイプ
 const WHISKY_TYPES = new Set(['scotch', 'japanese', 'bourbon', 'irish', 'whisky', 'blended', 'american', 'single malt'])
 
-// ── セクション表示順（数値が小さいほど上）
 const SECTION_SORT: Record<string, number> = {
   beer:      10,
-  whisky:    20,  // スピリッツから分割したウイスキー
-  wine:      30,  // ボトルワイン（タイプ別）
-  champagne: 35,  // ボトルシャンパン
-  glass:     25,  // グラスワイン（ビール・ハイボールの次）
+  whisky:    20,
+  glass:     25,
+  wine:      30,
+  champagne: 35,
   cocktail:  50,
-  spirits:   60,  // ウイスキー以外のスピリッツ
+  spirits:   60,
   soft:      70,
   food:      80,
   others:    90,
@@ -93,30 +91,46 @@ type GlassWine = {
   grape:         string | null
 }
 
-type ProductSection = { kind: 'products'; sortKey: number; id: string; label: string; items: Product[] }
-type GlassSection   = { kind: 'glass';    sortKey: number; label: string; items: GlassWine[] }
+type ProductSection  = { kind: 'products';  sortKey: number; id: string; label: string; items: Product[] }
+type GlassSection    = { kind: 'glass';     sortKey: number; label: string; items: GlassWine[] }
 type CocktailSection = { kind: 'cocktails'; sortKey: number; items: Cocktail[] }
 type MenuSection = ProductSection | GlassSection | CocktailSection
 
-/* ── SVGフィルター定義（文字掠れのみ） */
+/* ── テーマ定義 */
+const LIGHT = {
+  '--menu-bg':                '#f6f5f2',
+  '--menu-bg-header':         'rgba(246,245,242,0.92)',
+  '--menu-text':              '#1c1712',
+  '--menu-sub':               '#9a8f82',
+  '--menu-border':            'rgba(28,23,18,0.15)',
+  '--menu-border-search':     'rgba(28,23,18,0.2)',
+  '--menu-tag-bg':            'rgba(28,23,18,0.08)',
+  '--menu-tag-border':        'rgba(28,23,18,0.2)',
+  '--menu-custom-tag-border': 'rgba(28,23,18,0.18)',
+  '--menu-title-line':        'rgba(28,23,18,0.4)',
+} as React.CSSProperties
+
+const DARK = {
+  '--menu-bg':                '#0f0d0a',
+  '--menu-bg-header':         'rgba(15,13,10,0.92)',
+  '--menu-text':              '#e8e0d0',
+  '--menu-sub':               '#7a7265',
+  '--menu-border':            'rgba(232,224,208,0.12)',
+  '--menu-border-search':     'rgba(232,224,208,0.2)',
+  '--menu-tag-bg':            'rgba(232,224,208,0.08)',
+  '--menu-tag-border':        'rgba(232,224,208,0.2)',
+  '--menu-custom-tag-border': 'rgba(232,224,208,0.18)',
+  '--menu-title-line':        'rgba(232,224,208,0.35)',
+} as React.CSSProperties
+
+/* ── SVGフィルター（文字掠れ） */
 function PaperFilters() {
   return (
     <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden>
       <defs>
         <filter id="kasure" x="-2%" y="-2%" width="104%" height="104%">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.85"
-            numOctaves="4"
-            seed="7"
-            result="noise"
-          />
-          <feColorMatrix
-            type="matrix"
-            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -10 8.5"
-            in="noise"
-            result="mask"
-          />
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" seed="7" result="noise" />
+          <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -10 8.5" in="noise" result="mask" />
           <feComposite in="SourceGraphic" in2="mask" operator="in" />
         </filter>
       </defs>
@@ -137,8 +151,27 @@ export function MenuClient({
   const router = useRouter()
   const t      = useTranslations()
 
-  const [query, setQuery] = useState('')
+  const [query,    setQuery]    = useState('')
+  const [darkMode, setDarkMode] = useState(false)
   const isJa = locale === 'ja'
+
+  // ダークモード初期化（localStorage → システム設定）
+  useEffect(() => {
+    const saved = localStorage.getItem('menu-dark-mode')
+    if (saved !== null) {
+      setDarkMode(saved === '1')
+    } else {
+      setDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches)
+    }
+  }, [])
+
+  function toggleDark() {
+    setDarkMode(d => {
+      const next = !d
+      localStorage.setItem('menu-dark-mode', next ? '1' : '0')
+      return next
+    })
+  }
 
   // リアルタイム更新
   useEffect(() => {
@@ -192,7 +225,6 @@ export function MenuClient({
     })
   }, [glassWines, query, isJa])
 
-  // ── 全セクションを一つのリストにまとめてソート
   const sections = useMemo<MenuSection[]>(() => {
     function sortByPrice(items: Product[]) {
       return [...items].sort((a, b) => {
@@ -205,7 +237,6 @@ export function MenuClient({
 
     const result: MenuSection[] = []
 
-    // ── 商品カテゴリ
     const byCat = new Map<string, Product[]>(categories.map(c => [c.id, []]))
     const uncategorized: Product[] = []
     filteredProducts.forEach(p => {
@@ -220,34 +251,15 @@ export function MenuClient({
       const items = byCat.get(c.id) ?? []
       if (items.length === 0) return
 
-      const isSpirits = c.name_en.toLowerCase().includes('spirit')
+      const isSpirits  = c.name_en.toLowerCase().includes('spirit')
       const hasWineType = items.some(p => p.wine_type && p.wine_type !== 'other')
 
       if (isSpirits) {
-        // スピリッツ → ウイスキーとその他に分割
         const whiskyItems = items.filter(p => p.spirits_type && WHISKY_TYPES.has(p.spirits_type.toLowerCase()))
         const otherItems  = items.filter(p => !p.spirits_type || !WHISKY_TYPES.has(p.spirits_type.toLowerCase()))
-
-        if (whiskyItems.length > 0) {
-          result.push({
-            kind: 'products',
-            sortKey: SECTION_SORT.whisky,
-            id: `${c.id}__whisky`,
-            label: 'WHISKY & HIGHBALL',
-            items: sortByPrice(whiskyItems),
-          })
-        }
-        if (otherItems.length > 0) {
-          result.push({
-            kind: 'products',
-            sortKey: SECTION_SORT.spirits,
-            id: `${c.id}__spirits`,
-            label: 'SPIRITS',
-            items: sortByPrice(otherItems),
-          })
-        }
+        if (whiskyItems.length > 0) result.push({ kind: 'products', sortKey: SECTION_SORT.whisky,  id: `${c.id}__whisky`,  label: 'WHISKY & HIGHBALL', items: sortByPrice(whiskyItems) })
+        if (otherItems.length  > 0) result.push({ kind: 'products', sortKey: SECTION_SORT.spirits, id: `${c.id}__spirits`, label: 'SPIRITS',            items: sortByPrice(otherItems) })
       } else if (hasWineType) {
-        // ワイン → タイプ別に分割
         const wineGroups = new Map<WineType, Product[]>()
         items.forEach(p => {
           const wt = (p.wine_type as WineType) ?? 'other'
@@ -257,38 +269,18 @@ export function MenuClient({
         WINE_TYPE_ORDER.forEach(wt => {
           const wItems = wineGroups.get(wt)
           if (!wItems || wItems.length === 0) return
-          const label = WINE_TYPE_LABEL[wt]
-          const isCh  = wt === 'champagne' || wt === 'sparkling'
-          result.push({
-            kind: 'products',
-            sortKey: isCh ? SECTION_SORT.champagne : SECTION_SORT.wine,
-            id: `${c.id}__${wt}`,
-            label,
-            items: sortByPrice(wItems),
-          })
+          const isCh = wt === 'champagne' || wt === 'sparkling'
+          result.push({ kind: 'products', sortKey: isCh ? SECTION_SORT.champagne : SECTION_SORT.wine, id: `${c.id}__${wt}`, label: WINE_TYPE_LABEL[wt], items: sortByPrice(wItems) })
         })
       } else {
-        result.push({
-          kind: 'products',
-          sortKey: getCatSortKey(c.name_en),
-          id: c.id,
-          label: c.name_en || c.name,
-          items: sortByPrice(items),
-        })
+        result.push({ kind: 'products', sortKey: getCatSortKey(c.name_en), id: c.id, label: c.name_en || c.name, items: sortByPrice(items) })
       }
     })
 
     if (uncategorized.length > 0) {
-      result.push({
-        kind: 'products',
-        sortKey: SECTION_SORT.others,
-        id: '__none__',
-        label: 'OTHERS',
-        items: sortByPrice(uncategorized),
-      })
+      result.push({ kind: 'products', sortKey: SECTION_SORT.others, id: '__none__', label: 'OTHERS', items: sortByPrice(uncategorized) })
     }
 
-    // ── グラスワイン
     const glassGroups = new Map<WineType, GlassWine[]>()
     filteredGlassWines.forEach(g => {
       const wt = (g.wine_type as WineType) ?? 'other'
@@ -296,64 +288,66 @@ export function MenuClient({
       glassGroups.get(wt)!.push(g)
     })
     WINE_TYPE_ORDER.filter(wt => glassGroups.has(wt)).forEach(wt => {
-      result.push({
-        kind: 'glass',
-        sortKey: SECTION_SORT.glass,
-        label: `GLASS · ${WINE_TYPE_LABEL[wt]}`,
-        items: glassGroups.get(wt)!,
-      })
+      result.push({ kind: 'glass', sortKey: SECTION_SORT.glass, label: `GLASS · ${WINE_TYPE_LABEL[wt]}`, items: glassGroups.get(wt)! })
     })
 
-    // ── カクテル
     if (filteredCocktails.length > 0) {
-      result.push({
-        kind: 'cocktails',
-        sortKey: SECTION_SORT.cocktail,
-        items: filteredCocktails,
-      })
+      result.push({ kind: 'cocktails', sortKey: SECTION_SORT.cocktail, items: filteredCocktails })
     }
 
-    // ── sortKey で昇順ソート
     return result.sort((a, b) => a.sortKey - b.sortKey)
   }, [filteredProducts, filteredGlassWines, filteredCocktails, categories, isJa])
 
   const hasContent = sections.length > 0
+  const theme = darkMode ? DARK : LIGHT
 
   return (
     <>
       <PaperFilters />
 
-      <main className="relative min-h-screen" style={{ background: '#f6f5f2', color: '#1c1712' }}>
-
+      <main
+        className="relative min-h-screen"
+        style={{ ...theme, background: 'var(--menu-bg)', color: 'var(--menu-text)' }}
+      >
         {/* ── ヘッダー（sticky） */}
         <header
           className="sticky top-0 z-20"
-          style={{ background: 'rgba(246,245,242,0.92)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'var(--menu-bg-header)', backdropFilter: 'blur(8px)' }}
         >
           <div className="max-w-2xl mx-auto px-6">
             <div className="flex items-center justify-between h-14">
               <p
                 className="text-[18px] tracking-[0.12em]"
-                style={{ fontFamily: 'var(--font-doto, monospace)', color: '#1c1712', filter: 'url(#kasure)' }}
+                style={{ fontFamily: 'var(--font-doto, monospace)', color: 'var(--menu-text)', filter: 'url(#kasure)' }}
               >
                 graff.
               </p>
-              <TranslateWidget />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={toggleDark}
+                  className="btn-inline flex items-center justify-center w-7 h-7 rounded-md"
+                  style={{ color: 'var(--menu-sub)', background: 'transparent', border: 'none', minHeight: 'unset' }}
+                  aria-label="toggle dark mode"
+                >
+                  {darkMode ? <RiSunLine size={15} /> : <RiMoonLine size={15} />}
+                </button>
+                <TranslateWidget />
+              </div>
             </div>
 
             {/* 検索 */}
             <div className="pb-3">
               <div
                 className="flex items-center gap-2.5 px-1 h-9"
-                style={{ borderBottom: '1px solid rgba(28,23,18,0.2)' }}
+                style={{ borderBottom: '1px solid var(--menu-border-search)' }}
               >
-                <RiSearchLine size={13} style={{ color: '#9a8f82', flexShrink: 0 }} />
+                <RiSearchLine size={13} style={{ color: 'var(--menu-sub)', flexShrink: 0 }} />
                 <input
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   placeholder={t('menu.searchPlaceholder')}
                   className="flex-1 text-sm bg-transparent outline-none"
-                  style={{ color: '#1c1712' }}
+                  style={{ color: 'var(--menu-text)' }}
                 />
               </div>
             </div>
@@ -364,23 +358,23 @@ export function MenuClient({
         <div className="max-w-2xl mx-auto px-6 pt-10 pb-8 text-center">
           <p
             className="text-[10px] tracking-[0.35em] uppercase mb-3"
-            style={{ color: '#9a8f82', filter: 'url(#kasure)' }}
+            style={{ color: 'var(--menu-sub)', filter: 'url(#kasure)' }}
           >
             DRINK MENU
           </p>
           <h1
             className="text-[28px] font-bold tracking-[0.25em] uppercase"
-            style={{ color: '#1c1712', filter: 'url(#kasure)' }}
+            style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}
           >
             GRAFF
           </h1>
-          <div className="w-8 h-px mx-auto mt-4" style={{ background: '#1c1712', opacity: 0.4 }} />
+          <div className="w-8 h-px mx-auto mt-4" style={{ background: 'var(--menu-title-line)' }} />
         </div>
 
         {/* ── メニューリスト */}
         <div className="max-w-2xl mx-auto px-6 pb-20 pt-6">
           {!hasContent ? (
-            <p className="text-center py-20 text-sm" style={{ color: '#9a8f82' }}>
+            <p className="text-center py-20 text-sm" style={{ color: 'var(--menu-sub)' }}>
               {t('menu.noResults')}
             </p>
           ) : (
@@ -410,7 +404,6 @@ export function MenuClient({
                     </section>
                   )
                 }
-                // cocktails
                 return (
                   <section key="cocktails">
                     <SectionHeader label="COCKTAILS" />
@@ -436,11 +429,11 @@ function SectionHeader({ label }: { label: string }) {
     <div className="mb-6 mt-2">
       <h2
         className="text-[10px] font-bold tracking-[0.3em] uppercase"
-        style={{ color: '#1c1712', filter: 'url(#kasure)' }}
+        style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}
       >
         {label}
       </h2>
-      <div className="mt-2 w-full h-px" style={{ background: 'rgba(28,23,18,0.15)' }} />
+      <div className="mt-2 w-full h-px" style={{ background: 'var(--menu-border)' }} />
     </div>
   )
 }
@@ -458,13 +451,13 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
         <div className="flex-1 min-w-0">
           <p
             className="text-[13px] font-semibold leading-snug"
-            style={{ color: '#1c1712', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}
+            style={{ color: 'var(--menu-text)', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}
           >
             {name}
             {product.is_recommended && !product.is_waiting && (
               <span
                 className="ml-2 text-[8px] font-bold px-1.5 py-0.5 rounded align-middle tracking-widest"
-                style={{ background: 'rgba(28,23,18,0.08)', color: '#1c1712', border: '1px solid rgba(28,23,18,0.2)', fontFamily: 'inherit' }}
+                style={{ background: 'var(--menu-tag-bg)', color: 'var(--menu-text)', border: '1px solid var(--menu-tag-border)', fontFamily: 'inherit' }}
               >
                 FEATURED
               </span>
@@ -472,7 +465,7 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
             {product.custom_tag && !product.is_waiting && (
               <span
                 className="ml-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded align-middle tracking-widest"
-                style={{ border: '1px solid rgba(28,23,18,0.18)', color: '#1c1712', fontFamily: 'inherit' }}
+                style={{ border: '1px solid var(--menu-custom-tag-border)', color: 'var(--menu-text)', fontFamily: 'inherit' }}
               >
                 {product.custom_tag}
               </span>
@@ -480,13 +473,13 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
           </p>
 
           {product.tags.length > 0 && (
-            <p className="text-[10px] mt-1.5" style={{ color: '#1c1712' }}>
+            <p className="text-[10px] mt-1.5" style={{ color: 'var(--menu-text)' }}>
               {product.tags.join(' · ')}
             </p>
           )}
 
           {hasSpiritsPrice && !product.is_waiting && (
-            <p translate="no" className="text-[11px] mt-0.5 tabular-nums" style={{ color: '#1c1712', filter: 'url(#kasure)' }}>
+            <p translate="no" className="text-[11px] mt-0.5 tabular-nums" style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}>
               {product.shot_price != null && `Single ¥${product.shot_price.toLocaleString()}`}
               {product.shot_price != null && product.selling_price != null && '  ·  '}
               {product.selling_price != null && `Bottle ¥${product.selling_price.toLocaleString()}`}
@@ -498,7 +491,7 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
           <span
             translate="no"
             className="text-[13px] tabular-nums flex-shrink-0"
-            style={{ color: '#1c1712', filter: 'url(#kasure)' }}
+            style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}
           >
             {product.is_waiting
               ? t('menu.comingSoon')
@@ -517,28 +510,28 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
 function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
   const name = isJa ? item.name : (item.name_en || item.name)
   const sub = [
-    item.vintage  ? String(item.vintage) : null,
-    item.country  ?? null,
-    item.grape    ?? null,
+    item.vintage ? String(item.vintage) : null,
+    item.country ?? null,
+    item.grape   ?? null,
   ].filter(Boolean).join(' · ')
 
   return (
     <div className="py-3">
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#1c1712', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}>
+          <p className="text-[13px] font-semibold leading-snug" style={{ color: 'var(--menu-text)', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}>
             {name}
           </p>
           {sub && (
-            <p className="text-[10px] mt-1.5" style={{ color: '#1c1712' }}>
+            <p className="text-[10px] mt-1.5" style={{ color: 'var(--menu-text)' }}>
               {sub}{item.serving_ml ? `  ·  ${item.serving_ml}ml` : ''}
             </p>
           )}
           {!sub && item.serving_ml ? (
-            <p className="text-[10px] mt-1.5" style={{ color: '#1c1712' }}>{item.serving_ml}ml</p>
+            <p className="text-[10px] mt-1.5" style={{ color: 'var(--menu-text)' }}>{item.serving_ml}ml</p>
           ) : null}
         </div>
-        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#1c1712', filter: 'url(#kasure)' }}>
+        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}>
           {item.selling_price != null ? `¥${item.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
@@ -554,21 +547,21 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
     <div className="py-3">
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#1c1712', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}>
+          <p className="text-[13px] font-semibold leading-snug" style={{ color: 'var(--menu-text)', filter: 'url(#kasure)', ...(isJa ? jaFont : {}) }}>
             {name}
           </p>
           {cocktail.tags.length > 0 && (
-            <p className="text-[10px] mt-1.5" style={{ color: '#1c1712' }}>
+            <p className="text-[10px] mt-1.5" style={{ color: 'var(--menu-text)' }}>
               {cocktail.tags.join(' · ')}
             </p>
           )}
           {cocktail.description && (
-            <p className="text-[10px] mt-1.5 italic" style={{ color: '#1c1712' }}>
+            <p className="text-[10px] mt-1.5 italic" style={{ color: 'var(--menu-text)' }}>
               {cocktail.description}
             </p>
           )}
         </div>
-        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#1c1712', filter: 'url(#kasure)' }}>
+        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}>
           {cocktail.selling_price != null ? `¥${cocktail.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
