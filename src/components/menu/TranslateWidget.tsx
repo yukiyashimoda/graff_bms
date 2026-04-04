@@ -102,9 +102,9 @@ export function TranslateWidget() {
               onClick={() => switchTo(code)}
               className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
               style={{
-                background: isActive ? 'rgba(129,236,255,0.15)' : 'transparent',
-                color:      isActive ? '#81ecff' : 'var(--text-muted)',
-                border:     isActive ? '1px solid rgba(129,236,255,0.3)' : '1px solid transparent',
+                background: isActive ? '#111' : 'transparent',
+                color:      isActive ? '#fff' : '#999',
+                border:     isActive ? '1px solid #111' : '1px solid transparent',
               }}
             >
               {label}

@@ -203,13 +203,13 @@ export function MenuClient({
   const hasContent = grouped.length > 0 || glassWineGrouped.length > 0 || filteredCocktails.length > 0
 
   return (
-    <main className="min-h-screen" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+    <main className="min-h-screen" style={{ background: '#f8f7f4', color: '#111' }}>
 
-      {/* ヘッダー */}
-      <header className="sticky top-0 z-20" style={{ background: 'var(--bg-base)', borderBottom: '1px solid var(--border)' }}>
-        <div className="max-w-3xl mx-auto px-5">
+      {/* ── ヘッダー（sticky） */}
+      <header className="sticky top-0 z-20" style={{ background: '#f8f7f4', borderBottom: '1px solid #e0ddd8' }}>
+        <div className="max-w-2xl mx-auto px-6">
           <div className="flex items-center justify-between h-14">
-            <p className="text-[19px]" style={{ fontFamily: 'var(--font-doto, monospace)', color: 'var(--text-primary)' }}>
+            <p className="text-[18px] tracking-[0.12em]" style={{ fontFamily: 'var(--font-doto, monospace)', color: '#111' }}>
               graff.
             </p>
             <TranslateWidget />
@@ -217,51 +217,59 @@ export function MenuClient({
 
           {/* 検索 */}
           <div className="pb-3">
-            <div
-              className="flex items-center gap-2.5 px-3.5 h-9 rounded-lg"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-            >
-              <RiSearchLine size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <div className="flex items-center gap-2.5 px-1 h-9" style={{ borderBottom: '1px solid #ccc9c3' }}>
+              <RiSearchLine size={13} style={{ color: '#aaa', flexShrink: 0 }} />
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder={t('menu.searchPlaceholder')}
                 className="flex-1 text-sm bg-transparent outline-none"
-                style={{ color: 'var(--text-primary)' }}
+                style={{ color: '#111' }}
               />
             </div>
           </div>
         </div>
       </header>
 
-      {/* メニューリスト */}
-      <div className="max-w-3xl mx-auto px-5 pb-16 pt-6">
+      {/* ── タイトルセクション */}
+      <div className="max-w-2xl mx-auto px-6 pt-10 pb-8 text-center" style={{ borderBottom: '1px solid #e0ddd8' }}>
+        <p className="text-[10px] tracking-[0.35em] uppercase mb-3" style={{ color: '#aaa' }}>
+          DRINK MENU
+        </p>
+        <h1 className="text-[28px] font-bold tracking-[0.25em] uppercase" style={{ color: '#111', letterSpacing: '0.2em' }}>
+          GRAFF
+        </h1>
+        <div className="w-8 h-px mx-auto mt-4" style={{ background: '#111' }} />
+      </div>
+
+      {/* ── メニューリスト */}
+      <div className="max-w-2xl mx-auto px-6 pb-20 pt-10">
         {!hasContent ? (
-          <p className="text-center py-20 text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-center py-20 text-sm" style={{ color: '#aaa' }}>
             {t('menu.noResults')}
           </p>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-12">
 
-            {/* ── 通常商品（カテゴリ別） */}
+            {/* 通常商品 */}
             {grouped.map(group => (
               <section key={group.id}>
                 <SectionHeader label={group.name_en || group.name} />
-                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
                   {group.items.map(product => (
-                    <ProductCard key={product.id} product={product} isJa={isJa} />
+                    <ProductCard key={product.id} product={product} isJa={isJa} t={t} />
                   ))}
                 </div>
               </section>
             ))}
 
-            {/* ── グラスワイン */}
+            {/* グラスワイン */}
             {glassWineGrouped.length > 0 && (
               <>
                 {glassWineGrouped.map(({ wt, label, items }) => (
                   <section key={`glass__${wt}`}>
                     <SectionHeader label={`GLASS · ${label}`} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
                       {items.map(g => (
                         <GlassWineCard key={g.id} item={g} isJa={isJa} />
                       ))}
@@ -271,11 +279,11 @@ export function MenuClient({
               </>
             )}
 
-            {/* ── カクテル */}
+            {/* カクテル */}
             {filteredCocktails.length > 0 && (
               <section>
                 <SectionHeader label="COCKTAILS" />
-                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8 gap-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
                   {filteredCocktails.map(c => (
                     <CocktailCard key={c.id} cocktail={c} isJa={isJa} />
                   ))}
@@ -293,57 +301,74 @@ export function MenuClient({
 /* ── セクションヘッダー */
 function SectionHeader({ label }: { label: string }) {
   return (
-    <div className="px-3 py-2 mb-4" style={{ background: 'var(--bg-dark)' }}>
-      <h2 className="text-sm font-bold tracking-widest uppercase" style={{ color: 'var(--text-primary)' }}>
+    <div className="mb-5 pb-2.5" style={{ borderBottom: '1px solid #111' }}>
+      <h2 className="text-[11px] font-bold tracking-[0.25em] uppercase" style={{ color: '#111' }}>
         {label}
       </h2>
     </div>
   )
 }
 
-/* ── 区切り線 */
-function Divider() {
-  return <div className="mt-4" style={{ borderBottom: '1px solid var(--border)' }} />
+/* ── アイテム区切り線 */
+function ItemDivider() {
+  return <div style={{ borderBottom: '1px solid #e8e5e0' }} />
 }
 
 /* ── 通常商品カード */
-function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
-  const t = useTranslations()
+function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t: ReturnType<typeof useTranslations> }) {
   const name = isJa ? product.name : (product.name_en || product.name)
   const hasSpiritsPrice = product.shot_price != null
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <p
-          className="text-[13px] font-bold leading-snug"
-          style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
-        >
-          {name}
-          {product.is_recommended && !product.is_waiting && (
-            <span
-              className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
-              style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
-            >
-              FEATURED
-            </span>
-          )}
-          {product.custom_tag && !product.is_waiting && (
-            <span
-              className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
-              style={{ border: '1px solid var(--border)', color: 'var(--text-muted)' }}
-            >
-              {product.custom_tag}
-            </span>
-          )}
-        </p>
+      <div className="flex items-baseline justify-between gap-4 py-3">
+        <div className="flex-1 min-w-0">
+          <p
+            className="text-[13px] font-semibold leading-snug"
+            style={{ color: product.is_waiting ? '#bbb' : '#111' }}
+          >
+            {name}
+            {product.is_recommended && !product.is_waiting && (
+              <span
+                className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
+                style={{ background: '#111', color: '#fff' }}
+              >
+                FEATURED
+              </span>
+            )}
+            {product.custom_tag && !product.is_waiting && (
+              <span
+                className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded align-middle"
+                style={{ border: '1px solid #ccc', color: '#888' }}
+              >
+                {product.custom_tag}
+              </span>
+            )}
+          </p>
 
-        {/* スピリッツ以外 or Coming Soon は右に価格 */}
+          {/* タグ */}
+          {product.tags.length > 0 && (
+            <p className="text-[11px] mt-0.5" style={{ color: '#aaa' }}>
+              {product.tags.join(' · ')}
+            </p>
+          )}
+
+          {/* スピリッツ: Single / Bottle */}
+          {hasSpiritsPrice && !product.is_waiting && (
+            <p translate="no" className="text-[11px] mt-0.5 tabular-nums" style={{ color: '#888' }}>
+              {product.shot_price != null && `Single ¥${product.shot_price.toLocaleString()}`}
+              {product.shot_price != null && product.selling_price != null && '  ·  '}
+              {product.selling_price != null && `Bottle ¥${product.selling_price.toLocaleString()}`}
+            </p>
+          )}
+        </div>
+
+        {/* 価格（スピリッツ以外 or Coming Soon） */}
         {(!hasSpiritsPrice || product.is_waiting) && (
           <span
             translate="no"
-            className="text-[13px] font-bold tabular-nums flex-shrink-0"
-            style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
+            className="text-[13px] tabular-nums flex-shrink-0"
+            style={{ color: product.is_waiting ? '#bbb' : '#111', fontVariantNumeric: 'tabular-nums' }}
           >
             {product.is_waiting
               ? t('menu.comingSoon')
@@ -354,24 +379,7 @@ function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
           </span>
         )}
       </div>
-
-      {/* スピリッツ: Single / Bottle 価格 */}
-      {hasSpiritsPrice && !product.is_waiting && (
-        <p translate="no" className="text-[11px] mt-0.5 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-          {product.shot_price != null && `Single ¥${product.shot_price.toLocaleString()}`}
-          {product.shot_price != null && product.selling_price != null && '  ·  '}
-          {product.selling_price != null && `Bottle ¥${product.selling_price.toLocaleString()}`}
-        </p>
-      )}
-
-      {/* タグ */}
-      {product.tags.length > 0 && (
-        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {product.tags.join(' · ')}
-        </p>
-      )}
-
-      <Divider />
+      <ItemDivider />
     </div>
   )
 }
@@ -380,7 +388,6 @@ function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
 function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
   const name = isJa ? item.name : (item.name_en || item.name)
 
-  // サブ情報: ヴィンテージ / 産地 / ブドウ品種
   const sub = [
     item.vintage  ? String(item.vintage) : null,
     item.country  ?? null,
@@ -389,29 +396,25 @@ function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
-          {name}
-        </p>
-        <span translate="no" className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+      <div className="flex items-baseline justify-between gap-4 py-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#111' }}>
+            {name}
+          </p>
+          {sub && (
+            <p className="text-[11px] mt-0.5" style={{ color: '#aaa' }}>
+              {sub}{item.serving_ml ? `  ·  ${item.serving_ml}ml` : ''}
+            </p>
+          )}
+          {!sub && item.serving_ml ? (
+            <p className="text-[11px] mt-0.5" style={{ color: '#aaa' }}>{item.serving_ml}ml</p>
+          ) : null}
+        </div>
+        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#111' }}>
           {item.selling_price != null ? `¥${item.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
-
-      {/* サブ情報 */}
-      {sub && (
-        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {sub}
-          {item.serving_ml ? `  ·  ${item.serving_ml}ml` : ''}
-        </p>
-      )}
-      {!sub && item.serving_ml ? (
-        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {item.serving_ml}ml
-        </p>
-      ) : null}
-
-      <Divider />
+      <ItemDivider />
     </div>
   )
 }
@@ -422,30 +425,27 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
 
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
-          {name}
-        </p>
-        <span translate="no" className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+      <div className="flex items-baseline justify-between gap-4 py-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold leading-snug" style={{ color: '#111' }}>
+            {name}
+          </p>
+          {cocktail.tags.length > 0 && (
+            <p className="text-[11px] mt-0.5" style={{ color: '#aaa' }}>
+              {cocktail.tags.join(' · ')}
+            </p>
+          )}
+          {cocktail.description && (
+            <p className="text-[11px] mt-0.5 italic" style={{ color: '#aaa' }}>
+              {cocktail.description}
+            </p>
+          )}
+        </div>
+        <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#111' }}>
           {cocktail.selling_price != null ? `¥${cocktail.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
-
-      {/* タグ（味の特徴） */}
-      {cocktail.tags.length > 0 && (
-        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-          {cocktail.tags.join(' · ')}
-        </p>
-      )}
-
-      {/* description */}
-      {cocktail.description && (
-        <p className="text-[11px] mt-0.5 italic" style={{ color: 'var(--text-muted)' }}>
-          {cocktail.description}
-        </p>
-      )}
-
-      <Divider />
+      <ItemDivider />
     </div>
   )
 }
