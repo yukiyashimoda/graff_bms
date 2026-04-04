@@ -9,7 +9,17 @@ import { TranslateWidget } from './TranslateWidget'
 
 type WineType = 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other'
 
-const WINE_TYPE_ORDER: WineType[] = ['white', 'red', 'rosé', 'sparkling', 'champagne', 'other']
+const WINE_TYPE_ORDER: WineType[] = ['champagne', 'sparkling', 'white', 'rosé', 'red', 'other']
+
+// ボトルワイン・グラスワイン共通のソートキー（シャンパン→スパークリング→白→ロゼ→赤）
+const WINE_SORT: Record<WineType, number> = {
+  champagne: 28,
+  sparkling:  29,
+  white:      30,
+  rosé:       31,
+  red:        32,
+  other:      33,
+}
 const WINE_TYPE_LABEL: Record<WineType, string> = {
   white:      'WHITE WINE',
   red:        'RED WINE',
@@ -269,8 +279,7 @@ export function MenuClient({
         WINE_TYPE_ORDER.forEach(wt => {
           const wItems = wineGroups.get(wt)
           if (!wItems || wItems.length === 0) return
-          const isCh = wt === 'champagne' || wt === 'sparkling'
-          result.push({ kind: 'products', sortKey: isCh ? SECTION_SORT.champagne : SECTION_SORT.wine, id: `${c.id}__${wt}`, label: WINE_TYPE_LABEL[wt], items: sortByPrice(wItems) })
+          result.push({ kind: 'products', sortKey: WINE_SORT[wt], id: `${c.id}__${wt}`, label: WINE_TYPE_LABEL[wt], items: sortByPrice(wItems) })
         })
       } else {
         result.push({ kind: 'products', sortKey: getCatSortKey(c.name_en), id: c.id, label: c.name_en || c.name, items: sortByPrice(items) })
@@ -288,7 +297,8 @@ export function MenuClient({
       glassGroups.get(wt)!.push(g)
     })
     WINE_TYPE_ORDER.filter(wt => glassGroups.has(wt)).forEach(wt => {
-      result.push({ kind: 'glass', sortKey: SECTION_SORT.glass, label: `GLASS · ${WINE_TYPE_LABEL[wt]}`, items: glassGroups.get(wt)! })
+      // SECTION_SORT.glass(25) + WINE_SORT オフセット(0〜5) でグラスワイン内の順序を保持
+      result.push({ kind: 'glass', sortKey: SECTION_SORT.glass + (WINE_SORT[wt] - 28) / 10, label: `GLASS · ${WINE_TYPE_LABEL[wt]}`, items: glassGroups.get(wt)! })
     })
 
     if (filteredCocktails.length > 0) {
@@ -350,13 +360,15 @@ export function MenuClient({
         <div className="max-w-2xl mx-auto px-6 pt-10 pb-8 text-center">
           <p
             className="text-[10px] tracking-[0.35em] uppercase mb-3"
-            style={{ color: 'var(--menu-sub)', filter: 'url(#kasure)' }}
+            style={{ color: 'var(--menu-sub)', filter: 'url(#kasure)', fontFamily: 'var(--font-shippori, serif)' }}
+            translate="no"
           >
             DRINK MENU
           </p>
           <h1
             className="text-[28px] font-bold tracking-[0.25em] uppercase"
-            style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}
+            style={{ color: 'var(--menu-text)', filter: 'url(#kasure)', fontFamily: 'var(--font-shippori, serif)' }}
+            translate="no"
           >
             GRAFF
           </h1>
@@ -422,6 +434,7 @@ function SectionHeader({ label }: { label: string }) {
       <h2
         className="text-[10px] font-bold tracking-[0.3em] uppercase"
         style={{ color: 'var(--menu-text)', filter: 'url(#kasure)' }}
+        translate="no"
       >
         {label}
       </h2>
