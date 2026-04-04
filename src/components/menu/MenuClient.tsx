@@ -285,10 +285,7 @@ export function MenuClient({
         </div>
 
         {/* ── メニューリスト */}
-        <div
-          className="max-w-2xl mx-auto px-6 pb-20 pt-6"
-          style={{ filter: 'url(#kasure)' }}
-        >
+        <div className="max-w-2xl mx-auto px-6 pb-20 pt-6">
           {!hasContent ? (
             <p className="text-center py-20 text-sm" style={{ color: '#9a8f82' }}>
               {t('menu.noResults')}
