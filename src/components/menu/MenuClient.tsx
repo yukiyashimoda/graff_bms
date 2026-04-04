@@ -421,10 +421,7 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
   const name = isJa ? cocktail.name : (cocktail.name_en || cocktail.name)
 
   return (
-    <div
-      className="rounded-xl px-4 py-3"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-    >
+    <div>
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
           {name}
@@ -436,17 +433,19 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
 
       {/* タグ（味の特徴） */}
       {cocktail.tags.length > 0 && (
-        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {cocktail.tags.join(' · ')}
         </p>
       )}
 
       {/* description */}
       {cocktail.description && (
-        <p className="text-[11px] mt-1 italic" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[11px] mt-0.5 italic" style={{ color: 'var(--text-muted)' }}>
           {cocktail.description}
         </p>
       )}
+
+      <Divider />
     </div>
   )
 }
