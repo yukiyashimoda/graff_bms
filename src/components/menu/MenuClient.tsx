@@ -59,24 +59,11 @@ type GlassWine = {
   grape:         string | null
 }
 
-/* ── SVGフィルター定義（紙質感 + 文字掠れ） */
+/* ── SVGフィルター定義（文字掠れのみ） */
 function PaperFilters() {
   return (
     <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden>
       <defs>
-        {/* 紙のグレイン */}
-        <filter id="paper-grain" x="0%" y="0%" width="100%" height="100%">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.65"
-            numOctaves="4"
-            stitchTiles="stitch"
-            result="noise"
-          />
-          <feColorMatrix type="saturate" values="0" in="noise" result="gray" />
-          <feBlend in="SourceGraphic" in2="gray" mode="multiply" />
-        </filter>
-
         {/* 文字の掠れ */}
         <filter id="kasure" x="-2%" y="-2%" width="104%" height="104%">
           <feTurbulence
@@ -243,26 +230,12 @@ export function MenuClient({
     <>
       <PaperFilters />
 
-      {/* 紙グレイン オーバーレイ */}
-      <div
-        aria-hidden
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: 'none',
-          opacity: 0.055,
-          filter: 'url(#paper-grain)',
-          background: '#3a2a1a',
-        }}
-      />
-
-      <main className="relative min-h-screen" style={{ background: '#f2e9d8', color: '#1c1712', zIndex: 1 }}>
+      <main className="relative min-h-screen" style={{ background: '#f6f5f2', color: '#1c1712' }}>
 
         {/* ── ヘッダー（sticky） */}
         <header
           className="sticky top-0 z-20"
-          style={{ background: 'rgba(242,233,216,0.92)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(28,23,18,0.12)' }}
+          style={{ background: 'rgba(246,245,242,0.92)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(28,23,18,0.1)' }}
         >
           <div className="max-w-2xl mx-auto px-6">
             <div className="flex items-center justify-between h-14">
