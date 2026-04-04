@@ -93,7 +93,7 @@ export function TranslateWidget() {
       <div id="google_translate_element" style={{ display: 'none' }} />
 
       {/* カスタムボタン群 */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5" translate="no">
         {LANGS.map(({ code, label }) => {
           const isActive = active === code
           return (

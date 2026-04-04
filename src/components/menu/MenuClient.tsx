@@ -316,23 +316,15 @@ export function MenuClient({
         >
           <div className="max-w-2xl mx-auto px-6">
             <div className="flex items-center justify-between h-14">
-              <p
-                className="text-[18px] tracking-[0.12em]"
-                style={{ fontFamily: 'var(--font-doto, monospace)', color: 'var(--menu-text)', filter: 'url(#kasure)' }}
+              <button
+                onClick={toggleDark}
+                className="btn-inline flex items-center justify-center w-7 h-7 rounded-md"
+                style={{ color: 'var(--menu-sub)', background: 'transparent', border: 'none', minHeight: 'unset' }}
+                aria-label="toggle dark mode"
               >
-                graff.
-              </p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={toggleDark}
-                  className="btn-inline flex items-center justify-center w-7 h-7 rounded-md"
-                  style={{ color: 'var(--menu-sub)', background: 'transparent', border: 'none', minHeight: 'unset' }}
-                  aria-label="toggle dark mode"
-                >
-                  {darkMode ? <RiSunLine size={15} /> : <RiMoonLine size={15} />}
-                </button>
-                <TranslateWidget />
-              </div>
+                {darkMode ? <RiSunLine size={15} /> : <RiMoonLine size={15} />}
+              </button>
+              <TranslateWidget />
             </div>
 
             {/* 検索 */}
