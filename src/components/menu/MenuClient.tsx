@@ -75,7 +75,7 @@ function PaperFilters() {
           />
           <feColorMatrix
             type="matrix"
-            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -3 3.8"
+            values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -10 8.5"
             in="noise"
             result="mask"
           />
@@ -235,7 +235,7 @@ export function MenuClient({
         {/* ── ヘッダー（sticky） */}
         <header
           className="sticky top-0 z-20"
-          style={{ background: 'rgba(246,245,242,0.92)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(28,23,18,0.1)' }}
+          style={{ background: 'rgba(246,245,242,0.92)', backdropFilter: 'blur(8px)' }}
         >
           <div className="max-w-2xl mx-auto px-6">
             <div className="flex items-center justify-between h-14">
@@ -341,6 +341,11 @@ export function MenuClient({
   )
 }
 
+/* ── アイテム区切り線 */
+function ItemDivider() {
+  return <div style={{ borderBottom: '1px solid rgba(28,23,18,0.1)' }} />
+}
+
 /* ── セクションヘッダー */
 function SectionHeader({ label }: { label: string }) {
   return (
@@ -418,6 +423,7 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
           </span>
         )}
       </div>
+      <ItemDivider />
     </div>
   )
 }
@@ -451,6 +457,7 @@ function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
           {item.selling_price != null ? `¥${item.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
+      <ItemDivider />
     </div>
   )
 }
@@ -481,6 +488,7 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
           {cocktail.selling_price != null ? `¥${cocktail.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
+      <ItemDivider />
     </div>
   )
 }
