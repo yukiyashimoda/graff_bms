@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useLocale } from 'next-intl'
+import { useLocale, useRouter, usePathname } from 'next-intl'
 
 declare global {
   interface Window {
@@ -24,6 +24,8 @@ const LANGS = [
 
 export function TranslateWidget() {
   const locale = useLocale()
+  const router = useRouter()
+  const pathname = usePathname()
   const [active, setActive] = useState(locale)
 
   useEffect(() => {
@@ -63,11 +65,11 @@ export function TranslateWidget() {
     setActive(lang)
 
     if (lang === 'ja') {
-      // googtrans クッキーを削除して元の言語に戻す
+      // googtrans クッキーを削除して日本語ページへ遷移
       const clear = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`
       document.cookie = clear
       document.cookie = `${clear}; domain=.${window.location.hostname}`
-      window.location.reload()
+      router.push(pathname, { locale: 'ja' })
       return
     }
 
