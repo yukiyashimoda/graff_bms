@@ -512,7 +512,6 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
           </span>
         )}
       </div>
-      <ItemDivider />
     </div>
   )
 }
@@ -546,7 +545,6 @@ function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
           {item.selling_price != null ? `¥${item.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
-      <ItemDivider />
     </div>
   )
 }
@@ -577,7 +575,6 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
           {cocktail.selling_price != null ? `¥${cocktail.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
-      <ItemDivider />
     </div>
   )
 }
