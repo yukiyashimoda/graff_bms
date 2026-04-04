@@ -341,6 +341,7 @@ function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
         {/* スピリッツ以外 or Coming Soon は右に価格 */}
         {(!hasSpiritsPrice || product.is_waiting) && (
           <span
+            translate="no"
             className="text-[13px] font-bold tabular-nums flex-shrink-0"
             style={{ color: product.is_waiting ? 'var(--text-muted)' : 'var(--text-primary)' }}
           >
@@ -356,7 +357,7 @@ function ProductCard({ product, isJa }: { product: Product; isJa: boolean }) {
 
       {/* スピリッツ: Single / Bottle 価格 */}
       {hasSpiritsPrice && !product.is_waiting && (
-        <p className="text-[11px] mt-0.5 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+        <p translate="no" className="text-[11px] mt-0.5 tabular-nums" style={{ color: 'var(--text-secondary)' }}>
           {product.shot_price != null && `Single ¥${product.shot_price.toLocaleString()}`}
           {product.shot_price != null && product.selling_price != null && '  ·  '}
           {product.selling_price != null && `Bottle ¥${product.selling_price.toLocaleString()}`}
@@ -392,7 +393,7 @@ function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
         <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
           {name}
         </p>
-        <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+        <span translate="no" className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
           {item.selling_price != null ? `¥${item.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
@@ -425,7 +426,7 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
         <p className="text-[13px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
           {name}
         </p>
-        <span className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
+        <span translate="no" className="text-[13px] font-bold tabular-nums flex-shrink-0" style={{ color: 'var(--text-primary)' }}>
           {cocktail.selling_price != null ? `¥${cocktail.selling_price.toLocaleString()}` : '—'}
         </span>
       </div>
