@@ -28,7 +28,7 @@ const SECTION_SORT: Record<string, number> = {
   whisky:    20,  // スピリッツから分割したウイスキー
   wine:      30,  // ボトルワイン（タイプ別）
   champagne: 35,  // ボトルシャンパン
-  glass:     40,  // グラスワイン
+  glass:     25,  // グラスワイン（ビール・ハイボールの次）
   cocktail:  50,
   spirits:   60,  // ウイスキー以外のスピリッツ
   soft:      70,
