@@ -513,9 +513,9 @@ export function CocktailsClient({ cocktails: init, products }: { cocktails: Cock
             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>カクテルがまだありません</p>
           </div>
         ) : (
-          <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex flex-col gap-3 p-4">
             {cocktails.map(c => (
-              <div key={c.id}>
+              <div key={c.id} className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
                 {/* ── サマリー行 ── */}
                 <div className="flex items-center gap-3 px-4 py-3 sm:px-5">
                   {/* 展開ボタン */}
