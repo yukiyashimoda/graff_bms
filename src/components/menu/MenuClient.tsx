@@ -480,7 +480,7 @@ function ProductCard({ product, isJa, t }: { product: Product; isJa: boolean; t:
           </p>
 
           {product.tags.length > 0 && (
-            <p className="text-[11px] mt-0.5" style={{ color: '#9a8f82' }}>
+            <p className="text-[10px] mt-0.5" style={{ color: '#1c1712' }}>
               {product.tags.join(' · ')}
             </p>
           )}
@@ -530,12 +530,12 @@ function GlassWineCard({ item, isJa }: { item: GlassWine; isJa: boolean }) {
             {name}
           </p>
           {sub && (
-            <p className="text-[11px] mt-0.5" style={{ color: '#9a8f82' }}>
+            <p className="text-[10px] mt-0.5" style={{ color: '#1c1712' }}>
               {sub}{item.serving_ml ? `  ·  ${item.serving_ml}ml` : ''}
             </p>
           )}
           {!sub && item.serving_ml ? (
-            <p className="text-[11px] mt-0.5" style={{ color: '#9a8f82' }}>{item.serving_ml}ml</p>
+            <p className="text-[10px] mt-0.5" style={{ color: '#1c1712' }}>{item.serving_ml}ml</p>
           ) : null}
         </div>
         <span translate="no" className="text-[13px] tabular-nums flex-shrink-0" style={{ color: '#1c1712', filter: 'url(#kasure)' }}>
@@ -558,12 +558,12 @@ function CocktailCard({ cocktail, isJa }: { cocktail: Cocktail; isJa: boolean })
             {name}
           </p>
           {cocktail.tags.length > 0 && (
-            <p className="text-[11px] mt-0.5" style={{ color: '#9a8f82' }}>
+            <p className="text-[10px] mt-0.5" style={{ color: '#1c1712' }}>
               {cocktail.tags.join(' · ')}
             </p>
           )}
           {cocktail.description && (
-            <p className="text-[11px] mt-0.5 italic" style={{ color: '#9a8f82' }}>
+            <p className="text-[10px] mt-0.5 italic" style={{ color: '#1c1712' }}>
               {cocktail.description}
             </p>
           )}
