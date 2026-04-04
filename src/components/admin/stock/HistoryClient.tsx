@@ -10,6 +10,7 @@ import {
   RiDeleteBinFill,
   RiLockFill,
   RiCloseFill,
+  RiArrowDownSLine,
 } from 'react-icons/ri'
 import { deleteStockTransaction, deleteMonthTransactions } from '@/app/admin/(protected)/stock/actions'
 
@@ -56,16 +57,9 @@ function monthLabel(key: string) {
   return `${y}年${Number(m)}月`
 }
 function dayKey(iso: string) { return iso.slice(0, 10) }
-function yearKey(iso: string) { return new Date(iso).getFullYear() }
-function dayLabel(dk: string) {
-  const [, m, d] = dk.split('-')
-  const date = new Date(dk)
-  const days = ['日','月','火','水','木','金','土']
-  return `${Number(m)}/${Number(d)}（${days[date.getDay()]}）`
-}
 
-function downloadCSV(transactions: TxRow[], month: string) {
-  const [y, m] = month.split('-')
+function downloadCSV(transactions: TxRow[], month: string | null) {
+  const label = month ? month.replace('-', '-') : 'all'
   const header = ['日時', '種別', '商品名', '商品名(EN)', '数量', '単位', '単価', '合計', 'メモ']
   const rows = transactions.map(t => [
     t.created_at,
@@ -85,27 +79,69 @@ function downloadCSV(transactions: TxRow[], month: string) {
   const url  = URL.createObjectURL(blob)
   const a    = document.createElement('a')
   a.href     = url
-  a.download = `stock-history-${y}-${m}.csv`
+  a.download = `stock-history-${label}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
 
+/* ── セレクトボックス共通ラッパー */
+function SelectBox({ value, onChange, children }: {
+  value: string
+  onChange: (v: string) => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full h-10 pl-3 pr-8 rounded-xl text-sm outline-none appearance-none"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+          color: 'var(--text-primary)',
+          cursor: 'pointer',
+        }}
+      >
+        {children}
+      </select>
+      <RiArrowDownSLine
+        size={15}
+        className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+        style={{ color: 'var(--text-muted)' }}
+      />
+    </div>
+  )
+}
+
 export function HistoryClient({ transactions: initial }: { transactions: TxRow[] }) {
-  const [rows,        setRows]       = useState<TxRow[]>(initial)
-  const [query,       setQuery]      = useState('')
-  const [typeFilter,  setTypeFilter] = useState<'in' | 'out' | 'adjustment' | null>(null)
-  const [catFilter,   setCat]        = useState<string | null>(null)
-  const [activeYear,  setActiveYear] = useState<number | null>(null)
-  const [activeMonth, setActiveMonth] = useState<string | null>(null)
-  const [activeDay,   setActiveDay]  = useState<string | null>(null)
+  const [rows,       setRows]      = useState<TxRow[]>(initial)
+  const [query,      setQuery]     = useState('')
+  const [typeFilter, setTypeFilter] = useState('')           // '' | 'in' | 'out' | 'adjustment'
+  const [catFilter,  setCatFilter]  = useState('')           // '' | カテゴリ名
+  const [rawPeriod,  setRawPeriod]  = useState<string>('')  // '' = 最新月, 'all' = 全期間, 'YYYY-MM' = 特定月
 
-  const [confirmId,   setConfirmId]  = useState<string | null>(null)
-  const [deleting,    setDeleting]   = useState(false)
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+  const [deleting,  setDeleting]  = useState(false)
 
-  const [bulkOpen,    setBulkOpen]   = useState(false)
-  const [bulkPw,      setBulkPw]     = useState('')
-  const [bulkError,   setBulkError]  = useState<string | null>(null)
-  const [bulkBusy,    setBulkBusy]   = useState(false)
+  const [bulkOpen,  setBulkOpen]  = useState(false)
+  const [bulkPw,    setBulkPw]    = useState('')
+  const [bulkError, setBulkError] = useState<string | null>(null)
+  const [bulkBusy,  setBulkBusy]  = useState(false)
+
+  // 存在する月一覧（降順）
+  const allMonths = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach(t => seen.add(monthKey(t.created_at)))
+    return Array.from(seen).sort().reverse()
+  }, [rows])
+
+  // 選択中の月（null = 全期間）
+  const selectedMonth = useMemo<string | null>(() => {
+    if (rawPeriod === 'all') return null
+    if (rawPeriod && allMonths.includes(rawPeriod)) return rawPeriod
+    return allMonths[0] ?? null
+  }, [rawPeriod, allMonths])
 
   const categories = useMemo(() => {
     const seen = new Set<string>()
@@ -115,37 +151,11 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
       .sort()
   }, [rows])
 
-  const years = useMemo(() => {
-    const seen = new Set<number>()
-    rows.forEach(t => seen.add(yearKey(t.created_at)))
-    return Array.from(seen).sort().reverse()
-  }, [rows])
-
-  const selectedYear = activeYear ?? years[0] ?? null
-
-  const months = useMemo(() => {
-    const seen = new Set<string>()
-    rows
-      .filter(t => yearKey(t.created_at) === selectedYear)
-      .forEach(t => seen.add(monthKey(t.created_at)))
-    return Array.from(seen).sort().reverse()
-  }, [rows, selectedYear])
-
-  const selectedMonth = useMemo(() => {
-    if (activeMonth && months.includes(activeMonth)) return activeMonth
-    return months[0] ?? null
-  }, [activeMonth, months])
-
-  const daysInMonth = useMemo(() => {
-    const seen = new Set<string>()
-    rows
-      .filter(t => monthKey(t.created_at) === selectedMonth)
-      .forEach(t => seen.add(dayKey(t.created_at)))
-    return Array.from(seen).sort().reverse()
-  }, [rows, selectedMonth])
-
-  const monthlySummary = useMemo(() => {
-    const txs = rows.filter(t => monthKey(t.created_at) === selectedMonth)
+  // サマリー（全期間 or 選択月）
+  const summary = useMemo(() => {
+    const txs = selectedMonth
+      ? rows.filter(t => monthKey(t.created_at) === selectedMonth)
+      : rows
     return {
       inCount:  txs.filter(t => t.type === 'in').length,
       outCount: txs.filter(t => t.type === 'out').length,
@@ -157,8 +167,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
 
   const filtered = useMemo(() => {
     return rows.filter(t => {
-      if (monthKey(t.created_at) !== selectedMonth) return false
-      if (activeDay && dayKey(t.created_at) !== activeDay) return false
+      if (selectedMonth && monthKey(t.created_at) !== selectedMonth) return false
       if (typeFilter && t.type !== typeFilter) return false
       if (catFilter && t.product_category !== catFilter) return false
       if (query) {
@@ -168,7 +177,7 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
       }
       return true
     })
-  }, [rows, selectedMonth, activeDay, typeFilter, catFilter, query])
+  }, [rows, selectedMonth, typeFilter, catFilter, query])
 
   const byDay = useMemo(() => {
     const map = new Map<string, TxRow[]>()
@@ -209,186 +218,104 @@ export function HistoryClient({ transactions: initial }: { transactions: TxRow[]
     }
   }
 
+  const periodSelectValue = rawPeriod === 'all' ? 'all' : (selectedMonth ?? '')
+  const summarySubLabel   = selectedMonth ? '今月' : '全期間'
+
   return (
     <div className="space-y-4">
 
-      {/* 年タブ */}
-      {years.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-          {years.map(y => (
-            <button
-              key={y}
-              onClick={() => { setActiveYear(y); setActiveMonth(null); setActiveDay(null) }}
-              className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-              style={{
-                background: y === selectedYear ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
-                color:      y === selectedYear ? '#81ecff' : 'var(--text-secondary)',
-                border:     y === selectedYear ? 'none' : '1px solid var(--border)',
-              }}
-            >
-              {y}年
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* 月タブ */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-        {months.map(m => (
-          <button
-            key={m}
-            onClick={() => { setActiveMonth(m); setActiveDay(null) }}
-            className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all"
-            style={{
-              background: m === selectedMonth ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
-              color:      m === selectedMonth ? '#81ecff' : 'var(--text-secondary)',
-              border:     m === selectedMonth ? 'none' : '1px solid var(--border)',
-            }}
+      {/* ── 1. サマリーカード */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: '入庫',      value: `${summary.inCount} 件`,  sub: `${summarySubLabel}の入庫回数` },
+          { label: '出庫',      value: `${summary.outCount} 件`, sub: `${summarySubLabel}の出庫回数` },
+          { label: '調整',      value: `${summary.adjCount} 件`, sub: `${summarySubLabel}の調整回数` },
+          { label: '仕入れ総額', value: summary.inCost > 0 ? `¥${summary.inCost.toLocaleString()}` : '—', sub: '入庫コスト合計' },
+        ].map(s => (
+          <div
+            key={s.label}
+            className="rounded-2xl p-4 space-y-1"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
           >
-            {monthLabel(m)}
-          </button>
+            <p className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
+            <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{s.value}</p>
+            <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.sub}</p>
+          </div>
         ))}
       </div>
 
-      {/* 日ピル */}
-      {daysInMonth.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-          <button
-            onClick={() => setActiveDay(null)}
-            className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
-            style={{
-              background: activeDay === null ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
-              color:      activeDay === null ? '#81ecff' : 'var(--text-secondary)',
-              border:     activeDay === null ? 'none' : '1px solid var(--border)',
-            }}
-          >
-            全日
-          </button>
-          {daysInMonth.map(dk => (
-            <button
-              key={dk}
-              onClick={() => setActiveDay(activeDay === dk ? null : dk)}
-              className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
-              style={{
-                background: activeDay === dk ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
-                color:      activeDay === dk ? '#81ecff' : 'var(--text-secondary)',
-                border:     activeDay === dk ? 'none' : '1px solid var(--border)',
-              }}
-            >
-              {dayLabel(dk)}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* ── 2. 検索フォーム（1カラム） */}
+      <div
+        className="flex items-center gap-2 px-3 h-10 rounded-xl"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+      >
+        <RiSearchLine size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="商品名で絞り込み..."
+          className="flex-1 text-sm bg-transparent outline-none"
+          style={{ color: 'var(--text-primary)' }}
+        />
+      </div>
 
-      {/* 月サマリー */}
-      {selectedMonth && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: '入庫',      value: `${monthlySummary.inCount} 件`,  sub: '今月の入庫回数' },
-            { label: '出庫',      value: `${monthlySummary.outCount} 件`, sub: '今月の出庫回数' },
-            { label: '調整',      value: `${monthlySummary.adjCount} 件`, sub: '今月の調整回数' },
-            { label: '仕入れ総額', value: monthlySummary.inCost > 0 ? `¥${monthlySummary.inCost.toLocaleString()}` : '—', sub: '入庫コスト合計' },
-          ].map(s => (
-            <div
-              key={s.label}
-              className="rounded-2xl p-4 space-y-1"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
-            >
-              <p className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>{s.label}</p>
-              <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{s.value}</p>
-              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.sub}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* カテゴリフィルター */}
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setCat(null)}
-          className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
-          style={{
-            background: catFilter === null ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
-            color:      catFilter === null ? '#81ecff' : 'var(--text-secondary)',
-            border:     catFilter === null ? 'none' : '1px solid var(--border)',
-          }}
+      {/* ── 3. 絞り込みドロップダウン（スマホ 2カラム） */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* 期間 */}
+        <SelectBox
+          value={periodSelectValue}
+          onChange={v => setRawPeriod(v)}
         >
-          すべて
-        </button>
+          <option value="all">全期間</option>
+          {allMonths.map(m => (
+            <option key={m} value={m}>{monthLabel(m)}</option>
+          ))}
+        </SelectBox>
+
+        {/* 種別 */}
+        <SelectBox value={typeFilter} onChange={setTypeFilter}>
+          <option value="">すべて</option>
+          <option value="in">入庫</option>
+          <option value="out">出庫</option>
+          <option value="adjustment">調整</option>
+        </SelectBox>
+      </div>
+
+      {/* ── 4. カテゴリドロップダウン（1カラム） */}
+      <SelectBox value={catFilter} onChange={setCatFilter}>
+        <option value="">すべてのカテゴリ</option>
         {categories.map(c => (
-          <button
-            key={c}
-            onClick={() => setCat(c === catFilter ? null : c)}
-            className="h-9 px-3 rounded-xl text-xs font-medium transition-all"
-            style={{
-              background: catFilter === c ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
-              color:      catFilter === c ? '#81ecff' : 'var(--text-secondary)',
-              border:     catFilter === c ? 'none' : '1px solid var(--border)',
-            }}
-          >
-            {c}
-          </button>
+          <option key={c} value={c}>{c}</option>
         ))}
-      </div>
+      </SelectBox>
 
-      {/* フィルターバー */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div
-          className="flex items-center gap-2 px-3 h-9 rounded-xl flex-1 min-w-40"
-          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+      {/* ── 5. CSV / 一括削除 */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => downloadCSV(
+            selectedMonth
+              ? rows.filter(t => monthKey(t.created_at) === selectedMonth)
+              : rows,
+            selectedMonth,
+          )}
+          className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-medium transition-all"
+          style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
         >
-          <RiSearchLine size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="商品名で絞り込み..."
-            className="flex-1 text-sm bg-transparent outline-none"
-            style={{ color: 'var(--text-primary)' }}
-          />
-        </div>
-        {(['in', 'out', 'adjustment'] as const).map(type => (
-          <button
-            key={type}
-            onClick={() => setTypeFilter(typeFilter === type ? null : type)}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-all"
-            style={{
-              background: typeFilter === type ? 'rgba(129,236,255,0.12)' : 'var(--bg-surface)',
-              color:      typeFilter === type ? '#81ecff' : 'var(--text-secondary)',
-              border:     typeFilter === type ? 'none' : '1px solid var(--border)',
-            }}
-          >
-            {TYPE_ICON[type]}
-            <span className="ml-1">{TYPE_LABEL[type]}</span>
-          </button>
-        ))}
-
-        <div className="flex items-center gap-2 ml-auto">
-          <button
-            onClick={() => selectedMonth && downloadCSV(
-              rows.filter(t => monthKey(t.created_at) === selectedMonth),
-              selectedMonth,
-            )}
-            disabled={!selectedMonth}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
-            style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-          >
-            <RiDownloadLine size={13} />
-            CSV
-          </button>
-          <button
-            onClick={() => { setBulkPw(''); setBulkError(null); setBulkOpen(true) }}
-            disabled={!selectedMonth}
-            className="flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
-            style={{ background: 'var(--bg-surface)', color: '#d84f2a', border: '1px solid #d84f2a33' }}
-          >
-            <RiDeleteBinFill size={13} />
-            一括削除
-          </button>
-        </div>
+          <RiDownloadLine size={13} />
+          CSV↓
+        </button>
+        <button
+          onClick={() => { setBulkPw(''); setBulkError(null); setBulkOpen(true) }}
+          disabled={!selectedMonth}
+          className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-medium transition-all disabled:opacity-40"
+          style={{ background: 'var(--bg-surface)', color: '#d84f2a', border: '1px solid #d84f2a33' }}
+        >
+          <RiDeleteBinFill size={13} />
+          一括削除
+        </button>
       </div>
 
-      {/* 日別グループ */}
+      {/* ── 6. 日別グループ */}
       {byDay.length === 0 ? (
         <div
           className="flex items-center justify-center py-20 rounded-2xl"
