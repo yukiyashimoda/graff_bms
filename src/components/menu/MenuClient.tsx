@@ -19,6 +19,40 @@ const WINE_TYPE_LABEL: Record<WineType, string> = {
   other:      'WINE',
 }
 
+// ウイスキー系スピリッツタイプ
+const WHISKY_TYPES = new Set(['scotch', 'japanese', 'bourbon', 'irish', 'whisky', 'blended', 'american', 'single malt'])
+
+// ── セクション表示順（数値が小さいほど上）
+const SECTION_SORT: Record<string, number> = {
+  beer:      10,
+  whisky:    20,  // スピリッツから分割したウイスキー
+  wine:      30,  // ボトルワイン（タイプ別）
+  champagne: 35,  // ボトルシャンパン
+  glass:     40,  // グラスワイン
+  cocktail:  50,
+  spirits:   60,  // ウイスキー以外のスピリッツ
+  soft:      70,
+  food:      80,
+  others:    90,
+}
+
+function getCatSortKey(nameEn: string): number {
+  const n = nameEn.toLowerCase()
+  if (n.includes('beer'))                               return SECTION_SORT.beer
+  if (n === 'whisky & highball')                        return SECTION_SORT.whisky
+  if (n.includes('white wine') || n.includes('red wine') ||
+      n.includes('rosé') || n === 'wine')              return SECTION_SORT.wine
+  if (n.includes('champagne') || n.includes('sparkling') ||
+      n.includes('cava') || n.includes('prosecco'))    return SECTION_SORT.champagne
+  if (n.includes('glass'))                              return SECTION_SORT.glass
+  if (n.includes('cocktail'))                           return SECTION_SORT.cocktail
+  if (n.includes('spirit'))                             return SECTION_SORT.spirits
+  if (n.includes('soft') || n.includes('drink') ||
+      n.includes('mocktail') || n.includes('non'))      return SECTION_SORT.soft
+  if (n.includes('food'))                               return SECTION_SORT.food
+  return SECTION_SORT.others
+}
+
 type Product = {
   id:               string
   name:             string
@@ -59,12 +93,16 @@ type GlassWine = {
   grape:         string | null
 }
 
+type ProductSection = { kind: 'products'; sortKey: number; id: string; label: string; items: Product[] }
+type GlassSection   = { kind: 'glass';    sortKey: number; label: string; items: GlassWine[] }
+type CocktailSection = { kind: 'cocktails'; sortKey: number; items: Cocktail[] }
+type MenuSection = ProductSection | GlassSection | CocktailSection
+
 /* ── SVGフィルター定義（文字掠れのみ） */
 function PaperFilters() {
   return (
     <svg style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} aria-hidden>
       <defs>
-        {/* 文字の掠れ */}
         <filter id="kasure" x="-2%" y="-2%" width="104%" height="104%">
           <feTurbulence
             type="fractalNoise"
@@ -154,7 +192,8 @@ export function MenuClient({
     })
   }, [glassWines, query, isJa])
 
-  const grouped = useMemo(() => {
+  // ── 全セクションを一つのリストにまとめてソート
+  const sections = useMemo<MenuSection[]>(() => {
     function sortByPrice(items: Product[]) {
       return [...items].sort((a, b) => {
         if (a.selling_price == null && b.selling_price == null) return 0
@@ -164,6 +203,9 @@ export function MenuClient({
       })
     }
 
+    const result: MenuSection[] = []
+
+    // ── 商品カテゴリ
     const byCat = new Map<string, Product[]>(categories.map(c => [c.id, []]))
     const uncategorized: Product[] = []
     filteredProducts.forEach(p => {
@@ -174,14 +216,38 @@ export function MenuClient({
       }
     })
 
-    const result: { id: string; name: string; name_en: string; items: Product[] }[] = []
-
     categories.forEach(c => {
       const items = byCat.get(c.id) ?? []
       if (items.length === 0) return
 
+      const isSpirits = c.name_en.toLowerCase().includes('spirit')
       const hasWineType = items.some(p => p.wine_type && p.wine_type !== 'other')
-      if (hasWineType) {
+
+      if (isSpirits) {
+        // スピリッツ → ウイスキーとその他に分割
+        const whiskyItems = items.filter(p => p.spirits_type && WHISKY_TYPES.has(p.spirits_type.toLowerCase()))
+        const otherItems  = items.filter(p => !p.spirits_type || !WHISKY_TYPES.has(p.spirits_type.toLowerCase()))
+
+        if (whiskyItems.length > 0) {
+          result.push({
+            kind: 'products',
+            sortKey: SECTION_SORT.whisky,
+            id: `${c.id}__whisky`,
+            label: 'WHISKY & HIGHBALL',
+            items: sortByPrice(whiskyItems),
+          })
+        }
+        if (otherItems.length > 0) {
+          result.push({
+            kind: 'products',
+            sortKey: SECTION_SORT.spirits,
+            id: `${c.id}__spirits`,
+            label: 'SPIRITS',
+            items: sortByPrice(otherItems),
+          })
+        }
+      } else if (hasWineType) {
+        // ワイン → タイプ別に分割
         const wineGroups = new Map<WineType, Product[]>()
         items.forEach(p => {
           const wt = (p.wine_type as WineType) ?? 'other'
@@ -190,41 +256,68 @@ export function MenuClient({
         })
         WINE_TYPE_ORDER.forEach(wt => {
           const wItems = wineGroups.get(wt)
-          if (wItems && wItems.length > 0) {
-            result.push({
-              id:      `${c.id}__${wt}`,
-              name:    WINE_TYPE_LABEL[wt],
-              name_en: WINE_TYPE_LABEL[wt],
-              items:   sortByPrice(wItems),
-            })
-          }
+          if (!wItems || wItems.length === 0) return
+          const label = WINE_TYPE_LABEL[wt]
+          const isCh  = wt === 'champagne' || wt === 'sparkling'
+          result.push({
+            kind: 'products',
+            sortKey: isCh ? SECTION_SORT.champagne : SECTION_SORT.wine,
+            id: `${c.id}__${wt}`,
+            label,
+            items: sortByPrice(wItems),
+          })
         })
       } else {
-        result.push({ ...c, items: sortByPrice(items) })
+        result.push({
+          kind: 'products',
+          sortKey: getCatSortKey(c.name_en),
+          id: c.id,
+          label: c.name_en || c.name,
+          items: sortByPrice(items),
+        })
       }
     })
 
     if (uncategorized.length > 0) {
-      result.push({ id: '__none__', name: 'Others', name_en: 'Others', items: sortByPrice(uncategorized) })
+      result.push({
+        kind: 'products',
+        sortKey: SECTION_SORT.others,
+        id: '__none__',
+        label: 'OTHERS',
+        items: sortByPrice(uncategorized),
+      })
     }
-    return result
-  }, [filteredProducts, categories])
 
-  const glassWineGrouped = useMemo(() => {
-    const groups = new Map<WineType, GlassWine[]>()
+    // ── グラスワイン
+    const glassGroups = new Map<WineType, GlassWine[]>()
     filteredGlassWines.forEach(g => {
       const wt = (g.wine_type as WineType) ?? 'other'
-      if (!groups.has(wt)) groups.set(wt, [])
-      groups.get(wt)!.push(g)
+      if (!glassGroups.has(wt)) glassGroups.set(wt, [])
+      glassGroups.get(wt)!.push(g)
     })
-    return WINE_TYPE_ORDER.filter(wt => groups.has(wt)).map(wt => ({
-      wt,
-      label: WINE_TYPE_LABEL[wt],
-      items: groups.get(wt)!,
-    }))
-  }, [filteredGlassWines])
+    WINE_TYPE_ORDER.filter(wt => glassGroups.has(wt)).forEach(wt => {
+      result.push({
+        kind: 'glass',
+        sortKey: SECTION_SORT.glass,
+        label: `GLASS · ${WINE_TYPE_LABEL[wt]}`,
+        items: glassGroups.get(wt)!,
+      })
+    })
 
-  const hasContent = grouped.length > 0 || glassWineGrouped.length > 0 || filteredCocktails.length > 0
+    // ── カクテル
+    if (filteredCocktails.length > 0) {
+      result.push({
+        kind: 'cocktails',
+        sortKey: SECTION_SORT.cocktail,
+        items: filteredCocktails,
+      })
+    }
+
+    // ── sortKey で昇順ソート
+    return result.sort((a, b) => a.sortKey - b.sortKey)
+  }, [filteredProducts, filteredGlassWines, filteredCocktails, categories, isJa])
+
+  const hasContent = sections.length > 0
 
   return (
     <>
@@ -292,58 +385,49 @@ export function MenuClient({
             </p>
           ) : (
             <div className="space-y-12">
-
-              {/* 通常商品 */}
-              {grouped.map(group => (
-                <section key={group.id}>
-                  <SectionHeader label={group.name_en || group.name} />
-                  <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
-                    {group.items.map(product => (
-                      <ProductCard key={product.id} product={product} isJa={isJa} t={t} />
-                    ))}
-                  </div>
-                </section>
-              ))}
-
-              {/* グラスワイン */}
-              {glassWineGrouped.length > 0 && (
-                <>
-                  {glassWineGrouped.map(({ wt, label, items }) => (
-                    <section key={`glass__${wt}`}>
-                      <SectionHeader label={`GLASS · ${label}`} />
+              {sections.map((sec, i) => {
+                if (sec.kind === 'products') {
+                  return (
+                    <section key={sec.id}>
+                      <SectionHeader label={sec.label} />
                       <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
-                        {items.map(g => (
+                        {sec.items.map(product => (
+                          <ProductCard key={product.id} product={product} isJa={isJa} t={t} />
+                        ))}
+                      </div>
+                    </section>
+                  )
+                }
+                if (sec.kind === 'glass') {
+                  return (
+                    <section key={`glass__${i}`}>
+                      <SectionHeader label={sec.label} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
+                        {sec.items.map(g => (
                           <GlassWineCard key={g.id} item={g} isJa={isJa} />
                         ))}
                       </div>
                     </section>
-                  ))}
-                </>
-              )}
-
-              {/* カクテル */}
-              {filteredCocktails.length > 0 && (
-                <section>
-                  <SectionHeader label="COCKTAILS" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
-                    {filteredCocktails.map(c => (
-                      <CocktailCard key={c.id} cocktail={c} isJa={isJa} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
+                  )
+                }
+                // cocktails
+                return (
+                  <section key="cocktails">
+                    <SectionHeader label="COCKTAILS" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-12">
+                      {sec.items.map(c => (
+                        <CocktailCard key={c.id} cocktail={c} isJa={isJa} />
+                      ))}
+                    </div>
+                  </section>
+                )
+              })}
             </div>
           )}
         </div>
       </main>
     </>
   )
-}
-
-/* ── アイテム区切り線 */
-function ItemDivider() {
-  return <div style={{ borderBottom: '1px solid rgba(28,23,18,0.1)' }} />
 }
 
 /* ── セクションヘッダー */
@@ -359,6 +443,11 @@ function SectionHeader({ label }: { label: string }) {
       <div className="mt-2 w-full h-px" style={{ background: 'rgba(28,23,18,0.15)' }} />
     </div>
   )
+}
+
+/* ── アイテム区切り線 */
+function ItemDivider() {
+  return <div style={{ borderBottom: '1px solid rgba(28,23,18,0.1)' }} />
 }
 
 /* ── 通常商品カード */
