@@ -57,7 +57,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html className={`${notoSans.variable} ${silkscreen.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${doto.variable}`}>
       <body>
         <div className="noise-overlay" />
-        <div className="scanline-overlay" />
         {children}
         <SwRegister />
         <Analytics />

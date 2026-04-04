@@ -89,18 +89,6 @@
   text-shadow: 0 0 10px rgba(112, 170, 255, 0.6);
 }
 
-.scanline-overlay {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 50%,
-    rgba(0, 0, 0, 0.04) 50%
-  );
-  background-size: 100% 4px;
-  pointer-events: none;
-  z-index: 9999;
-}
 
 .neon-border-active {
   border-bottom: 2px solid #81ecff;
