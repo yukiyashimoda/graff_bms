@@ -4,12 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { RiCheckFill, RiUploadCloud2Fill, RiDeleteBinFill } from 'react-icons/ri'
 import { saveIssuerProfile, type AppSettings } from '@/app/admin/(protected)/settings/actions'
-
-const fieldStyle = {
-  background: 'var(--bg-base)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-primary)',
-} as const
+import { styles } from '@/lib/ui'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -70,7 +65,7 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
   return (
     <div
       className="rounded-2xl p-5 space-y-5"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+      style={styles.card}
     >
       <Field label="会社ロゴ">
         {logoPreview ? (
@@ -82,12 +77,12 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
             <div className="flex flex-col gap-1.5">
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
-                style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                style={styles.btnSecondary}>
                 変更
               </button>
               <button type="button" onClick={() => { setLogoPreview(null); setLogoFile(null); setRemoveLogo(true); if (fileInputRef.current) fileInputRef.current.value = '' }}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
-                style={{ color: '#d84f2a', border: '1px solid #d84f2a44' }}>
+                style={styles.btnDanger}>
                 <RiDeleteBinFill size={11} /> 削除
               </button>
             </div>
@@ -112,26 +107,26 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
 
       <Field label="会社名">
         <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="例：株式会社〇〇"
-          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl" style={fieldStyle} />
+          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl" style={styles.input} />
       </Field>
       <Field label="電話番号">
         <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="例：011-000-0000"
-          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl" style={fieldStyle} />
+          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl" style={styles.input} />
       </Field>
       <Field label="メールアドレス">
         <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="例：info@example.com"
-          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl" style={fieldStyle} />
+          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl" style={styles.input} />
       </Field>
       <Field label="住所">
         <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="例：〒060-0001 北海道札幌市..." rows={3}
-          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl resize-none" style={fieldStyle} />
+          className="w-full px-3 py-2.5 text-sm outline-none rounded-xl resize-none" style={styles.input} />
       </Field>
 
       {error && <p className="text-xs" style={{ color: '#d84f2a' }}>{error}</p>}
 
       <button onClick={handleSave} disabled={saving || saved}
         className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-60"
-        style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}>
+        style={styles.btnPrimary}>
         <RiCheckFill size={14} />
         {saved ? '保存しました' : saving ? '保存中...' : '保存する'}
       </button>

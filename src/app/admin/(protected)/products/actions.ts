@@ -1,256 +1,233 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { revalidateProducts, revalidateOrders } from '@/lib/revalidate'
+import { revalidatePath } from 'next/cache'
+
+// ─── 画像アップロード ────────────────────────────────────────────────────────
+
+async function uploadImage(file: File): Promise<string | null> {
+  const supabase = await createServiceClient()
+  const ext  = file.name.split('.').pop()
+  const path = `products/${Date.now()}.${ext}`
+  const { error } = await supabase.storage
+    .from(process.env.STORAGE_BUCKET!)
+    .upload(path, file)
+  if (error) return null
+  return supabase.storage.from(process.env.STORAGE_BUCKET!).getPublicUrl(path).data.publicUrl
+}
+
+// ─── FormData パース ─────────────────────────────────────────────────────────
+
+function parseProductFields(formData: FormData) {
+  const str  = (key: string) => (formData.get(key) as string) || null
+  const bool = (key: string) => formData.get(key) === 'true'
+  return {
+    name:                 (formData.get('name') as string).trim(),
+    name_en:              str('name_en')              ?? '',
+    category_id:          str('category_id'),
+    supplier_id:          str('supplier_id'),
+    default_supplier_id:  str('default_supplier_id'),
+    unit:                 str('unit')                 ?? '本',
+    cost_price:           formData.get('cost_price')    ? parseFloat(formData.get('cost_price') as string)    : null,
+    selling_price:        formData.get('selling_price') ? parseFloat(formData.get('selling_price') as string) : null,
+    tags:                 formData.get('tags') ? (formData.get('tags') as string).split(',').map(t => t.trim()).filter(Boolean) : [],
+    notes:                str('notes'),
+    is_available:         bool('is_available'),
+    is_recommended:       bool('is_recommended'),
+    custom_tag:           str('custom_tag'),
+    display_out_of_stock: bool('display_out_of_stock'),
+  }
+}
+
+// ─── 詳細テーブルへの insert（カテゴリ別） ───────────────────────────────────
+
+async function insertDetailRecord(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  productId: string,
+  detailType: string,
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const str = (key: string) => (formData.get(key) as string) || ''
+  const int = (key: string) => formData.get(key) ? parseInt(formData.get(key) as string) : null
+  const flt = (key: string) => formData.get(key) ? parseFloat(formData.get(key) as string) : null
+
+  if (detailType === 'wine') {
+    const grapeRaw = formData.get('wine_grape_varieties') as string
+    const { error } = await supabase.from('wine_details').insert({
+      product_id:      productId,
+      country:         str('wine_country'),
+      region:          str('wine_region'),
+      region_en:       str('wine_region_en'),
+      grape_varieties: grapeRaw ? grapeRaw.split(',').map(g => g.trim()).filter(Boolean) : [],
+      wine_type:       (str('wine_type') || 'other') as 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other',
+      body:            (str('wine_body') || null) as 'light' | 'medium' | 'full' | null,
+      vintage:         int('wine_vintage'),
+      description:     str('wine_description'),
+      description_en:  str('wine_description_en'),
+    })
+    if (error) return { error: `ワイン詳細の保存に失敗: ${error.message}` }
+  }
+
+  if (detailType === 'spirits') {
+    const { error } = await supabase.from('spirits_details').insert({
+      product_id:    productId,
+      type:          str('spirits_type'),
+      volume_ml:     int('spirits_volume_ml'),
+      shot_price:    flt('spirits_shot_price'),
+      age_statement: str('spirits_age_statement') || null,
+    })
+    if (error) return { error: `スピリッツ詳細の保存に失敗: ${error.message}` }
+  }
+
+  if (detailType === 'soft_drink') {
+    const { error } = await supabase.from('soft_drink_details').insert({
+      product_id: productId,
+      volume_ml:  int('soft_drink_volume_ml'),
+      is_mixer:   formData.get('soft_drink_is_mixer') === 'true',
+    })
+    if (error) return { error: `ソフトドリンク詳細の保存に失敗: ${error.message}` }
+  }
+
+  return {}
+}
+
+// ─── Public Actions ──────────────────────────────────────────────────────────
 
 export async function createProduct(formData: FormData) {
+  const fields     = parseProductFields(formData)
+  const detail_type = formData.get('detail_type') as string
+  const imageFile   = formData.get('image') as File | null
+
+  if (!fields.name) redirect('/admin/products/new?error=name_required')
+
   const supabase = await createServiceClient()
 
-  const name                 = formData.get('name')                as string
-  const name_en              = formData.get('name_en')             as string
-  const category_id          = formData.get('category_id')         as string | null
-  const supplier_id          = formData.get('supplier_id')         as string | null
-  const unit                 = formData.get('unit')                as string
-  const cost_price           = formData.get('cost_price')          as string
-  const selling_price        = formData.get('selling_price')       as string
-  const tags                 = formData.get('tags')                as string
-  const notes                = formData.get('notes')               as string
-  const is_available         = formData.get('is_available') === 'true'
-  const imageFile            = formData.get('image')               as File | null
-  const is_recommended       = formData.get('is_recommended')      === 'true'
-  const custom_tag           = formData.get('custom_tag')          as string | null
-  const display_out_of_stock = formData.get('display_out_of_stock') === 'true'
-  const default_supplier_id  = formData.get('default_supplier_id') as string | null
-  const detail_type          = formData.get('detail_type')         as string
+  const image_url = imageFile && imageFile.size > 0 ? await uploadImage(imageFile) : null
 
-  let image_url: string | null = null
-
-  // 画像アップロード
-  if (imageFile && imageFile.size > 0) {
-    const ext = imageFile.name.split('.').pop()
-    const path = `products/${Date.now()}.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from(process.env.STORAGE_BUCKET!)
-      .upload(path, imageFile)
-
-    if (!uploadError) {
-      const { data } = supabase.storage.from(process.env.STORAGE_BUCKET!).getPublicUrl(path)
-      image_url = data.publicUrl
-    }
-  }
-
-  const { data: product, error } = await supabase.from('products').insert({
-    name,
-    name_en:              name_en       || '',
-    category_id:          category_id   || null,
-    supplier_id:          supplier_id   || null,
-    unit:                 unit          || '本',
-    cost_price:           cost_price    ? parseFloat(cost_price)    : null,
-    selling_price:        selling_price ? parseFloat(selling_price) : null,
-    tags:                 tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-    notes:                notes || null,
-    is_available,
-    image_url,
-    is_recommended,
-    custom_tag:           custom_tag           || null,
-    display_out_of_stock,
-    default_supplier_id:  default_supplier_id  || null,
-  }).select('id').single()
+  const { data: product, error } = await supabase
+    .from('products')
+    .insert({ ...fields, image_url })
+    .select('id')
+    .single()
 
   if (error || !product) {
-    console.error(error)
-    redirect('/admin/products/new?error=1')
+    console.error('[createProduct]', error)
+    redirect('/admin/products/new?error=create_failed')
   }
 
-  // カテゴリ別詳細テーブルへの insert
-  if (detail_type === 'wine') {
-    const grape_varieties = formData.get('wine_grape_varieties') as string
-    await supabase.from('wine_details').insert({
-      product_id:      product.id,
-      country:         (formData.get('wine_country')      as string) || '',
-      region:          (formData.get('wine_region')       as string) || '',
-      region_en:       (formData.get('wine_region_en')    as string) || '',
-      grape_varieties: grape_varieties
-        ? grape_varieties.split(',').map(g => g.trim()).filter(Boolean)
-        : [],
-      wine_type: ((formData.get('wine_type') as string) || 'other') as 'white' | 'red' | 'rosé' | 'sparkling' | 'champagne' | 'other',
-      body:      (formData.get('wine_body') as 'light' | 'medium' | 'full') || null,
-      vintage: formData.get('wine_vintage')
-        ? parseInt(formData.get('wine_vintage') as string)
-        : null,
-      description:    (formData.get('wine_description')    as string) || '',
-      description_en: (formData.get('wine_description_en') as string) || '',
-    })
-  } else if (detail_type === 'spirits') {
-    await supabase.from('spirits_details').insert({
-      product_id:    product.id,
-      type:          (formData.get('spirits_type')          as string) || '',
-      volume_ml:     formData.get('spirits_volume_ml')
-        ? parseInt(formData.get('spirits_volume_ml') as string)
-        : null,
-      shot_price:    formData.get('spirits_shot_price')
-        ? parseFloat(formData.get('spirits_shot_price') as string)
-        : null,
-      age_statement: (formData.get('spirits_age_statement') as string) || null,
-    })
-  } else if (detail_type === 'soft_drink') {
-    await supabase.from('soft_drink_details').insert({
-      product_id: product.id,
-      volume_ml:  formData.get('soft_drink_volume_ml')
-        ? parseInt(formData.get('soft_drink_volume_ml') as string)
-        : null,
-      is_mixer: formData.get('soft_drink_is_mixer') === 'true',
-    })
+  const detailResult = await insertDetailRecord(supabase, product.id, detail_type, formData)
+  if (detailResult.error) {
+    // ロールバック: 作成した商品を削除してエラーページへ
+    await supabase.from('products').delete().eq('id', product.id)
+    console.error('[createProduct] detail insert failed:', detailResult.error)
+    redirect('/admin/products/new?error=detail_failed')
   }
 
-  revalidatePath('/admin/products')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
+  revalidateProducts()
   redirect('/admin/products')
 }
 
-export async function updateProductAvailability(id: string, is_available: boolean) {
-  const supabase = await createServiceClient()
-  await supabase.from('products').update({ is_available }).eq('id', id)
-  revalidatePath('/admin/products')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
-}
-
-export async function updateDisplayOutOfStock(id: string, display_out_of_stock: boolean) {
-  const supabase = await createServiceClient()
-  await supabase.from('products').update({ display_out_of_stock }).eq('id', id)
-  revalidatePath('/admin/products')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
-}
-
 export async function updateProduct(id: string, formData: FormData) {
-  const supabase = await createServiceClient()
+  const fields    = parseProductFields(formData)
+  const imageFile = formData.get('image') as File | null
 
-  const name                 = formData.get('name')                as string
-  const name_en              = formData.get('name_en')             as string
-  const category_id          = formData.get('category_id')         as string | null
-  const supplier_id          = formData.get('supplier_id')         as string | null
-  const unit                 = formData.get('unit')                as string
-  const cost_price           = formData.get('cost_price')          as string
-  const selling_price        = formData.get('selling_price')       as string
-  const tags                 = formData.get('tags')                as string
-  const notes                = formData.get('notes')               as string
-  const is_available         = formData.get('is_available') === 'true'
-  const imageFile            = formData.get('image')               as File | null
-  const is_recommended       = formData.get('is_recommended')      === 'true'
-  const custom_tag           = formData.get('custom_tag')          as string | null
-  const display_out_of_stock = formData.get('display_out_of_stock') === 'true'
-  const default_supplier_id  = formData.get('default_supplier_id') as string | null
+  if (!fields.name) redirect(`/admin/products/${id}/edit?error=name_required`)
 
-  let image_url: string | null = null
+  const supabase  = await createServiceClient()
+  const image_url = imageFile && imageFile.size > 0 ? await uploadImage(imageFile) : null
 
-  if (imageFile && imageFile.size > 0) {
-    const ext  = imageFile.name.split('.').pop()
-    const path = `products/${Date.now()}.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from(process.env.STORAGE_BUCKET!)
-      .upload(path, imageFile)
-    if (!uploadError) {
-      const { data } = supabase.storage.from(process.env.STORAGE_BUCKET!).getPublicUrl(path)
-      image_url = data.publicUrl
-    }
+  const patch = { ...fields, ...(image_url ? { image_url } : {}) }
+  const { error } = await supabase.from('products').update(patch).eq('id', id)
+
+  if (error) {
+    console.error('[updateProduct]', error)
+    redirect(`/admin/products/${id}/edit?error=update_failed`)
   }
 
-  const update: Record<string, unknown> = {
-    name,
-    name_en:              name_en       || '',
-    category_id:          category_id   || null,
-    supplier_id:          supplier_id   || null,
-    unit:                 unit          || '本',
-    cost_price:           cost_price    ? parseFloat(cost_price)    : null,
-    selling_price:        selling_price ? parseFloat(selling_price) : null,
-    tags:                 tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-    notes:                notes || null,
-    is_available,
-    is_recommended,
-    custom_tag:           custom_tag          || null,
-    display_out_of_stock,
-    default_supplier_id:  default_supplier_id || null,
-  }
-  if (image_url) update.image_url = image_url
-
-  await supabase.from('products').update(update).eq('id', id)
-
-  revalidatePath('/admin/products')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
+  revalidateProducts()
   redirect('/admin/products')
 }
 
 export async function deleteProduct(id: string) {
   const supabase = await createServiceClient()
-  await supabase.from('products').delete().eq('id', id)
-  revalidatePath('/admin/products')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
+  const { error } = await supabase.from('products').delete().eq('id', id)
+  if (error) console.error('[deleteProduct]', error)
+  revalidateProducts()
 }
 
-export async function bulkUpdateSellingPrices(
-  items: { id: string; selling_price: number | null }[]
-) {
+export async function updateProductAvailability(id: string, is_available: boolean) {
   const supabase = await createServiceClient()
-  await Promise.all(
-    items.map(({ id, selling_price }) =>
-      supabase.from('products').update({ selling_price }).eq('id', id)
+  await supabase.from('products').update({ is_available }).eq('id', id)
+  revalidateProducts()
+}
+
+export async function updateDisplayOutOfStock(id: string, display_out_of_stock: boolean) {
+  const supabase = await createServiceClient()
+  await supabase.from('products').update({ display_out_of_stock }).eq('id', id)
+  revalidateProducts()
+}
+
+// ─── 価格一括更新 ────────────────────────────────────────────────────────────
+
+async function bulkUpdate(
+  table: string,
+  idCol: string,
+  priceCol: string,
+  items: { id: string; [key: string]: number | null | string }[],
+): Promise<{ error?: string }> {
+  const supabase = await createServiceClient()
+  const results  = await Promise.allSettled(
+    items.map(item =>
+      supabase.from(table as 'products').update({ [priceCol]: item[priceCol] } as Record<string, unknown>).eq(idCol, item.id)
     )
   )
-  revalidatePath('/admin/products')
-  revalidatePath('/admin/pricing')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
+  const failed = results.filter(r => r.status === 'rejected')
+  if (failed.length > 0) return { error: `${failed.length}件の更新に失敗しました` }
+  return {}
 }
 
-export async function bulkUpdateGlassPrices(
-  items: { id: string; selling_price: number | null }[]
-) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = await createServiceClient() as any
-  await Promise.all(
+export async function bulkUpdateSellingPrices(items: { id: string; selling_price: number | null }[]) {
+  await bulkUpdate('products', 'id', 'selling_price', items)
+  revalidateProducts()
+  revalidatePath('/admin/pricing')
+}
+
+export async function bulkUpdateGlassPrices(items: { id: string; selling_price: number | null }[]) {
+  const supabase = await createServiceClient()
+  await Promise.allSettled(
     items.map(({ id, selling_price }) =>
-      supabase.from('glasses').update({ selling_price }).eq('id', id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('glasses').update({ selling_price }).eq('id', id)
     )
   )
-  revalidatePath('/admin/products')
+  revalidateProducts()
   revalidatePath('/admin/pricing')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
 }
 
-export async function bulkUpdateCocktailPrices(
-  items: { id: string; selling_price: number | null }[]
-) {
+export async function bulkUpdateCocktailPrices(items: { id: string; selling_price: number | null }[]) {
   const supabase = await createServiceClient()
-  await Promise.all(
+  await Promise.allSettled(
     items.map(({ id, selling_price }) =>
       supabase.from('cocktails').update({ selling_price }).eq('id', id)
     )
   )
-  revalidatePath('/admin/products')
+  revalidateProducts()
   revalidatePath('/admin/pricing')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
 }
 
-export async function bulkUpdateShotPrices(
-  items: { id: string; shot_price: number | null }[]
-) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supabase = await createServiceClient() as any
-  await Promise.all(
+export async function bulkUpdateShotPrices(items: { id: string; shot_price: number | null }[]) {
+  const supabase = await createServiceClient()
+  await Promise.allSettled(
     items.map(({ id, shot_price }) =>
-      supabase.from('spirits_details').update({ shot_price }).eq('product_id', id)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from('spirits_details').update({ shot_price }).eq('product_id', id)
     )
   )
-  revalidatePath('/admin/products')
+  revalidateProducts()
   revalidatePath('/admin/pricing')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
 }
+
+// 未使用だが型参照のため
+void revalidateOrders

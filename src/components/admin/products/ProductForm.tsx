@@ -5,6 +5,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { RiArrowLeftLine } from 'react-icons/ri'
 import { createProduct, updateProduct } from '@/app/admin/(protected)/products/actions'
+import { calcCostRate } from '@/lib/format'
+import { styles } from '@/lib/ui'
 
 type Category = { id: string; name: string; name_en: string }
 type Supplier  = { id: string; name: string }
@@ -60,12 +62,7 @@ export default function ProductForm({
   const [costPrice,    setCostPrice]    = useState<string>(String(d?.cost_price    ?? ''))
   const [sellingPrice, setSellingPrice] = useState<string>(String(d?.selling_price ?? ''))
 
-  const costRate = (() => {
-    const c = parseFloat(costPrice)
-    const s = parseFloat(sellingPrice)
-    if (!c || !s || s === 0) return null
-    return Math.round((c / s) * 1000) / 10   // 小数点1桁
-  })()
+  const costRate = calcCostRate(parseFloat(costPrice), parseFloat(sellingPrice))
 
   const action = isEdit ? updateProduct.bind(null, productId) : createProduct
 
@@ -266,14 +263,14 @@ export default function ProductForm({
           <button
             type="submit"
             className="px-6 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
+            style={styles.btnPrimary}
           >
             {isEdit ? '更新する' : '登録する'}
           </button>
           <Link
             href="/admin/products"
             className="px-6 py-3 rounded-xl text-sm font-medium transition-colors"
-            style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+            style={styles.btnSecondary}
           >
             キャンセル
           </Link>
@@ -415,8 +412,4 @@ function CheckField({ name, label, defaultChecked }: { name: string; label: stri
 }
 
 const inputClass = 'w-full px-3 py-3 rounded-xl text-base outline-none transition-colors'
-const inputStyle = {
-  background: 'var(--bg-base)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-primary)',
-} as React.CSSProperties
+const inputStyle = styles.input

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
+import { revalidateStock } from '@/lib/revalidate'
 
 /**
  * 入出庫トランザクションを記録する
@@ -33,10 +34,7 @@ export async function recordStockTransaction(
   })
   if (error) throw new Error(error.message)
 
-  revalidatePath('/admin/stock')
-  revalidatePath('/admin')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
+  revalidateStock()
   return { newQuantity: Number(data) }
 }
 
@@ -102,12 +100,7 @@ export async function batchStockTransactions(
     results.push({ id: item.productId, newQuantity: Number(data) })
   }
 
-  // 一括でまとめて revalidate（N回 → 1回）
-  revalidatePath('/admin/stock')
-  revalidatePath('/admin')
-  revalidatePath('/ja', 'page')
-  revalidatePath('/en', 'page')
-
+  revalidateStock()
   return { results }
 }
 

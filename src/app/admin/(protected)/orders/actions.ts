@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/server'
+import { revalidateOrders, revalidateStock } from '@/lib/revalidate'
 
 type OrderItem = {
   product_id: string
@@ -50,8 +51,7 @@ export async function createOrder(params: {
     )
   }
 
-  revalidatePath('/admin/orders/history')
-  revalidatePath('/admin/orders')
+  revalidateOrders()
   return { id: order.id }
 }
 
@@ -61,8 +61,7 @@ export async function updateOrderStatus(
 ) {
   const supabase = await createServiceClient()
   await supabase.from('purchase_orders').update({ status }).eq('id', orderId)
-  revalidatePath('/admin/orders/history')
-  revalidatePath('/admin/orders')
+  revalidateOrders()
 }
 
 export async function receiveOrder(orderId: string) {
@@ -75,17 +74,14 @@ export async function receiveOrder(orderId: string) {
   })
   if (error) throw new Error(error.message)
 
-  revalidatePath('/admin/orders/history')
-  revalidatePath('/admin/orders')
-  revalidatePath('/admin/stock')
-  revalidatePath('/admin')
+  revalidateOrders()
+  revalidateStock()
 }
 
 export async function deleteOrder(orderId: string) {
   const supabase = await createServiceClient()
   await supabase.from('purchase_orders').delete().eq('id', orderId)
-  revalidatePath('/admin/orders/history')
-  revalidatePath('/admin/orders')
+  revalidateOrders()
 }
 
 export async function updateItemInspectionStatus(
@@ -185,9 +181,8 @@ export async function receiveOrderItem(
       .eq('id', item.purchase_order_id)
   }
 
-  revalidatePath('/admin/orders')
-  revalidatePath('/admin/stock')
-  revalidatePath('/admin')
+  revalidateOrders()
+  revalidateStock()
   return { newReceivedQty, fullyReceived }
 }
 
@@ -208,7 +203,6 @@ export async function createOrdersFromCart(
   })
   if (error) throw new Error(error.message)
 
-  revalidatePath('/admin/orders/history')
-  revalidatePath('/admin/orders')
+  revalidateOrders()
   return { count: Number(data) }
 }

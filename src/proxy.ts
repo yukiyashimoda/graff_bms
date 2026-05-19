@@ -1,7 +1,6 @@
 import createIntlMiddleware from 'next-intl/middleware'
 import { routing } from '@/i18n/routing'
 import { type NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
 
 const intlMiddleware = createIntlMiddleware(routing)
 
@@ -13,35 +12,8 @@ export default async function proxy(request: NextRequest) {
     return intlMiddleware(request)
   }
 
-  // admin/login はそのまま通す
-  if (pathname.startsWith('/admin/login')) {
-    return NextResponse.next()
-  }
-
-  // admin ルート: セッション確認
-  const response = NextResponse.next()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    return NextResponse.redirect(new URL('/admin/login', request.url))
-  }
-
-  return response
+  // DEMO モード: 認証不要ですべての admin ルートを通す
+  return NextResponse.next()
 }
 
 export const config = {

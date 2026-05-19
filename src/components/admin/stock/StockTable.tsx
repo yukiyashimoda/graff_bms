@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { styles } from '@/lib/ui'
 import {
   RiAddBoxFill,
   RiSubtractFill,
@@ -34,16 +35,19 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
   const [cost, setCost] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   function openModal(product: StockRow, mode: 'in' | 'out' | 'adjustment') {
     setModal({ product, mode })
     setQty(mode === 'adjustment' ? String(product.quantity) : '')
     setCost('')
     setNotes('')
+    setError(null)
   }
 
   function closeModal() {
     setModal(null)
+    setError(null)
   }
 
   async function handleSubmit() {
@@ -52,15 +56,21 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
     if (isNaN(quantity) || quantity < 0) return
 
     setLoading(true)
-    await recordStockTransaction(
-      modal.product.id,
-      modal.mode,
-      quantity,
-      cost ? parseFloat(cost) : null,
-      notes || null,
-    )
-    setLoading(false)
-    closeModal()
+    setError(null)
+    try {
+      await recordStockTransaction(
+        modal.product.id,
+        modal.mode,
+        quantity,
+        cost ? parseFloat(cost) : null,
+        notes || null,
+      )
+      closeModal()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '処理に失敗しました')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const lowCount = rows.filter(r => r.quantity < r.min_quantity).length
@@ -142,17 +152,11 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
                     </td>
                     <td className="px-4 py-3">
                       {isLow ? (
-                        <span
-                          className="px-2 py-0.5 rounded-md text-xs font-medium"
-                          style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
-                        >
+                        <span className="px-2 py-0.5 rounded-md text-xs font-medium" style={styles.badge.warn}>
                           不足
                         </span>
                       ) : (
-                        <span
-                          className="px-2 py-0.5 rounded-md text-xs font-medium"
-                          style={{ background: 'var(--bg-base)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-                        >
+                        <span className="px-2 py-0.5 rounded-md text-xs font-medium" style={styles.badge.normal}>
                           正常
                         </span>
                       )}
@@ -278,13 +282,20 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
               />
             </div>
 
+            {/* エラー表示 */}
+            {error && (
+              <p className="text-xs px-3 py-2 rounded-xl" style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)' }}>
+                {error}
+              </p>
+            )}
+
             {/* ボタン */}
             <div className="flex gap-3 pt-1">
               <button
                 onClick={handleSubmit}
                 disabled={loading || !qty}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
-                style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
+                style={styles.btnPrimary}
               >
                 {loading ? (
                   <span className="text-xs">処理中...</span>
@@ -298,7 +309,7 @@ export function StockTable({ rows }: { rows: StockRow[] }) {
               <button
                 onClick={closeModal}
                 className="px-4 py-3 rounded-xl text-sm font-medium transition-colors"
-                style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                style={styles.btnSecondary}
               >
                 キャンセル
               </button>
