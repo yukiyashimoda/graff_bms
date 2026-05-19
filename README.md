@@ -6,6 +6,20 @@ Bar Management System — バー向けのオールインワン在庫・発注・
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?logo=supabase)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
+**[Live Demo](https://graff-bms.vercel.app/admin)** — 認証なしで全機能を試せます
+
+---
+
+## Screenshots
+
+| Dashboard | Stock |
+|-----------|-------|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Stock](docs/screenshots/stock.png) |
+
+| Pricing | Public Menu |
+|---------|-------------|
+| ![Pricing](docs/screenshots/pricing.png) | ![Menu](docs/screenshots/menu.png) |
+
 ---
 
 ## Features
