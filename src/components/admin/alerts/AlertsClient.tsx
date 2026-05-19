@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { RiArrowUpFill, RiCheckFill, RiInboxLine } from 'react-icons/ri'
 import { markAlertRead, markAllAlertsRead } from '@/app/admin/(protected)/alerts/actions'
@@ -30,10 +30,10 @@ export function AlertsClient({ alerts }: { alerts: AlertRow[] }) {
     setLoading(false)
   }
 
-  const handleMark = useCallback(async (id: string) => {
+  async function handleMark(id: string) {
     await markAlertRead(id)
     router.refresh()
-  }, [router])
+  }
 
   if (alerts.length === 0) {
     return (

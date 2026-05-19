@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { RiCheckFill, RiUploadCloud2Fill, RiDeleteBinFill } from 'react-icons/ri'
 import { saveIssuerProfile, type AppSettings } from '@/app/admin/(protected)/settings/actions'
 import { styles } from '@/lib/ui'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useToast } from '@/hooks/useToast'
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -16,10 +18,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function IssuerForm({ settings }: { settings: AppSettings }) {
-  const [saving,  setSaving]  = useState(false)
-  const [saved,   setSaved]   = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
-
   const [name,    setName]    = useState(settings.name    ?? '')
   const [phone,   setPhone]   = useState(settings.phone   ?? '')
   const [email,   setEmail]   = useState(settings.email   ?? '')
@@ -30,6 +28,18 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
   const [removeLogo,  setRemoveLogo]  = useState(false)
   const [dragging,    setDragging]    = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const savedToast = useToast(2000)
+  const save = useAsyncAction(async () => {
+    const fd = new FormData()
+    fd.append('name', name); fd.append('phone', phone)
+    fd.append('email', email); fd.append('address', address)
+    if (logoFile)   fd.append('logo', logoFile)
+    if (removeLogo) fd.append('remove_logo', '1')
+    const result = await saveIssuerProfile(fd)
+    if (result.error) throw new Error(result.error)
+    savedToast.show('保存しました')
+  })
 
   function applyFile(file: File) {
     if (!file.type.startsWith('image/')) return
@@ -45,22 +55,6 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
     const file = e.dataTransfer.files[0]
     if (file) applyFile(file)
   }, [])
-
-  async function handleSave() {
-    setSaving(true); setError(null); setSaved(false)
-    try {
-      const fd = new FormData()
-      fd.append('name', name); fd.append('phone', phone)
-      fd.append('email', email); fd.append('address', address)
-      if (logoFile)   fd.append('logo', logoFile)
-      if (removeLogo) fd.append('remove_logo', '1')
-      const result = await saveIssuerProfile(fd)
-      if (result.error) setError(result.error)
-      else { setSaved(true); setTimeout(() => setSaved(false), 2000) }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '保存に失敗しました')
-    } finally { setSaving(false) }
-  }
 
   return (
     <div
@@ -122,13 +116,13 @@ export function IssuerForm({ settings }: { settings: AppSettings }) {
           className="w-full px-3 py-2.5 text-sm outline-none rounded-xl resize-none" style={styles.input} />
       </Field>
 
-      {error && <p className="text-xs" style={{ color: '#d84f2a' }}>{error}</p>}
+      {save.error && <p className="text-xs" style={{ color: '#d84f2a' }}>{save.error}</p>}
 
-      <button onClick={handleSave} disabled={saving || saved}
+      <button onClick={save.run} disabled={save.loading || !!savedToast.message}
         className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-60"
         style={styles.btnPrimary}>
         <RiCheckFill size={14} />
-        {saved ? '保存しました' : saving ? '保存中...' : '保存する'}
+        {savedToast.message ?? (save.loading ? '保存中...' : '保存する')}
       </button>
     </div>
   )

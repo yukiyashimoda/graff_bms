@@ -13,6 +13,8 @@ import {
   RiFileListFill,
 } from 'react-icons/ri'
 import { createOrdersFromCart } from '@/app/admin/(protected)/orders/actions'
+import { useAsyncAction } from '@/hooks/useAsyncAction'
+import { useToast } from '@/hooks/useToast'
 
 export type CartItem = {
   id:            string
@@ -29,14 +31,33 @@ export type CartItem = {
 
 export function OrderCart({ items }: { items: CartItem[] }) {
   const router = useRouter()
-  const [cart,      setCart]     = useState<Record<string, number>>({})
-  const [query,     setQuery]    = useState('')
+  const [cart,      setCart]  = useState<Record<string, number>>({})
+  const [query,     setQuery] = useState('')
   const [lowOnly,   setLowOnly]  = useState(false)
   const [catFilter, setCat]      = useState<string | null>(null)
-  const [saving,       setSaving]      = useState(false)
-  const [showList,     setShowList]    = useState(false)
-  const [doneMsg,      setDoneMsg]     = useState<string | null>(null)
-  const [confirmError, setConfirmError] = useState<string | null>(null)
+  const [showList,  setShowList] = useState(false)
+
+  const toast   = useToast()
+  const confirm = useAsyncAction(async () => {
+    const pendingIds = Object.keys(cart)
+    const cartItems  = pendingIds
+      .map(id => {
+        const item = items.find(i => i.id === id)!
+        return {
+          product_id:  id,
+          supplier_id: item.supplier_id ?? '',
+          quantity:    cart[id],
+          unit_price:  item.cost_price,
+        }
+      })
+      .filter(i => i.supplier_id)
+
+    const { count } = await createOrdersFromCart(cartItems)
+    setCart({})
+    setShowList(false)
+    toast.show(`発注書を ${count} 件作成しました`)
+    router.refresh()
+  })
 
   const categories = useMemo(() => {
     const seen = new Set<string>()
@@ -60,10 +81,10 @@ export function OrderCart({ items }: { items: CartItem[] }) {
   const pendingCount = pendingIds.length
   const lowCount     = items.filter(i => i.quantity < i.min_quantity && i.min_quantity > 0).length
 
-  // 業者ごとにグループ化（モーダル表示用）
+  // 業者ごとにグループ化（モーダル表示用）— cart を直接依存させることでメモ化を正しく機能させる
   const bySupplier = useMemo(() => {
     const map = new Map<string, { name: string; items: { item: CartItem; qty: number }[] }>()
-    for (const id of pendingIds) {
+    for (const id of Object.keys(cart)) {
       const item = items.find(i => i.id === id)!
       const key  = item.supplier_id ?? '__none__'
       const name = item.supplier_name ?? '発注先未設定'
@@ -71,43 +92,12 @@ export function OrderCart({ items }: { items: CartItem[] }) {
       map.get(key)!.items.push({ item, qty: cart[id] })
     }
     return Array.from(map.entries())
-  }, [pendingIds, items, cart])
+  }, [cart, items])
 
   const totalAmount = pendingIds.reduce((s, id) => {
     const item = items.find(i => i.id === id)!
     return s + (item.cost_price ?? 0) * cart[id]
   }, 0)
-
-  async function handleConfirm() {
-    if (saving || pendingCount === 0) return
-    setSaving(true)
-    setConfirmError(null)
-    try {
-      const cartItems = pendingIds
-        .map(id => {
-          const item = items.find(i => i.id === id)!
-          return {
-            product_id:  id,
-            supplier_id: item.supplier_id ?? '',
-            quantity:    cart[id],
-            unit_price:  item.cost_price,
-          }
-        })
-        .filter(i => i.supplier_id)
-
-      const { count } = await createOrdersFromCart(cartItems)
-      setCart({})
-      setShowList(false)
-      setDoneMsg(`発注書を ${count} 件作成しました`)
-      router.refresh()
-      setTimeout(() => setDoneMsg(null), 4000)
-    } catch (e) {
-      console.error(e)
-      setConfirmError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const filtered = useMemo(() => {
     return items.filter(item => {
@@ -220,24 +210,24 @@ export function OrderCart({ items }: { items: CartItem[] }) {
           </button>
           <button
             onClick={() => setShowList(true)}
-            disabled={saving}
+            disabled={confirm.loading}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40 flex-shrink-0"
             style={{ background: 'rgba(255,255,255,0.15)' }}
           >
             <RiFileListFill size={14} />
-            {saving ? '作成中...' : '発注書を作成'}
+            {confirm.loading ? '作成中...' : '発注書を作成'}
           </button>
         </div>
       )}
 
       {/* 成功トースト */}
-      {doneMsg && (
+      {toast.message && (
         <div
           className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl text-sm font-semibold flex items-center gap-2"
           style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}
         >
           <RiCheckFill size={15} />
-          {doneMsg}
+          {toast.message}
         </div>
       )}
 
@@ -316,10 +306,10 @@ export function OrderCart({ items }: { items: CartItem[] }) {
 
             {/* 合計 + フッター */}
             <div className="px-5 py-4 space-y-3" style={{ borderTop: '1px solid var(--border)' }}>
-              {confirmError && (
+              {confirm.error && (
                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
                   <RiAlertFill size={13} style={{ color: '#ef4444' }} />
-                  <p className="text-xs" style={{ color: '#dc2626' }}>{confirmError}</p>
+                  <p className="text-xs" style={{ color: '#dc2626' }}>{confirm.error}</p>
                 </div>
               )}
               {totalAmount > 0 && (
@@ -339,13 +329,13 @@ export function OrderCart({ items }: { items: CartItem[] }) {
                   すべてリセット
                 </button>
                 <button
-                  onClick={handleConfirm}
-                  disabled={saving}
+                  onClick={confirm.run}
+                  disabled={confirm.loading}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
                   style={{ background: 'rgba(129,236,255,0.12)', color: '#81ecff', border: '1px solid rgba(129,236,255,0.3)' }}
                 >
                   <RiCheckFill size={14} />
-                  {saving ? '作成中...' : '発注書を作成'}
+                  {confirm.loading ? '作成中...' : '発注書を作成'}
                 </button>
               </div>
             </div>
