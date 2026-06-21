@@ -31,13 +31,14 @@ export async function createParentCategory(name: string): Promise<void> {
     .select('sort_order')
     .order('sort_order', { ascending: false })
     .limit(1)
-    .single()
-  await supabase.from('categories').insert({
+    .maybeSingle()
+  const { error } = await supabase.from('categories').insert({
     name,
-    name_en:    null,
+    name_en:    '',
     parent_id:  null,
     sort_order: (last?.sort_order ?? 0) + 1,
   })
+  if (error) throw new Error(error.message)
   revalidatePath('/admin/settings/categories')
   revalidatePath('/admin/products')
 }
@@ -49,21 +50,24 @@ export async function createSubCategory(name: string, parentId: string): Promise
     .select('sort_order')
     .order('sort_order', { ascending: false })
     .limit(1)
-    .single()
-  await supabase.from('categories').insert({
+    .maybeSingle()
+  const { error } = await supabase.from('categories').insert({
     name,
-    name_en:    null,
+    name_en:    '',
     parent_id:  parentId,
     sort_order: (last?.sort_order ?? 0) + 1,
   })
+  if (error) throw new Error(error.message)
   revalidatePath('/admin/settings/categories')
   revalidatePath('/admin/products')
 }
 
 export async function deleteSubCategory(id: string): Promise<void> {
   const supabase = await sb()
-  await supabase.from('products').update({ category_id: null }).eq('category_id', id)
-  await supabase.from('categories').delete().eq('id', id)
+  const { error: productError } = await supabase.from('products').update({ category_id: null }).eq('category_id', id)
+  if (productError) throw new Error(productError.message)
+  const { error } = await supabase.from('categories').delete().eq('id', id)
+  if (error) throw new Error(error.message)
   revalidatePath('/admin/settings/categories')
   revalidatePath('/admin/products')
 }
@@ -77,13 +81,23 @@ export async function deleteParentCategory(id: string): Promise<void> {
     .eq('parent_id', id)
   // 子カテゴリに紐づく商品のcategory_idをクリア
   for (const sub of subs ?? []) {
-    await supabase.from('products').update({ category_id: null }).eq('category_id', sub.id)
+    const { error } = await supabase.from('products').update({ category_id: null }).eq('category_id', sub.id)
+    if (error) throw new Error(error.message)
   }
   // 親カテゴリに直接紐づく商品のcategory_idをクリア
-  await supabase.from('products').update({ category_id: null }).eq('category_id', id)
+  {
+    const { error } = await supabase.from('products').update({ category_id: null }).eq('category_id', id)
+    if (error) throw new Error(error.message)
+  }
   // 子カテゴリを削除してから親を削除
-  await supabase.from('categories').delete().eq('parent_id', id)
-  await supabase.from('categories').delete().eq('id', id)
+  {
+    const { error } = await supabase.from('categories').delete().eq('parent_id', id)
+    if (error) throw new Error(error.message)
+  }
+  {
+    const { error } = await supabase.from('categories').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+  }
   revalidatePath('/admin/settings/categories')
   revalidatePath('/admin/products')
 }

@@ -47,11 +47,13 @@ export default function ProductForm({
   suppliers,
   productId,
   initialData,
+  errorMessage,
 }: {
   categories:   Category[]
   suppliers:    Supplier[]
   productId?:   string
   initialData?: ProductInitialData
+  errorMessage?: string | null
 }) {
   const isEdit = !!productId
   const d      = initialData
@@ -81,6 +83,15 @@ export default function ProductForm({
           {isEdit ? '商品を編集' : '商品を追加'}
         </h1>
       </div>
+
+      {errorMessage && (
+        <div
+          className="rounded-xl px-4 py-3 text-sm"
+          style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.3)', color: '#fca5a5' }}
+        >
+          {errorMessage}
+        </div>
+      )}
 
       <form
         action={action}

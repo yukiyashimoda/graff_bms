@@ -4,8 +4,17 @@ import ProductForm from '@/components/admin/products/ProductForm'
 
 type Props = { params: Promise<{ id: string }> }
 
-export default async function EditProductPage({ params }: Props) {
+const ERROR_MESSAGES: Record<string, string> = {
+  name_required: '商品名を入力してください。',
+  update_failed: '商品更新に失敗しました。入力内容を確認してください。',
+}
+
+export default async function EditProductPage({
+  params,
+  searchParams,
+}: Props & { searchParams: Promise<{ error?: string }> }) {
   const { id } = await params
+  const { error } = await searchParams
   const supabase = await createServiceClient()
 
   const [{ data: product }, { data: categories }, { data: suppliers }] = await Promise.all([
@@ -42,6 +51,7 @@ export default async function EditProductPage({ params }: Props) {
       }}
       categories={categories ?? []}
       suppliers={suppliers ?? []}
+      errorMessage={error ? (ERROR_MESSAGES[error] ?? '商品更新に失敗しました。') : null}
     />
   )
 }

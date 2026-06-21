@@ -23,14 +23,18 @@ function AddParentForm({ onDone }: { onDone: () => void }) {
   const router = useRouter()
   const [name,   setName]   = useState('')
   const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState<string | null>(null)
 
   async function handleAdd() {
     if (!name.trim()) return
     setSaving(true)
+    setError(null)
     try {
       await createParentCategory(name.trim())
       router.refresh()
       onDone()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'カテゴリーの追加に失敗しました')
     } finally {
       setSaving(false)
     }
@@ -44,15 +48,24 @@ function AddParentForm({ onDone }: { onDone: () => void }) {
       <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>大カテゴリーを追加</p>
       <input
         value={name}
-        onChange={e => setName(e.target.value)}
+        onChange={e => {
+          setName(e.target.value)
+          if (error) setError(null)
+        }}
         onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') onDone() }}
         placeholder="カテゴリー名"
         autoFocus
         className="w-full px-3 py-2 rounded-xl text-sm outline-none"
         style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
       />
+      {error && (
+        <p className="text-xs" style={{ color: '#f87171' }}>
+          {error}
+        </p>
+      )}
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={handleAdd}
           disabled={saving || !name.trim()}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
@@ -62,6 +75,7 @@ function AddParentForm({ onDone }: { onDone: () => void }) {
           追加する
         </button>
         <button
+          type="button"
           onClick={onDone}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm transition-opacity hover:opacity-70"
           style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
@@ -80,14 +94,18 @@ function AddSubForm({ parentId, onDone }: { parentId: string; onDone: () => void
   const router = useRouter()
   const [name,   setName]   = useState('')
   const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState<string | null>(null)
 
   async function handleAdd() {
     if (!name.trim()) return
     setSaving(true)
+    setError(null)
     try {
       await createSubCategory(name.trim(), parentId)
       router.refresh()
       onDone()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'サブカテゴリーの追加に失敗しました')
     } finally {
       setSaving(false)
     }
@@ -97,14 +115,23 @@ function AddSubForm({ parentId, onDone }: { parentId: string; onDone: () => void
     <div className="flex items-center gap-2 mt-2">
       <input
         value={name}
-        onChange={e => setName(e.target.value)}
+        onChange={e => {
+          setName(e.target.value)
+          if (error) setError(null)
+        }}
         onKeyDown={e => { if (e.key === 'Enter') handleAdd(); if (e.key === 'Escape') onDone() }}
         placeholder="サブカテゴリー名"
         autoFocus
         className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
         style={{ background: 'var(--bg-base)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
       />
+      {error && (
+        <p className="text-xs ml-1" style={{ color: '#f87171' }}>
+          {error}
+        </p>
+      )}
       <button
+        type="button"
         onClick={handleAdd}
         disabled={saving || !name.trim()}
         className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-40"
@@ -114,6 +141,7 @@ function AddSubForm({ parentId, onDone }: { parentId: string; onDone: () => void
         追加
       </button>
       <button
+        type="button"
         onClick={onDone}
         className="p-2 rounded-xl transition-colors hover:bg-[var(--bg-base)]"
         style={{ color: 'var(--text-muted)' }}
@@ -175,6 +203,7 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
               <div className="flex items-center gap-1.5">
                 {!isAdding && (
                   <button
+                    type="button"
                     onClick={() => setAddingFor(parent.id)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition-opacity hover:opacity-70"
                     style={{ background: 'var(--bg-base)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
@@ -184,6 +213,7 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
                   </button>
                 )}
                 <button
+                  type="button"
                   onClick={() => handleDeleteParent(parent.id, parent.name, subs.length)}
                   className="p-1.5 rounded-xl transition-opacity hover:opacity-70"
                   style={{ color: '#ef4444' }}
@@ -205,6 +235,7 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
                   >
                     {sub.name}
                     <button
+                      type="button"
                       onClick={() => handleDeleteSub(sub.id)}
                       className="ml-0.5 w-5 h-5 rounded-full flex items-center justify-center transition-colors hover:bg-[var(--border)]"
                       style={{ color: 'var(--text-muted)' }}
@@ -235,6 +266,7 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
         <AddParentForm onDone={() => setAddingParent(false)} />
       ) : (
         <button
+          type="button"
           onClick={() => setAddingParent(true)}
           className="w-full flex items-center justify-center gap-2 h-12 rounded-2xl text-sm font-semibold transition-opacity hover:opacity-70"
           style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px dashed var(--border)' }}
